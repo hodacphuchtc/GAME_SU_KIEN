@@ -54,6 +54,13 @@ export const T = {
   totalPlays: "Tổng lượt chơi",
   totalWins: "Tổng giải đã trúng",
 
+  // ---- Màn điện thoại ----
+  phoneConnecting: "Đang kết nối với màn hình…",
+  phoneBusy: "Màn hình lớn đang có người chơi. Chờ một chút rồi quét lại nhé!",
+  phoneLookAtScreen: "Nhìn màn hình lớn",
+  phoneHint: (so: string) => `Bấm DỪNG đúng khoảnh khắc bảng số trên màn hình lớn hiện ${so}`,
+  phoneWait: "CHỜ MỘT CHÚT…",
+
   // ---- Kết quả ----
   congrats: "CHÚC MỪNG!",
   wonExact: "Bạn đã dừng đúng số",

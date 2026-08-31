@@ -8,7 +8,11 @@ const nextConfig: NextConfig = {
    * bằng SSE, và các server action ghi dữ liệu — web tĩnh không làm được những
    * việc đó. Đổi lại vẫn chỉ cần `npm start`, không phụ thuộc dịch vụ nào.
    */
-  trailingSlash: true,
+  /*
+   * KHÔNG bật trailingSlash: nó khiến /api/gio bị chuyển hướng 308 sang
+   * /api/gio/ — thêm một lượt đi–về vào đúng phép đo độ lệch đồng hồ, làm
+   * hỏng chính thứ nó đang đo.
+   */
 
   /*
    * 🔴 Bắt buộc để thử trên ĐIỆN THOẠI THẬT khi chạy `npm run dev:dienthoai`.

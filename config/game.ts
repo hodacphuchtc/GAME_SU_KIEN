@@ -140,9 +140,6 @@ export const NEAR_MISS_THRESHOLD = 10;
  * — thứ không ai nhìn ra — còn con số cuối thì khớp 100%.
  * ------------------------------------------------------------------------- */
 
-/** Cổng của máy chủ trung chuyển chạy cùng máy với web (xem `server/relay.mjs`). */
-export const RELAY_PORT = 3001;
-
 /** Bảng chữ cái mã phòng — bỏ ký tự dễ đọc nhầm để nhân viên đọc to được. */
 export const ROOM_ALPHABET = "ACDEFGHJKLMNPQRTUVWXY3479";
 export const ROOM_CODE_LENGTH = 4;

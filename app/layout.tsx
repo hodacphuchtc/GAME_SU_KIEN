@@ -28,7 +28,11 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="vi" className={`${chuChinh.variable} h-full`}>
       <body className="min-h-full font-[family-name:var(--font-chinh)] antialiased">

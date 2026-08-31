@@ -2,7 +2,7 @@ import "server-only";
 
 import { DIFFICULTIES, type DifficultyId, type RoundSettings } from "@/config/game";
 import { chay, layMot, layNhieu } from "@/lib/db/truy-van";
-import { randomRoomCode } from "@/lib/ket-noi";
+import { sinhMa } from "@/lib/chuong-trinh/ma-chuong-trinh";
 
 /**
  * Kho đọc–ghi chương trình. MỌI câu lệnh SQL của bảng `chuong_trinh` nằm ở đây,
@@ -70,7 +70,7 @@ function doiDong(dong: DongChuongTrinh): ChuongTrinhKemSoLieu {
 /** Sinh mã chưa ai dùng. Bốn ký tự cho 390.625 khả năng — đủ xa để không đụng. */
 function maChuaDung(): string {
   for (let i = 0; i < 50; i += 1) {
-    const ma = randomRoomCode();
+    const ma = sinhMa();
     if (!layMot("select 1 from chuong_trinh where ma = ?", ma)) return ma;
   }
   throw new Error("Không sinh được mã chương trình mới sau 50 lần thử");
