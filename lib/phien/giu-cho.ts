@@ -90,3 +90,18 @@ export function dangGiuCho(ma: string, loai: LoaiCho, token: string): boolean {
     ) !== undefined
   );
 }
+
+/**
+ * Nhả chỗ mà KHÔNG cần token — chỉ máy chủ gọi sau khi ván đã chốt xong.
+ * Không mở hàm này ra cho máy khách: ai cũng gọi được thì ai cũng đá được
+ * người đang chơi ra giữa chừng.
+ */
+export function nhaChoBatKe(ma: string, loai: LoaiCho): boolean {
+  const { token: cotToken, han: cotHan } = COT[loai];
+  return (
+    chay(
+      `update chuong_trinh set ${cotToken} = null, ${cotHan} = null where ma = ?`,
+      ma,
+    ) > 0
+  );
+}

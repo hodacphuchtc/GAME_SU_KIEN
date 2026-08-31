@@ -77,7 +77,7 @@ export const DIFFICULTIES: Record<DifficultyId, Difficulty> = {
     },
   },
   vua: {
-    label: "Vừa",
+    label: "Trung bình",
     note: "Mức khuyên dùng. Hàng nghìn + hàng trăm còn đọc được để canh, hàng chục + đơn vị nhoè — người chơi tin là kỹ năng.",
     settings: {
       startSpeed: 250,
@@ -101,6 +101,9 @@ export const DIFFICULTIES: Record<DifficultyId, Difficulty> = {
     },
   },
 };
+
+/** Ba mức đưa ra cho nhân viên chọn. Mức "thu" giữ lại chỉ để chạy test tự động. */
+export const MUC_CHON: DifficultyId[] = ["de", "vua", "kho"];
 
 export const DEFAULT_DIFFICULTY: DifficultyId = "vua";
 export const DEFAULT_SETTINGS: RoundSettings = DIFFICULTIES[DEFAULT_DIFFICULTY].settings;

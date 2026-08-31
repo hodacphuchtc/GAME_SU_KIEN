@@ -23,6 +23,41 @@ export const T = {
   settingsLink: "Cài đặt",
   rulesLink: "Thể lệ",
 
+  // ---- Màn thiết lập ----
+  createTitle: "Tạo chương trình đếm số",
+  createSubtitle:
+    "Chọn số trúng thưởng và độ khó, bấm tạo là có ngay mã QR để in dán tại quầy.",
+  createCenter: "Tên cơ sở / trung tâm",
+  createTarget: "Số trúng thưởng (4 chữ số)",
+  createPrize: "Tên phần thưởng",
+  createCap: "Trần số giải mỗi ngày (0 = không giới hạn)",
+  createSubmit: "TẠO CHƯƠNG TRÌNH",
+  createBack: "Quay lại danh sách",
+  createOddsTitle: "Tỉ lệ trúng ước tính",
+  createWarnUnreachable:
+    "⚠️ Với cấu hình này con số đã cài KHÔNG BAO GIỜ lướt qua trong một lượt — không ai trúng được.",
+
+  // ---- Màn chi tiết ----
+  detailQr: "Mã QR dán tại quầy",
+  detailQrHint: "In tờ này và dán ở lễ tân. Phụ huynh quét là chơi được ngay.",
+  detailPrint: "In mã QR",
+  detailOpenScreen: "Mở màn hình LCD",
+  detailStop: "TẮT CHƯƠNG TRÌNH",
+  detailStopped: "Chương trình đã kết thúc",
+  detailHistory: "Lịch sử quay số",
+  detailHistoryEmpty: "Chưa có lượt chơi nào.",
+  detailExport: "Xuất CSV",
+  colTime: "Thời điểm",
+  colPlayer: "Người chơi",
+  colStopped: "Dừng ở",
+  colResult: "Kết quả",
+  colDevice: "Bấm từ",
+  resultWin: "TRÚNG",
+  resultLose: "Trượt",
+  deviceScreen: "Màn hình",
+  devicePhone: "Điện thoại",
+  deviceTimeout: "Hết giờ",
+
   // ---- Khung quản trị ----
   adminBrandA: "Sata",
   adminBrandB: "Robo",
@@ -60,6 +95,27 @@ export const T = {
   phoneLookAtScreen: "Nhìn màn hình lớn",
   phoneHint: (so: string) => `Bấm DỪNG đúng khoảnh khắc bảng số trên màn hình lớn hiện ${so}`,
   phoneWait: "CHỜ MỘT CHÚT…",
+
+  // ---- Bước nhập thông tin trên điện thoại ----
+  formTitle: "Trước khi chơi",
+  formName: "Họ và tên",
+  formNamePlaceholder: "Nguyễn Thị Hoa",
+  formPhone: "Số điện thoại",
+  formPhonePlaceholder: "0912345678",
+  formConsent: "Tôi đồng ý nhận tư vấn khoá học từ trung tâm",
+  formPrivacy:
+    "Trung tâm lưu họ tên và số điện thoại của bạn để đối soát giải thưởng. Bạn có thể yêu cầu xoá bất cứ lúc nào tại quầy lễ tân.",
+  formSubmit: "TIẾP TỤC",
+  formOneADay: "Mỗi số điện thoại chơi một lượt mỗi ngày.",
+  onlyFun: "Hôm nay đã hết quà — bạn vẫn chơi được cho vui nhé!",
+  blocked: "Chưa chơi được",
+
+  // ---- Mời học thử sau khi thua ----
+  /** Lệch sát thì reo lên; lệch xa mà vẫn "thôi" thì đọc như trêu người ta. */
+  trialOfferNear: (n: number) => `Lệch ${n} số thôi! Tặng bạn 1 buổi học thử miễn phí`,
+  trialOfferFar: "Chưa trúng lần này — tặng bạn 1 buổi học thử miễn phí",
+  trialButton: "NHẬN BUỔI HỌC THỬ",
+  trialDone: "Đã ghi nhận! Nhân viên sẽ liên hệ với bạn.",
 
   // ---- Kết quả ----
   congrats: "CHÚC MỪNG!",

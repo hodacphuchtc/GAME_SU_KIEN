@@ -82,3 +82,12 @@ describe("giữ chỗ — mỗi chương trình một thiết bị", () => {
     expect(giuCho(ma, "nguoi_choi", "may-1").duoc).toBe(false);
   });
 });
+
+describe("nhả chỗ sau khi chốt ván", () => {
+  it("máy chủ nhả được chỗ mà không cần token — người xếp hàng sau vào ngay", async () => {
+    const { nhaChoBatKe } = await import("@/lib/phien/giu-cho");
+    giuCho(ma, "nguoi_choi", "may-1");
+    expect(nhaChoBatKe(ma, "nguoi_choi")).toBe(true);
+    expect(giuCho(ma, "nguoi_choi", "may-2").duoc).toBe(true);
+  });
+});
