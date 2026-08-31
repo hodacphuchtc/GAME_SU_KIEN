@@ -59,6 +59,11 @@ export const T = {
   passCount: "Số lướt qua trong một lượt",
   times: "lần",
   atSecond: "tại giây",
+  baseUrlField: "Địa chỉ máy chủ (địa chỉ mà ĐIỆN THOẠI sẽ mở)",
+  baseUrlHint:
+    "Mặc định lấy đúng địa chỉ bạn đang mở trang này. Sửa ở đây nếu muốn mã QR trỏ tới địa chỉ khác — ví dụ địa chỉ mạng LAN của máy, hay tên miền thật sau khi đưa lên mạng.",
+  warnLocalhost:
+    "⚠️ Bạn đang mở trang này bằng localhost, nên mã QR sinh ra CHỈ máy này quét được — điện thoại của phụ huynh sẽ báo không mở được trang. Hãy sửa ô địa chỉ bên trên thành địa chỉ mạng LAN của máy (dạng http://192.168.x.x:3000), hoặc mở lại chính trang này bằng địa chỉ đó.",
   playUrl: "Đường dẫn cho người chơi",
   copyUrl: "Chép đường dẫn",
   copied: "Đã chép!",
@@ -72,6 +77,22 @@ export const T = {
     "⚠️ Cấu hình này dễ trúng bất thường — chỉ nên dùng để xem thử hoặc demo, đừng treo giải thật.",
   oddsNote:
     "Ước tính dựa trên độ lệch phản xạ 0,08 giây của người thường. Tốc độ đổi CẢM GIÁC khó, còn tỉ lệ trúng chủ yếu do (giới hạn lượt − thời gian khoá nút) quyết định.",
+
+  // ---- Chiếu lên màn hình LCD ----
+  lcdTitle: "Màn hình trung tâm",
+  lcdScanToPlay: "QUÉT MÃ ĐỂ CHƠI",
+  lcdRoomCode: "Mã phòng",
+  lcdWaiting: "Đang chờ người chơi…",
+  lcdJoined: "Có người vừa quét mã — chuẩn bị!",
+  lcdPlaying: "ĐANG CHƠI",
+  lcdOffline:
+    "⚠️ Chưa nối được máy chủ trung chuyển. Màn hình vẫn hiện mã QR và phụ huynh vẫn chơi được trên điện thoại, nhưng KHÔNG chiếu song song lên đây. Kiểm tra xem đã chạy `npm run trung-tam` chưa.",
+  lcdOpenScreen: "Mở màn hình LCD",
+  lcdOpenHint:
+    "Mở trang này trên máy nối với LCD rồi bật toàn màn hình (F11 hoặc ⌃⌘F). Màn hình sẽ tự sinh mã phòng và vẽ mã QR — phụ huynh quét là ván chơi của họ hiện song song lên đây.",
+  mirrorOn: "Đang chiếu lên màn hình lớn",
+  mirrorBusy: "Màn hình lớn đang có người chơi — bạn vẫn chơi bình thường trên máy mình",
+  mirrorOff: "Không nối được màn hình lớn — bạn vẫn chơi bình thường",
 
   // ---- Thể lệ ----
   rulesTitle: "Thể lệ",

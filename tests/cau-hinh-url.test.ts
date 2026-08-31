@@ -11,6 +11,8 @@ import {
 import {
   buildPlayUrl,
   clampSettings,
+  isLocalOnly,
+  normalizeBase,
   parseGameConfig,
 } from "@/lib/cau-hinh-url";
 
@@ -22,6 +24,7 @@ describe("đọc cấu hình từ URL", () => {
     expect(config.centerName).toBe(DEFAULT_CENTER_NAME);
     expect(config.prizeName).toBe(DEFAULT_PRIZE_NAME);
     expect(config.settings).toEqual(DIFFICULTIES[DEFAULT_DIFFICULTY].settings);
+    expect(config.room).toBe("");
   });
 
   it("đọc đúng số cài có số 0 ở đầu và mức khó", () => {
@@ -103,6 +106,7 @@ describe("đường dẫn in ra mã QR", () => {
         roundLimitSeconds: 25,
         countdownSeconds: 2,
       }),
+      room: "AC37",
       centerName: "Trung tâm Hoa Mai",
       prizeName: "Balo",
     };
@@ -117,9 +121,39 @@ describe("đường dẫn in ra mã QR", () => {
       target: 211,
       difficulty: "vua",
       settings: DIFFICULTIES.vua.settings,
+      room: "",
       centerName: DEFAULT_CENTER_NAME,
       prizeName: DEFAULT_PRIZE_NAME,
     });
     expect(url).toBe("https://vi-du.vn/?so=0211&muc=vua");
+  });
+});
+
+describe("địa chỉ máy chủ cho mã QR", () => {
+  it("gõ thiếu http:// thì tự thêm vào", () => {
+    expect(normalizeBase("192.168.1.10:3000")).toBe("http://192.168.1.10:3000");
+    expect(normalizeBase("demso.vercel.app")).toBe("http://demso.vercel.app");
+  });
+
+  it("giữ nguyên https và bỏ dấu / thừa ở cuối", () => {
+    expect(normalizeBase("https://demso.vercel.app/")).toBe("https://demso.vercel.app");
+    expect(normalizeBase("  http://192.168.1.10:3000///  ")).toBe(
+      "http://192.168.1.10:3000",
+    );
+  });
+
+  it("để trống thì trả về rỗng để nơi gọi rơi về địa chỉ đang mở", () => {
+    expect(normalizeBase("")).toBe("");
+    expect(normalizeBase("   ")).toBe("");
+  });
+
+  it("nhận ra địa chỉ chỉ máy đó mở được — thứ làm hỏng cả tấm QR đã in", () => {
+    expect(isLocalOnly("http://localhost:3000")).toBe(true);
+    expect(isLocalOnly("http://127.0.0.1:3000/cai-dat")).toBe(true);
+    expect(isLocalOnly("http://[::1]:3000")).toBe(true);
+    expect(isLocalOnly("http://192.168.88.104:3000")).toBe(false);
+    expect(isLocalOnly("https://demso.vercel.app")).toBe(false);
+    // Không được bắt nhầm tên miền chỉ TÌNH CỜ chứa chữ localhost.
+    expect(isLocalOnly("https://localhost.trungtam.vn")).toBe(false);
   });
 });

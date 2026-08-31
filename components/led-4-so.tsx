@@ -79,11 +79,12 @@ export interface Led4DigitsProps {
   value: string;
   /** Nhãn đọc cho trình đọc màn hình. */
   label?: string;
-  /** Cỡ bảng: "large" màn chơi, "medium" màn kết quả, "small" trang cài đặt. */
-  size?: "large" | "medium" | "small";
+  /** Cỡ bảng: "tv" màn hình LCD, "large" màn chơi, "medium" màn kết quả, "small" trang cài đặt. */
+  size?: "tv" | "large" | "medium" | "small";
 }
 
 const HEIGHT_BY_SIZE: Record<NonNullable<Led4DigitsProps["size"]>, string> = {
+  tv: "h-40 sm:h-56 lg:h-72 xl:h-80",
   large: "h-28 sm:h-36",
   medium: "h-20",
   small: "h-12",

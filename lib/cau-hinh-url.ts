@@ -6,6 +6,7 @@
  * nguồn), nên việc nó lộ ra trên URL không phải là vấn đề.
  */
 
+import { normalizeRoomCode } from "@/lib/ket-noi";
 import {
   DEFAULT_CENTER_NAME,
   DEFAULT_DIFFICULTY,
@@ -22,6 +23,8 @@ export type DifficultyChoice = DifficultyId | "custom";
 
 export interface GameConfig {
   target: number;
+  /** Mã phòng để chiếu song song lên màn hình LCD. Rỗng = chơi một mình. */
+  room: string;
   difficulty: DifficultyChoice;
   settings: RoundSettings;
   centerName: string;
@@ -40,6 +43,7 @@ export const PARAM = {
   lock: "khoa",
   limit: "gh",
   countdown: "dn",
+  room: "phong",
 } as const;
 
 const MAX_NAME_LENGTH = 60;
@@ -155,6 +159,7 @@ export function parseGameConfig(input: string | URLSearchParams): GameConfig {
     target,
     difficulty,
     settings,
+    room: normalizeRoomCode(params.get(PARAM.room) ?? ""),
     centerName: readName(params, PARAM.center, DEFAULT_CENTER_NAME),
     prizeName: readName(params, PARAM.prize, DEFAULT_PRIZE_NAME),
   };
@@ -165,6 +170,7 @@ export function buildQuery(config: GameConfig): string {
   const params = new URLSearchParams();
   params.set(PARAM.target, config.target.toString().padStart(4, "0"));
   params.set(PARAM.difficulty, config.difficulty);
+  if (config.room !== "") params.set(PARAM.room, config.room);
   if (config.centerName && config.centerName !== DEFAULT_CENTER_NAME) {
     params.set(PARAM.center, config.centerName);
   }
@@ -187,4 +193,23 @@ export function buildQuery(config: GameConfig): string {
 export function buildPlayUrl(origin: string, config: GameConfig): string {
   const base = origin.replace(/\/+$/, "");
   return `${base}/?${buildQuery(config)}`;
+}
+
+/**
+ * Chuẩn hoá địa chỉ máy chủ do nhân viên gõ tay: thêm `http://` nếu thiếu và
+ * bỏ dấu `/` thừa ở cuối. Gõ thiếu giao thức là lỗi hay gặp nhất, và nó chỉ
+ * lộ ra sau khi mã QR đã in và dán lên tường.
+ */
+export function normalizeBase(raw: string): string {
+  const text = raw.trim().replace(/\/+$/, "");
+  if (text === "") return "";
+  return /^https?:\/\//i.test(text) ? text : `http://${text}`;
+}
+
+/**
+ * Địa chỉ chỉ chính máy đó mở được. Mã QR dựng từ địa chỉ như vậy thì điện
+ * thoại của phụ huynh quét vào sẽ báo không mở được trang — phải cảnh báo.
+ */
+export function isLocalOnly(base: string): boolean {
+  return /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|$|\/)/i.test(base);
 }

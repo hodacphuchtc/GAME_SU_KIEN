@@ -125,3 +125,33 @@ export const DEFAULT_PRIZE_NAME = "Phần quà";
  * sát nút mới quay lại thử tiếp.
  */
 export const NEAR_MISS_THRESHOLD = 10;
+
+/* ------------------------------------------------------------------------- *
+ * CHIẾU SONG SONG LÊN MÀN HÌNH LỚN (LCD đặt tại trung tâm)
+ *
+ * Màn hình LCD mở `/man-hinh`, tự sinh một MÃ PHÒNG rồi vẽ mã QR chứa mã đó.
+ * Phụ huynh quét QR → điện thoại vào đúng phòng ấy → mọi diễn biến của ván
+ * được chiếu song song lên LCD, và kết quả cuối luôn khớp tuyệt đối.
+ *
+ * Cách đồng bộ (quan trọng, đừng làm khác): KHÔNG truyền từng con số qua mạng.
+ * Điện thoại chỉ báo "bắt đầu" rồi "kết quả"; LCD tự chạy bảng số bằng chính
+ * công thức trong `lib/bo-dem.ts`, và khi nhận kết quả thì SNAP thẳng về đúng
+ * con số điện thoại đã dừng. Nhờ vậy độ trễ mạng chỉ làm lệch phần NHOÈ ở giữa
+ * — thứ không ai nhìn ra — còn con số cuối thì khớp 100%.
+ * ------------------------------------------------------------------------- */
+
+/** Cổng của máy chủ trung chuyển chạy cùng máy với web (xem `server/relay.mjs`). */
+export const RELAY_PORT = 3001;
+
+/** Bảng chữ cái mã phòng — bỏ ký tự dễ đọc nhầm để nhân viên đọc to được. */
+export const ROOM_ALPHABET = "ACDEFGHJKLMNPQRTUVWXY3479";
+export const ROOM_CODE_LENGTH = 4;
+
+/** Giữ chỗ cho người đang chơi bấy nhiêu giây rồi tự nhả nếu họ bỏ đi. */
+export const ROOM_HOLD_SECONDS = 120;
+
+/** LCD hiện màn kết quả bao lâu rồi quay về mã QR chờ người tiếp theo. */
+export const LCD_RESULT_SECONDS = { win: 25, lose: 8 } as const;
+
+/** Không nhận được tin gì từ điện thoại quá lâu thì LCD tự về màn chờ. */
+export const LCD_IDLE_TIMEOUT_SECONDS = 75;

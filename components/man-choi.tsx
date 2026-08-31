@@ -16,12 +16,28 @@ import {
 } from "@/lib/bo-dem";
 import { createSoundEngine, type SoundEngine } from "@/lib/am-thanh";
 import { parseGameConfig } from "@/lib/cau-hinh-url";
+import { newClientId, relayBase, sendToRoom } from "@/lib/ket-noi";
+import { verifyCode } from "@/lib/ma-xac-thuc";
+import { useClientString } from "@/lib/tren-may-khach";
 import { VIBRATE_LOSE, VIBRATE_PRESS, VIBRATE_WIN, vibrate } from "@/lib/rung";
 import { Led4Digits } from "@/components/led-4-so";
 import { PlayButton, type PlayButtonMode } from "@/components/nut-choi";
 import { ResultScreen } from "@/components/man-ket-qua";
 
 type Phase = "idle" | "countdown" | "running" | "result";
+
+/** Trạng thái chiếu song song lên màn hình LCD của trung tâm. */
+type MirrorState = "off" | "on" | "busy";
+
+/**
+ * Định danh của MÁY NÀY trong MỘT phiên — để máy chủ trung chuyển biết ai đang
+ * giữ lượt. Không phải danh tính người dùng, không lưu đi đâu, đóng tab là mất.
+ */
+let cachedClientId: string | null = null;
+function sessionClientId(): string {
+  if (cachedClientId === null) cachedClientId = newClientId();
+  return cachedClientId;
+}
 
 /**
  * Một số trình duyệt cũ đặt `event.timeStamp` theo mốc 1970 thay vì mốc mở
@@ -40,6 +56,12 @@ export function GameScreen() {
   const [frame, setFrame] = useState({ value: 0, elapsed: 0 });
   const [result, setResult] = useState<RoundResult | null>(null);
   const [muted, setMuted] = useState(false);
+  const [mirror, setMirror] = useState<MirrorState>("off");
+
+  const base = useClientString(() => relayBase(window.location));
+  const clientId = useClientString(sessionClientId);
+  const room = config.room;
+  const mirrorRef = useRef<MirrorState>("off");
 
   const startedAtRef = useRef(0);
   const rafRef = useRef(0);
@@ -56,12 +78,31 @@ export function GameScreen() {
     };
   }, []);
 
+  /** Đẩy một diễn biến lên màn hình lớn. Thất bại thì im lặng — ván vẫn chạy. */
+  const pushToScreen = useCallback(
+    (event: Parameters<typeof sendToRoom>[3]) => {
+      if (room === "" || base === "" || mirrorRef.current !== "on") return;
+      void sendToRoom(base, room, clientId, event);
+    },
+    [base, clientId, room],
+  );
+
   const finish = useCallback(
     (seconds: number, timedOut: boolean) => {
       cancelAnimationFrame(rafRef.current);
       const round = resolveRound(settings, config.target, seconds, timedOut);
       setResult(round);
       setPhase("result");
+      pushToScreen({
+        type: "ket-qua",
+        value: round.value,
+        target: round.target,
+        win: round.win,
+        distance: round.distance,
+        timedOut: round.timedOut,
+        prizeName: config.prizeName,
+        code: verifyCode(round.target),
+      });
       if (round.win) {
         soundRef.current?.win();
         vibrate(VIBRATE_WIN);
@@ -70,7 +111,7 @@ export function GameScreen() {
         vibrate(VIBRATE_LOSE);
       }
     },
-    [config.target, settings],
+    [config.prizeName, config.target, pushToScreen, settings],
   );
 
   const beginRun = useCallback(() => {
@@ -79,6 +120,7 @@ export function GameScreen() {
     startedAtRef.current = performance.now();
     setFrame({ value: 0, elapsed: 0 });
     setPhase("running");
+    pushToScreen({ type: "bat-dau", target: config.target, settings });
 
     function loop() {
       const elapsed = (performance.now() - startedAtRef.current) / 1000;
@@ -99,24 +141,35 @@ export function GameScreen() {
     }
 
     rafRef.current = requestAnimationFrame(loop);
-  }, [finish, settings]);
+  }, [config.target, finish, pushToScreen, settings]);
 
   const startRound = useCallback(() => {
     soundRef.current?.ensureStarted();
     vibrate(VIBRATE_PRESS);
     setResult(null);
+
+    // Xin một lượt trên màn hình lớn. Không xin được cũng KHÔNG cản ván chơi —
+    // chiếu lên LCD là phần thưởng thêm, không phải điều kiện.
+    if (room !== "" && base !== "") {
+      void sendToRoom(base, room, clientId, { type: "xin-choi" }).then((reply) => {
+        const next: MirrorState = !reply.ok ? "off" : reply.duocChoi ? "on" : "busy";
+        mirrorRef.current = next;
+        setMirror(next);
+      });
+    }
     if (settings.countdownSeconds <= 0) {
       beginRun();
       return;
     }
     setCountdownLeft(settings.countdownSeconds);
     setPhase("countdown");
-  }, [beginRun, settings.countdownSeconds]);
+  }, [base, beginRun, clientId, room, settings.countdownSeconds]);
 
   // Đếm ngược 3 – 2 – 1 rồi thả bảng số chạy.
   useEffect(() => {
     if (phase !== "countdown") return;
     soundRef.current?.countdown(false);
+    pushToScreen({ type: "dem-nguoc", con: countdownLeft });
     const timer = window.setTimeout(() => {
       if (countdownLeft <= 1) {
         soundRef.current?.countdown(true);
@@ -126,7 +179,7 @@ export function GameScreen() {
       }
     }, 1000);
     return () => window.clearTimeout(timer);
-  }, [phase, countdownLeft, beginRun]);
+  }, [phase, countdownLeft, beginRun, pushToScreen]);
 
   const stopNow = useCallback(
     (rawTimestamp: number) => {
@@ -209,6 +262,17 @@ export function GameScreen() {
           </Link>
         </div>
       </header>
+
+      {room !== "" && mirror !== "off" && (
+        <p
+          className={[
+            "mx-5 mt-3 rounded-xl px-3 py-2 text-center text-xs font-semibold",
+            mirror === "on" ? "bg-luc/15 text-luc" : "bg-vang/15 text-vang",
+          ].join(" ")}
+        >
+          {mirror === "on" ? T.mirrorOn : T.mirrorBusy}
+        </p>
+      )}
 
       {phase === "result" && result ? (
         <ResultScreen

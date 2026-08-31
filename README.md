@@ -14,6 +14,38 @@ không cần cài ứng dụng, không phải đăng ký, không khai thông tin
 4. Nút sáng đỏ thì bấm — trùng khít cả 4 chữ số mới tính là trúng.
 5. Trượt thì màn hình nói rõ **lệch mấy số** để còn thử lại.
 
+## Chiếu song song lên màn hình LCD tại trung tâm
+
+Màn hình lớn chiếu mã QR; phụ huynh quét bằng điện thoại; **ván chơi hiện song song trên
+cả hai màn hình và kết quả cuối khớp tuyệt đối**.
+
+```bash
+npm run trung-tam          # chạy MỘT lệnh cho cả trung tâm
+```
+
+Lệnh này bật cùng lúc web (cổng 3000) và máy chủ trung chuyển (cổng 3001), rồi in sẵn các
+địa chỉ cần mở. Trên máy nối với LCD, mở `/man-hinh/?so=0211&muc=vua` và bật toàn màn hình
+(F11 hoặc ⌃⌘F). Màn hình tự sinh **mã phòng** 4 ký tự và vẽ mã QR chứa mã đó.
+
+**Cách đồng bộ — đây là chỗ dễ làm sai nhất.** Ứng dụng **không** truyền từng con số qua
+mạng. Điện thoại chỉ báo "bắt đầu" rồi "kết quả"; màn hình LCD tự chạy bảng số bằng chính
+công thức trong `lib/bo-dem.ts`, và khi nhận kết quả thì nhảy thẳng về đúng con số điện
+thoại đã dừng. Nhờ vậy độ trễ mạng chỉ làm lệch phần **nhoè** ở giữa — thứ không ai nhìn ra
+— còn **con số cuối thì khớp 100%**.
+
+Vài điều đã tính sẵn:
+
+- **Một người một lượt.** Người thứ hai bấm chơi trong lúc màn hình đang bận sẽ thấy dòng
+  "Màn hình lớn đang có người chơi" và **vẫn chơi bình thường trên máy mình**.
+- **Chiếu lên LCD là phần thưởng thêm, không phải điều kiện.** Tắt máy chủ trung chuyển,
+  rớt wifi hay quét nhầm mã phòng thì điện thoại vẫn chơi trọn vẹn.
+- Xong một ván, LCD tự quay về mã QR sau 8 giây (thắng thì 25 giây để kịp chụp ảnh).
+- Điện thoại bỏ đi giữa chừng thì LCD tự về màn chờ sau 75 giây, không treo ở đó.
+
+> **Máy chủ trung chuyển KHÔNG lưu gì.** Nó chỉ là cái loa nối hai màn hình, giữ tin trong
+> bộ nhớ và mất sạch khi tắt — không đĩa, không cơ sở dữ liệu, không dấu vết người chơi.
+> Chỉ chạy trong mạng nội bộ của trung tâm; đừng mở nó ra Internet.
+
 ## Dành cho nhân viên trực quầy
 
 Mở trang **`/cai-dat`**:
@@ -44,8 +76,23 @@ npm run lint
 npm run build        # xuất web tĩnh ra thư mục out/
 ```
 
-Muốn thử trên điện thoại thật: chạy `npm run dev`, rồi mở
-`http://<địa-chỉ-IP-của-máy>:3000/?so=0211&muc=vua` trên điện thoại cùng wifi.
+### Thử trên điện thoại thật
+
+```bash
+npm run dev:dienthoai        # mở cho cả máy khác trong mạng LAN
+```
+
+Rồi mở `http://<địa-chỉ-IP-của-máy>:3000/` trên điện thoại **cùng wifi**.
+
+> `npm run dev` thường chỉ nghe `localhost`, điện thoại không vào được — phải dùng
+> `dev:dienthoai`. Ngoài ra `next dev` mặc định **chặn tài nguyên dev từ địa chỉ khác
+> localhost**: trang vẫn mở, vẫn thấy giao diện, nhưng JS không tải nên bấm gì cũng không
+> ăn, trông y như app treo. `next.config.ts` đã khai sẵn `allowedDevOrigins` cho dải
+> 192.168.\*, 10.\*, 172.16.\* và `*.local` để tránh cái bẫy này.
+
+**Khi in mã QR nhớ mở `/cai-dat` bằng đúng địa chỉ mà điện thoại sẽ dùng** (không phải
+`localhost`), hoặc sửa thẳng ô *Địa chỉ máy chủ* trên trang đó. Mở bằng `localhost` rồi in
+thì tấm QR không ai quét được — trang có cảnh báo đỏ khi bạn rơi vào trường hợp này.
 
 ## Đưa lên mạng
 
@@ -81,7 +128,9 @@ việc nó nằm trên đường dẫn không phải là vấn đề.
 | `lib/ma-xac-thuc.ts` | Mã xác thực đổi theo phút |
 | `lib/am-thanh.ts` `lib/rung.ts` | Tiếng tick tự tổng hợp (Web Audio) · rung máy |
 | `components/` | Bảng LED 7 đoạn, nút bấm, màn kết quả |
-| `app/` | 3 trang: màn chơi · `/cai-dat` · `/the-le` |
+| `app/` | 4 trang: màn chơi · `/cai-dat` · `/man-hinh` (LCD) · `/the-le` |
+| `lib/ket-noi.ts` | Lớp truyền tin giữa điện thoại và màn hình LCD |
+| `server/relay.mjs` | Máy chủ trung chuyển — Node thuần, không thư viện, không lưu gì |
 | `tests/` | Vitest |
 
 ## Trò chơi được thiết kế thế nào

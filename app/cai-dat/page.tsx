@@ -27,7 +27,10 @@ import { estimateWinChance, formatNumber, formatOdds } from "@/lib/bo-dem";
 import { verifyCode } from "@/lib/ma-xac-thuc";
 import {
   buildPlayUrl,
+  buildQuery,
   clampSettings,
+  isLocalOnly,
+  normalizeBase,
   type DifficultyChoice,
   type GameConfig,
 } from "@/lib/cau-hinh-url";
@@ -105,6 +108,7 @@ export default function SettingsPage() {
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const [staffCode, setStaffCode] = useState("");
+  const [baseOverride, setBaseOverride] = useState("");
 
   const target = useMemo(() => {
     const parsed = Number.parseInt(targetText, 10);
@@ -120,14 +124,30 @@ export default function SettingsPage() {
     [customSettings, difficulty],
   );
 
+  // Mã QR ở đây là bản chơi MỘT MÌNH (không mã phòng). Bản chiếu song song lên
+  // LCD do chính trang /man-hinh tự sinh, vì mỗi lần bật màn hình là một phòng mới.
   const config: GameConfig = useMemo(
-    () => ({ target, difficulty, settings, centerName, prizeName }),
+    () => ({ target, difficulty, settings, room: "", centerName, prizeName }),
     [centerName, difficulty, prizeName, settings, target],
   );
 
+
+  // Địa chỉ dùng để dựng mã QR: mặc định là địa chỉ đang mở trang, nhưng nhân
+  // viên sửa được — vì mở trang bằng localhost mà in QR thì không ai quét nổi.
+  const baseUrl = useMemo(
+    () => normalizeBase(baseOverride) || origin,
+    [baseOverride, origin],
+  );
+  const localOnly = baseUrl !== "" && isLocalOnly(baseUrl);
+
   const playUrl = useMemo(
-    () => (origin ? buildPlayUrl(origin, config) : ""),
-    [config, origin],
+    () => (baseUrl ? buildPlayUrl(baseUrl, config) : ""),
+    [baseUrl, config],
+  );
+
+  const lcdUrl = useMemo(
+    () => (baseUrl ? `${baseUrl}/man-hinh/?${buildQuery(config)}` : ""),
+    [baseUrl, config],
   );
 
   const estimate = useMemo(
@@ -337,6 +357,24 @@ export default function SettingsPage() {
       </section>
 
       <section className="khong-in flex flex-col gap-3">
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-chu-mo">{T.baseUrlField}</span>
+          <input
+            value={baseOverride === "" ? origin : baseOverride}
+            onChange={(event) => setBaseOverride(event.target.value)}
+            placeholder="http://192.168.1.10:3000"
+            className={[
+              "rounded-xl border bg-nen-nhat px-3 py-2 font-mono text-sm text-chu",
+              localOnly ? "border-led" : "border-vien",
+            ].join(" ")}
+          />
+          <span className="text-xs leading-relaxed text-chu-mo">{T.baseUrlHint}</span>
+        </label>
+        {localOnly && (
+          <p className="rounded-xl bg-led/15 p-3 text-sm font-semibold leading-relaxed text-led">
+            {T.warnLocalhost}
+          </p>
+        )}
         <span className="text-sm text-chu-mo">{T.playUrl}</span>
         <code className="break-all rounded-xl border border-vien bg-nen-nhat p-3 text-xs text-chu-mo">
           {playUrl || "…"}
@@ -358,6 +396,21 @@ export default function SettingsPage() {
             {T.openTest}
           </a>
         </div>
+      </section>
+
+      <section className="khong-in flex flex-col gap-2 rounded-2xl border border-vang/40 bg-vang/5 p-4">
+        <h2 className="text-sm font-bold uppercase tracking-widest text-vang">
+          {T.lcdTitle}
+        </h2>
+        <p className="text-xs leading-relaxed text-chu-mo">{T.lcdOpenHint}</p>
+        <a
+          href={lcdUrl || "#"}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-xl bg-vang py-3 text-center text-sm font-black text-black"
+        >
+          {T.lcdOpenScreen}
+        </a>
       </section>
 
       <section className="flex flex-col items-center gap-3">
