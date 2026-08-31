@@ -1,10 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Web tĩnh thuần: không server, không API route — deploy đâu cũng chạy,
-  // và chạy được cả khi trung tâm mất mạng sau lần tải đầu.
-  output: "export",
-  images: { unoptimized: true },
+  /*
+   * KHÔNG dùng `output: "export"` nữa.
+   *
+   * Bản này TỰ CHỨA cả máy chủ: cơ sở dữ liệu SQLite, đồng bộ thời gian thực
+   * bằng SSE, và các server action ghi dữ liệu — web tĩnh không làm được những
+   * việc đó. Đổi lại vẫn chỉ cần `npm start`, không phụ thuộc dịch vụ nào.
+   */
   trailingSlash: true,
 
   /*

@@ -1,26 +1,35 @@
 @import "tailwindcss";
 
+/*
+ * Bảng màu lấy từ `config/thuong-hieu.ts` — hai nơi phải khớp nhau.
+ * Tailwind cần giá trị tĩnh lúc dựng nên không import TS vào đây được; đổi màu
+ * thì sửa CẢ HAI file.
+ */
 @theme {
-  --color-nen: #0b0b0f;
-  --color-nen-nhat: #16161d;
-  --color-vien: #2a2a36;
-  --color-chu: #f4f4f6;
-  --color-chu-mo: #9a9aa8;
-  --color-led: #ff2f2f;
-  --color-led-mo: #1f0606;
-  --color-vang: #ffc531;
-  --color-luc: #33d17a;
+  --color-tim: #6b21a8;
+  --color-tim-nhat: #f3e8ff;
+  --color-cam: #f97316;
+  --color-mint: #5eead4;
+  --color-vang: #facc15;
+  --color-neon: #a855f7;
+  --color-muc: #1e1b2e;
+  --color-chi: #6b6880;
+  --color-suong: #f5f3fa;
+  --color-ke: #e7e3f0;
+  --color-luc: #16a34a;
+  --color-do: #dc2626;
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  /* Bảng đèn LED: panel tối lồng trong trang trắng, chữ số màu cam thương hiệu. */
+  --color-led: #f97316;
+  --color-led-mo: #2a1508;
+  --color-led-nen: #140b04;
 }
 
 html,
 body {
-  background: var(--color-nen);
-  color: var(--color-chu);
-  font-family: var(--font-sans);
-  /* Trò chơi bấm nhanh — chặn kéo–thả và chọn chữ cho khỏi vướng ngón tay. */
+  background: var(--color-suong);
+  color: var(--color-muc);
+  /* Trò bấm phản xạ — chặn kéo–thả và chọn chữ cho khỏi vướng ngón tay. */
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
 }
@@ -31,23 +40,48 @@ button {
   touch-action: manipulation;
 }
 
-/* Ánh sáng toả của bảng LED — đúng cảm giác đèn LED đỏ gắn tường. */
+/* Ánh sáng toả của bảng LED. */
 .led-sang {
-  filter: drop-shadow(0 0 6px rgba(255, 47, 47, 0.85))
-    drop-shadow(0 0 22px rgba(255, 47, 47, 0.35));
+  filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.9))
+    drop-shadow(0 0 24px rgba(249, 115, 22, 0.4));
 }
 
 /*
- * Nút DỪNG nhấp nháy bằng QUẦNG SÁNG chứ không phải transform: scale.
- * Phóng to thu nhỏ làm chính vùng chạm xê dịch — với trò bấm phản xạ thì đó là
- * làm khó người chơi một cách vô cớ.
+ * Viền mạch điện neon tím–cam — chữ ký thị giác của SATA ROBO.
+ * Luật bộ nhận diện: line mảnh, không dày, và TUYỆT ĐỐI không chạy xuyên mã QR.
  */
+.vien-mach {
+  position: relative;
+  border-radius: 1.5rem;
+}
+.vien-mach::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(
+    120deg,
+    var(--color-neon),
+    var(--color-cam),
+    var(--color-neon)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 @keyframes nhip-tim {
-  0%, 100% {
-    box-shadow: 0 0 26px rgba(255, 47, 47, 0.45);
+  0%,
+  100% {
+    box-shadow: 0 0 22px rgba(249, 115, 22, 0.4);
   }
   50% {
-    box-shadow: 0 0 54px rgba(255, 47, 47, 0.85);
+    box-shadow: 0 0 50px rgba(249, 115, 22, 0.85);
   }
 }
 .nhip-tim {
@@ -55,8 +89,14 @@ button {
 }
 
 @keyframes roi-xuong {
-  0% { transform: translate3d(0, -12vh, 0) rotate(0deg); opacity: 1; }
-  100% { transform: translate3d(var(--troi, 0px), 106vh, 0) rotate(var(--xoay, 540deg)); opacity: 0.9; }
+  0% {
+    transform: translate3d(0, -12vh, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--troi, 0px), 106vh, 0) rotate(var(--xoay, 540deg));
+    opacity: 0.9;
+  }
 }
 .phao-giay {
   position: absolute;
@@ -80,7 +120,6 @@ button {
   html,
   body {
     background: #fff;
-    color: #000;
   }
   .khong-in {
     display: none !important;

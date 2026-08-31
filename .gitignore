@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Log của hook kiểm toán, không thuộc mã nguồn
 /logs
+
+# Cơ sở dữ liệu SQLite chạy thật — dữ liệu của trung tâm, không đưa lên Git
+du-lieu/

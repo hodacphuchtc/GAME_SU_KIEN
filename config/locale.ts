@@ -23,6 +23,37 @@ export const T = {
   settingsLink: "Cài đặt",
   rulesLink: "Thể lệ",
 
+  // ---- Khung quản trị ----
+  adminBrandA: "Sata",
+  adminBrandB: "Robo",
+  adminBrandTag: "Đếm số",
+  adminGroup: "CHƯƠNG TRÌNH",
+  adminNavDemSo: "ĐẾM SỐ",
+  adminSearch: "Tìm chương trình, cơ sở…",
+  adminUserName: "Nhân viên trực quầy",
+  adminUserRole: "Toàn quyền",
+  adminFooter: "Đếm số may mắn · v1 · 2026",
+  adminOpenMenu: "Mở thanh điều hướng",
+  adminCloseMenu: "Đóng thanh điều hướng",
+
+  // ---- Danh sách chương trình ----
+  listTitle: "Đếm số may mắn",
+  listSubtitle: "Toàn hệ thống · các chương trình đang chạy tại các cơ sở",
+  listEmpty: "Chưa có chương trình nào. Bấm “Tạo chương trình” để mở màn đầu tiên.",
+  listNew: "Tạo chương trình",
+  colCenter: "Cơ sở",
+  colTarget: "Số trúng",
+  colLevel: "Độ khó",
+  colPrize: "Phần thưởng",
+  colPlays: "Lượt chơi",
+  colWins: "Đã trúng",
+  colStatus: "Trạng thái",
+  statusRunning: "Đang chạy",
+  statusEnded: "Đã kết thúc",
+  totalPrograms: "Chương trình",
+  totalPlays: "Tổng lượt chơi",
+  totalWins: "Tổng giải đã trúng",
+
   // ---- Kết quả ----
   congrats: "CHÚC MỪNG!",
   wonExact: "Bạn đã dừng đúng số",
