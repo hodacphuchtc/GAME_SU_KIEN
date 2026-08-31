@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@theme {
+  --color-nen: #0b0b0f;
+  --color-nen-nhat: #16161d;
+  --color-vien: #2a2a36;
+  --color-chu: #f4f4f6;
+  --color-chu-mo: #9a9aa8;
+  --color-led: #ff2f2f;
+  --color-led-mo: #1f0606;
+  --color-vang: #ffc531;
+  --color-luc: #33d17a;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body {
+  background: var(--color-nen);
+  color: var(--color-chu);
+  font-family: var(--font-sans);
+  /* Trò chơi bấm nhanh — chặn kéo–thả và chọn chữ cho khỏi vướng ngón tay. */
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+/* Ánh sáng toả của bảng LED — đúng cảm giác đèn LED đỏ gắn tường. */
+.led-sang {
+  filter: drop-shadow(0 0 6px rgba(255, 47, 47, 0.85))
+    drop-shadow(0 0 22px rgba(255, 47, 47, 0.35));
+}
+
+/*
+ * Nút DỪNG nhấp nháy bằng QUẦNG SÁNG chứ không phải transform: scale.
+ * Phóng to thu nhỏ làm chính vùng chạm xê dịch — với trò bấm phản xạ thì đó là
+ * làm khó người chơi một cách vô cớ.
+ */
+@keyframes nhip-tim {
+  0%, 100% {
+    box-shadow: 0 0 26px rgba(255, 47, 47, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 54px rgba(255, 47, 47, 0.85);
+  }
+}
+.nhip-tim {
+  animation: nhip-tim 900ms ease-in-out infinite;
+}
+
+@keyframes roi-xuong {
+  0% { transform: translate3d(0, -12vh, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate3d(var(--troi, 0px), 106vh, 0) rotate(var(--xoay, 540deg)); opacity: 0.9; }
+}
+.phao-giay {
+  position: absolute;
+  top: 0;
+  width: 9px;
+  height: 15px;
+  border-radius: 2px;
+  animation: roi-xuong var(--lau, 2.6s) linear forwards;
+  animation-delay: var(--cho, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nhip-tim,
+  .phao-giay {
+    animation: none;
+  }
+}
+
+/* Khi in mã QR dán quầy: bỏ hết phần điều khiển, chỉ chừa tấm QR. */
+@media print {
+  html,
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .khong-in {
+    display: none !important;
+  }
+  .chi-in {
+    display: block !important;
+  }
+}
+.chi-in {
+  display: none;
+}
