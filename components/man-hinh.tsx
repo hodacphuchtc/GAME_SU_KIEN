@@ -74,7 +74,10 @@ export function ManHinh({ ma, soTrung, tenTrungTam, tenGiaiThuong, thamSo, mucKh
   // IM LẶNG — không một dòng lỗi nào. Nút "Bật tiếng" dưới đây là cú chạm đó,
   // kiêm luôn công tắc. Không có nó thì màn hình câm mà chẳng ai hiểu vì sao
   // (đúng họ hàng với bẫy `allowedDevOrigins` đã trả giá).
-  const tatTieng = useTatTieng();
+  // Mặc định TẮT ở đây, ngược với điện thoại: màn hình này treo giữa sảnh và
+  // chạy suốt ngày. Hướng lệch an toàn là im lặng, không phải là bất ngờ phát
+  // tiếng giữa giờ học của lớp bên cạnh.
+  const tatTieng = useTatTieng(true);
   const tiengRef = useRef<ReturnType<typeof createSoundEngine> | null>(null);
 
   const doiTieng = useCallback(() => {
@@ -306,7 +309,19 @@ export function ManHinh({ ma, soTrung, tenTrungTam, tenGiaiThuong, thamSo, mucKh
   const satNut = ketQua !== null && ketQua.khoangLech <= 10;
 
   return (
-    <main className="flex min-h-dvh flex-col bg-white p-6 lg:p-10">
+    <main className="relative flex min-h-dvh flex-col bg-white p-6 lg:p-10">
+      {/* 🔴 Dải nhắc ở MỌI màn, không chỉ màn chờ. Nút bật tiếng nằm trong màn
+          chờ, nên khi ván đã chạy mà sảnh im thì không còn chỗ nào nói cho nhân
+          viên biết vì sao — họ tưởng máy hỏng. Dải này nhỏ, góc dưới, không
+          tranh chỗ với bảng số. */}
+      {tatTieng && (
+        <p
+          data-nhac-tieng
+          className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-cam/10 px-4 py-1.5 text-center text-xs font-bold text-cam"
+        >
+          {T.tiengBat} — {T.tiengNhac}
+        </p>
+      )}
       {/* MASTHEAD — hiện ở CẢ BỐN trạng thái, không nhấp nháy theo màn. Đứng cách
           3 mét thì đây là thứ nói cho người lạ biết họ đang nhìn cái gì của ai. */}
       <header className="flex items-start justify-between gap-6">
@@ -369,11 +384,20 @@ export function ManHinh({ ma, soTrung, tenTrungTam, tenGiaiThuong, thamSo, mucKh
 
             {/* Nút này chỉ hiện ở MÀN CHỜ. Lúc đang chơi, cả sảnh nhìn vào bảng
                 số — thêm một nút bấm được vào khung là mời người ta chạm nhầm. */}
+            {/* 🔴 Đang TẮT thì nút phải đập vào mắt. Bản trước để nó cùng một
+                kiểu viền xám với mọi thứ khác, nên nhân viên mở màn hình rồi
+                để đó cả buổi mà không biết vì sao sảnh im — máy không hỏng,
+                chỉ là chưa ai bấm cái nút không ai nhìn thấy. */}
             <button
               type="button"
               onClick={doiTieng}
               data-nut-tieng={tatTieng ? "tat" : "bat"}
-              className="mt-2 rounded-xl border border-ke px-4 py-2.5 text-sm font-bold text-muc transition hover:border-tim hover:text-tim lg:text-base"
+              className={[
+                "mt-2 rounded-xl px-6 py-3 font-black transition",
+                tatTieng
+                  ? "border-2 border-cam bg-cam/10 text-base text-cam hover:bg-cam hover:text-white lg:text-lg"
+                  : "border border-ke text-sm text-muc hover:border-tim hover:text-tim lg:text-base",
+              ].join(" ")}
             >
               {tatTieng ? T.tiengBat : T.tiengTat}
             </button>

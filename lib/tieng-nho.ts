@@ -27,34 +27,52 @@ function dangKy(goiLai: () => void): () => void {
 }
 
 /**
- * 🔴 CHƯA LƯU GÌ = TẮT TIẾNG. Chỉ chuỗi `"0"` mới có nghĩa là bật.
+ * Đọc công tắc. **Chưa lưu gì thì trả về `macDinhTat`** — và hai màn hình cố ý
+ * có mặc định NGƯỢC NHAU:
  *
- * Hai lý do, và cả hai đều quan trọng hơn sự tiện tay:
+ * - **Màn hình LCD: mặc định TẮT.** Nó treo giữa sảnh và chạy suốt ngày; hướng
+ *   lệch an toàn là im lặng, không phải là bất ngờ phát ra tiếng giữa giờ học
+ *   của lớp bên cạnh.
+ * - **Điện thoại: mặc định BẬT.** Nó nằm trong tay đúng người đang chơi, và họ
+ *   cầm nó lên là để chơi. Bắt họ tìm một cái nút để nghe được tiếng của trò
+ *   chơi mình vừa mở là làm khó vô cớ.
  *
- * 1. Máy chủ dựng sẵn trang với TẮT (nó không đọc được `localStorage`). Nếu
- *    máy khách mặc định BẬT thì hai bên lệch nhau ngay ở khung hình đầu tiên.
- * 2. Màn hình này treo giữa sảnh. Hướng lệch an toàn là im lặng, không phải là
- *    bất ngờ phát ra tiếng giữa giờ học của lớp bên cạnh.
+ * Chỉ chuỗi `"0"` nghĩa là bật, `"1"` là tắt — mọi giá trị khác coi như chưa
+ * ai chọn gì.
  */
-function docTuKho(): boolean {
+function docTuKho(macDinhTat: boolean): boolean {
   try {
-    return window.localStorage.getItem(KHOA) !== "0";
+    const daLuu = window.localStorage.getItem(KHOA);
+    if (daLuu === "0") return false;
+    if (daLuu === "1") return true;
+    return macDinhTat;
   } catch {
-    return true;
+    // Chế độ riêng tư của Safari ném ngay khi ĐỌC. Một màn hình LCD không được
+    // phép trắng chỉ vì cái công tắc âm thanh.
+    return macDinhTat;
   }
 }
 
 /**
- * Máy chủ dựng sẵn với TẮT TIẾNG.
+ * Cửa cho bài test đọc đúng hàm mà giao diện đang dùng.
  *
- * Cố ý chọn "tắt" làm giá trị của bản dựng sẵn: nếu có lệch một khoảnh khắc
- * giữa bản dựng và bản chạy thì hướng lệch an toàn là im lặng, không phải là
- * bất ngờ phát ra tiếng giữa sảnh.
+ * Không bọc `useSyncExternalStore` lại được trong môi trường test thuần Node,
+ * mà logic "chưa lưu gì thì lấy mặc định nào" mới là thứ đáng canh — nên phơi
+ * đúng hàm thuần đó ra thay vì dựng cả một cây React chỉ để kiểm một câu if.
  */
-const TREN_MAY_CHU = true;
+export const docTuKhoChoTest = docTuKho;
 
-export function useTatTieng(): boolean {
-  return useSyncExternalStore(dangKy, docTuKho, () => TREN_MAY_CHU);
+/**
+ * @param macDinhTat giá trị khi người dùng CHƯA từng chọn gì trên máy này.
+ *   Bản dựng sẵn trên máy chủ cũng trả đúng giá trị này, nên hai bên không lệch
+ *   nhau ở khung hình đầu tiên.
+ */
+export function useTatTieng(macDinhTat = true): boolean {
+  return useSyncExternalStore(
+    dangKy,
+    () => docTuKho(macDinhTat),
+    () => macDinhTat,
+  );
 }
 
 export function luuTatTieng(tat: boolean): void {

@@ -17,6 +17,7 @@ import { canStop, formatNumber, speedAt, valueAt } from "@/lib/bo-dem";
 import { Led4Digits } from "@/components/led-4-so";
 import { CauDinhVi, LinhVatSata, LogoSata } from "@/components/nhan-dien-sata";
 import { createSoundEngine } from "@/lib/am-thanh";
+import { luuTatTieng, useTatTieng } from "@/lib/tieng-nho";
 import { doThoiDiemBam } from "@/lib/do-bam";
 import { doLechDongHo } from "@/lib/dong-bo/dong-ho";
 import { moKenh, type TinTrongPhong } from "@/lib/dong-bo/kenh";
@@ -129,6 +130,27 @@ export function ManDienThoai({
   // Cơ sở do MÁY CHỦ phân giải — máy này chỉ chuyển tiếp, không tự khai.
   const coSoRef = useRef<number | null>(null);
   const tiengRef = useRef<ReturnType<typeof createSoundEngine> | null>(null);
+  // 🔴 Mặc định BẬT ở đây, ngược với màn hình LCD. Điện thoại nằm trong tay đúng
+  // người đang chơi và họ cầm nó lên là để chơi; bắt họ đi tìm một cái nút mới
+  // nghe được tiếng của trò chơi mình vừa mở là làm khó vô cớ.
+  const tatTieng = useTatTieng(false);
+
+  const doiTieng = useCallback(() => {
+    tiengRef.current ??= createSoundEngine();
+    const may = tiengRef.current;
+    // ensureStarted PHẢI chạy ngay trong sự kiện bấm — sau một await là trình
+    // duyệt coi như không còn cử chỉ người dùng và chặn tiếng trở lại.
+    may.ensureStarted();
+    const moi = !tatTieng;
+    may.setMuted(moi);
+    luuTatTieng(moi);
+  }, [tatTieng]);
+
+  // Giữ máy phát khớp công tắc, kể cả khi trang vừa tải xong đã là "tắt".
+  useEffect(() => {
+    tiengRef.current ??= createSoundEngine();
+    tiengRef.current.setMuted(tatTieng);
+  }, [tatTieng]);
   const dayDuRef = useRef(cheDo === "online");
 
   // --- Canh đồng hồ + xin chỗ chơi ---
@@ -396,7 +418,20 @@ export function ManDienThoai({
             thứ duy nhất nói cho họ biết mình đang ở trang của ai. */}
         <div className="flex items-center justify-between gap-3">
           <LogoSata chieuCao={26} sizes="112px" preload />
-          <CauDinhVi className="text-right text-[11px] leading-tight" />
+          <div className="flex items-center gap-2">
+            <CauDinhVi className="text-right text-[11px] leading-tight" />
+            {/* Nút nhỏ, luôn có mặt. Vùng chạm 40px để không đụng nhầm khi đang
+                cầm máy chơi — nhưng đặt xa nút DỪNG hết mức có thể. */}
+            <button
+              type="button"
+              onClick={doiTieng}
+              data-nut-tieng={tatTieng ? "tat" : "bat"}
+              aria-label={tatTieng ? T.tiengBat : T.tiengTat}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-ke text-base transition active:border-tim"
+            >
+              {tatTieng ? "🔇" : "🔊"}
+            </button>
+          </div>
         </div>
         <p className="mt-3 text-sm font-semibold text-chi">{tenTrungTam}</p>
         <p className="mt-3 text-xs font-bold uppercase tracking-[0.28em] text-tim">

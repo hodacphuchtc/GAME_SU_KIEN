@@ -75,6 +75,45 @@ await dt.waitForTimeout(1800);
 ok("Chơi trọn ván với âm thanh bật: vẫn ra kết quả bình thường",
   /KHÔNG TRÚNG THƯỞNG|CHÚC MỪNG/.test((await dt.locator("body").textContent()) ?? ""));
 
+// ── GĐ 22.2: công tắc tiếng trên ĐIỆN THOẠI (trước đó không hề có) ─────────
+const nutDt = dt.locator("[data-nut-tieng]");
+ok(
+  "Điện thoại CÓ nút tiếng — trước GĐ 22 màn này không hề đọc công tắc",
+  (await nutDt.count()) === 1,
+);
+ok(
+  "🔴 Mặc định BẬT trên điện thoại, ngược với LCD — máy nằm trong tay người đang chơi",
+  (await nutDt.getAttribute("data-nut-tieng")) === "bat",
+);
+
+await nutDt.click();
+await dt.waitForTimeout(250);
+ok("Bấm một lần → chuyển sang tắt", (await nutDt.getAttribute("data-nut-tieng")) === "tat");
+
+await dt.reload({ waitUntil: "networkidle" });
+await dt.waitForTimeout(400);
+ok(
+  "🔴 Tải lại trang thì nhớ đúng lựa chọn, không tự bật lại",
+  (await dt.locator("[data-nut-tieng]").getAttribute("data-nut-tieng")) === "tat",
+);
+
+// ── GĐ 22.2: dải nhắc trên LCD hiện ở MỌI màn, không chỉ màn chờ ───────────
+const lcd2 = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+theoDoi(lcd2, "lcd2");
+await lcd2.goto(GOC + "/man-hinh/CHAM", { waitUntil: "networkidle" });
+await lcd2.evaluate(() => window.localStorage.setItem("game-su-kien.tat-tieng", "1"));
+await lcd2.reload({ waitUntil: "networkidle" });
+await lcd2.waitForTimeout(400);
+ok("Đang tắt tiếng → LCD hiện dải nhắc", (await lcd2.locator("[data-nhac-tieng]").count()) === 1);
+
+await lcd2.evaluate(() => window.localStorage.setItem("game-su-kien.tat-tieng", "0"));
+await lcd2.reload({ waitUntil: "networkidle" });
+await lcd2.waitForTimeout(400);
+ok(
+  "Bật tiếng rồi thì dải nhắc biến mất, không chiếm chỗ vô ích",
+  (await lcd2.locator("[data-nhac-tieng]").count()) === 0,
+);
+
 ok(`Không lỗi console (${loiConsole.length} lỗi)`, loiConsole.length === 0);
 await browser.close();
 console.log(buoc.join("\n"));
