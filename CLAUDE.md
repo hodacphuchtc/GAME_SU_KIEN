@@ -79,13 +79,56 @@ nhất**, không phải lần cuối. Giới hạn là **1 VÁN/SĐT/ngày**, kh
 - **Rác không làm gãy gì cả, nên không ai thấy nó.** Trang `/cai-dat` bị xoá để lại 46 khoá
   locale mồ côi và thư mục `out/` build tĩnh cũ. `tests/locale.test.ts` và
   `tests/thuong-hieu.test.ts` nay canh hai chỗ đó — chú thích in hoa không canh được gì.
+- 🔴 **Trang trong `/quan-tri` KHÔNG tự có phân quyền chỉ vì `proxy.ts` đã chắn cửa.**
+  `proxy.ts` chỉ hỏi "đã đăng nhập chưa", không hỏi "được xem cơ sở nào". Suốt từ GĐ 15,
+  trang chi tiết chương trình và hai route xuất Excel đọc dữ liệu KHÔNG lọc theo phạm vi —
+  sale cơ sở này gõ đúng mã là đọc trọn lịch sử cơ sở kia. Mọi trang mới trong `/quan-tri`
+  phải gọi `batBuocDangNhap()` rồi truyền `phamViCua(nguoi)` xuống kho (GĐ 21.1).
+- **Đừng chạy `npm run e2e` hai lần trong CÙNG một lệnh shell.** Lượt sau khởi động khi lượt
+  trước chưa dọn xong, đụng cổng, và báo hỏng những kịch bản hoàn toàn đúng — đã mất hai
+  lượt chẩn đoán nhầm. Chạy một lượt, đọc kết quả, rồi mới chạy lượt sau.
+- **Màn Khách tiềm năng mặc định CHỈ hiện người đã đồng ý tư vấn** (`chiDongY` bật sẵn, phải
+  có `?chiDongY=0` trên URL mới tắt). Kịch bản e2e quên tick ô đồng ý thì lead có sinh cũng
+  không nhìn thấy, và báo hỏng như thể tính năng gãy.
+- **Lỗi bố cục chỉ sống ở khung hẹp.** Khối gợi ý `?` neo `absolute left-0` vào dấu hỏi nằm
+  gần mép phải ⇒ tràn 70px ra ngoài khung 390px, chữ bị cắt mà không cuộn ngang tới được.
+  Trên màn rộng hoàn toàn bình thường. Chỉ kịch bản e2e **đo toạ độ** ở khung điện thoại mới
+  bắt được — nhìn bằng mắt trên máy tính thì không bao giờ.
+
+- **Giữa ván PHẢI vẫn phát tin lên màn hình lớn.** Bỏ phát cho "đỡ nhấp nháy" thì LCD
+  đứng hình, chạy hết giờ rồi tự về màn chờ — tức là đá người đang chơi ra khỏi ván của
+  chính họ. Cờ `vanXong` trong tin là thứ giữ hai màn hình nói cùng một câu.
+- **Giới hạn "1 lượt/SĐT/ngày" phải đổi thành "1 VÁN/ngày" TRƯỚC khi bật nhiều lần bấm.**
+  Không đổi thì chính lần bấm thứ hai của ván đang chơi bị luật đó chặn.
+
+- **Đổi tốc độ KHÔNG đổi tỉ lệ trúng của trò bấm dừng.** Tỉ lệ = (giới hạn lượt − thời
+  gian khoá nút) ÷ (10000 × 0,08); tốc độ triệt tiêu trong phép tính. Suýt làm 3 mức khó
+  có cùng tỉ lệ mà chỉ khác vẻ ngoài — phát hiện khi cho code in bảng tra ra đối chiếu.
+- **Bảng LED vẽ đoạn tắt quá sáng thì `0000` đọc thành `8888`.** Quầng sáng phải chỉ
+  áp cho nhóm đoạn ĐANG BẬT. Chỉ lộ ra khi nhìn ảnh chụp thật, build và test đều xanh.
+- **Nút bấm nhấp nháy bằng `transform: scale` làm xê dịch vùng chạm** — với trò bấm phản
+  xạ là làm khó người chơi vô cớ (và Playwright cũng không bấm nổi). Nhấp nháy quầng sáng.
+- **`next dev` CHẶN tài nguyên dev từ mọi địa chỉ khác `localhost`.** Điện thoại vẫn mở
+  được trang, vẫn thấy giao diện, nhưng JS không tải nên KHÔNG BẤM ĐƯỢC GÌ — trông y hệt
+  app bị treo, không một dòng báo lỗi trên màn hình. Phải khai `allowedDevOrigins` trong
+  `next.config.ts`. Chỉ lộ ra khi mở thật bằng IP LAN; `curl` trả 200 vẫn qua như thường.
+- **Đừng truyền từng khung hình qua mạng để đồng bộ hai màn hình.** Truyền MỐC BẮT ĐẦU
+  rồi để mỗi máy tự tính bằng cùng một công thức, và SNAP về kết quả cuối khi có. Đây là
+  phần thưởng cho việc lõi bộ đếm là hàm THUẦN của thời gian ngay từ đầu.
+- **Đừng bật `trailingSlash` khi có route API đo thời gian.** Nó khiến `/api/gio` bị
+  chuyển hướng 308 — thêm nguyên một lượt đi–về vào đúng phép đo độ lệch đồng hồ, tức là
+  làm hỏng chính thứ nó đang đo.
+- **Giữ chỗ chơi sau khi ván đã chốt là khoá người xếp hàng phía sau.** Họ quét mã chỉ
+  thấy "đang có người chơi" mà không hiểu vì sao. Nhả chỗ NGAY lúc có kết quả.
+- **Lấy con số đang VẼ khi bấm dừng là sai.** Phải tính từ `event.timeStamp`, nếu không
+  máy yếu và máy 120Hz cho kết quả khác nhau — trò chơi mất công bằng.
 
 ## Lệnh
 
 `npm run dev` (chỉ máy này) · `npm run dev:dienthoai` (mở cho cả mạng LAN) · `npm test` ·
-`npm run lint` · `npm run build` · `npm run e2e` (14 kịch bản trình duyệt thật trên bản
+`npm run lint` · `npm run build` · `npm run e2e` (18 kịch bản trình duyệt thật trên bản
 build, CSDL tạm) · `npm run anh-chup` (bộ ảnh nghiệm thu GĐ 20.1) · `npm run sao-luu`
-(**chạy TRƯỚC mọi việc đụng CSDL**) · `npm run tao-quan-tri -- <tên>` (tạo tài khoản, hỏi
+(**chạy TRƯỚC mọi việc đụng CSDL**) · `npm run don-du-lieu-thu -- --xem` (dọn dữ liệu chơi thử trước khi giao máy cho quầy) · `npm run tao-quan-tri -- <tên>` (tạo tài khoản, hỏi
 mật khẩu qua stdin) · `npm run trung-tam` (**mở máy tại quầy**: sao lưu + dựng + chạy cho
 cả mạng LAN, tự sinh và giữ khoá ký phiên) · `npm run kiem-may-chu [địa chỉ]` (5 mục kiểm
 sau khởi động) · `node scripts/tao-thu.mjs 0211 vua` (tạo nhanh một chương trình).
@@ -105,7 +148,8 @@ sau khởi động) · `node scripts/tao-thu.mjs 0211 vua` (tạo nhanh một ch
 ## Bối cảnh đầy đủ
 
 Phân tích ý tưởng và lập luận cho từng con số: `docs/brd/dem-so-bo-dem-may-man.md` trong dự
-án IDEA. Lộ trình: `modules/GAME_SU_KIEN/PLAN_TRUNG_SO.md`. Quyết định kiến trúc:
+án IDEA. Lộ trình: `modules/GAME_SU_KIEN/TRUNG_SO/PLAN_TRUNG_SO_V2.md` (đang chạy) ·
+`TRUNG_SO/PLAN_TRUNG_SO_V1.md` (lịch sử v1→v2). Quyết định kiến trúc:
 `docs/decisions/ADR-001` … `ADR-008`.
 
 # This is NOT the Next.js you know
