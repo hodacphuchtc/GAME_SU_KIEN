@@ -6,6 +6,7 @@ import { DAI_MAC_DINH } from "@/config/chon-so";
 import { T } from "@/config/locale";
 import { taoChonSoForm, type KetQuaChonSoForm } from "@/app/actions/chon-so";
 import { Led4Digits } from "@/components/led-4-so";
+import { GoiY } from "@/components/goi-y";
 import { coDai, nhipCua } from "@/lib/chon-so/vong-so";
 import { formatNumber } from "@/lib/bo-dem";
 import type { CoSo } from "@/lib/co-so/nhan";
@@ -62,7 +63,10 @@ export function FormTaoChonSo({ coSo }: { coSo: CoSo[] }) {
         </label>
 
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-semibold text-muc">{T.chonSoDot}</span>
+          <span className="font-semibold text-muc">
+            {T.chonSoDot}
+            <GoiY chu={T.gyChonSoDot} />
+          </span>
           <input
             name="tenGiaiThuong"
             value={tenDot}
@@ -75,7 +79,10 @@ export function FormTaoChonSo({ coSo }: { coSo: CoSo[] }) {
 
         <fieldset className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-semibold text-muc">{T.chonSoDaiTu}</span>
+            <span className="font-semibold text-muc">
+              {T.chonSoDaiTu}
+              <GoiY chu={T.gyChonSoDai} />
+            </span>
             <input
               name="daiTu"
               inputMode="numeric"
@@ -119,7 +126,10 @@ export function FormTaoChonSo({ coSo }: { coSo: CoSo[] }) {
             className="mt-0.5 h-5 w-5 accent-tim"
           />
           <span>
-            <span className="font-semibold text-muc">{T.chonSoLoaiTru}</span>
+            <span className="font-semibold text-muc">
+              {T.chonSoLoaiTru}
+              <GoiY chu={T.gyChonSoLoaiTru} />
+            </span>
             <span className="mt-0.5 block text-chi">
               {loaiTru ? T.chonSoLoaiTruMo : T.chonSoLoaiTruTat}
             </span>

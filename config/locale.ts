@@ -175,6 +175,13 @@ export const T = {
   chonSoDuaSoChoNhanVien: "Đưa con số này cho nhân viên để nhận phần quà cùng số.",
   chonSoChucMung: "🎉 Chúc mừng!",
   chonSoDayLaSoCuaBan: "Bạn đã chọn được dãy số may mắn này.",
+  gyChonSoDai:
+    "Dải quyết định có bao nhiêu phần quà phát được. 1 đến 100 nghĩa là 100 số, phục vụ đúng 100 lượt nếu bật loại trừ. Dải càng dài thì dãy số chạy càng nhanh — máy tự canh để một vòng luôn mất khoảng một giây rưỡi.",
+  gyChonSoLoaiTru:
+    "BẬT khi mỗi số ứng với MỘT phần quà: số đã có người lấy biến mất khỏi vòng chạy, và hết số thì chương trình tự dừng. TẮT khi mỗi số ứng với một LOẠI quà có nhiều món — lúc đó hai người ra trùng số là bình thường.",
+  gyChonSoDot:
+    "Tên này in trên tờ mã QR dán ở quầy và hiện trên màn hình lớn. Đặt tên nói rõ đợt nào, ví dụ \"Quà Tết 2026 — số 1 đến 100\", để sau này mở sổ đối soát còn biết là buổi nào.",
+  chonSoTheLeTitle: "Thể lệ — Chọn Số",
   chonSoSuaTitle: "Sửa thiết lập",
   chonSoLuu: "Lưu thay đổi",
   chonSoDaLuu: "Đã lưu. Mã QR cũ vẫn dùng được.",
@@ -568,6 +575,17 @@ export const T = {
 } as const;
 
 /** Các bước thể lệ — sửa ở đây thì cả trang thể lệ lẫn màn chơi đổi theo. */
+/** Thể lệ game CHỌN SỐ — khác Trúng Số ở chỗ KHÔNG có ai trượt. */
+export const RULES_CHON_SO: readonly string[] = [
+  "Quét mã QR dán tại quầy bằng điện thoại của bạn.",
+  "Nhập họ tên và số điện thoại để trung tâm liên hệ khi cần.",
+  "Bấm BẮT ĐẦU, rồi nhìn lên màn hình lớn — dãy số bắt đầu chạy.",
+  "Bấm DỪNG khi bạn thấy con số mình thích. Mỗi người bấm MỘT lần.",
+  "Số dừng lại là số may mắn của bạn — ai chơi cũng có một con số.",
+  "Đưa con số đó cùng mã xác thực cho nhân viên để nhận phần quà mang đúng số ấy.",
+  "Mỗi số điện thoại chơi một lần mỗi ngày.",
+];
+
 export const RULES = [
   "Bấm BẮT ĐẦU, chờ đếm ngược 3 – 2 – 1.",
   "Dãy 4 chữ số chạy từ 0000 và mỗi lúc một nhanh hơn.",

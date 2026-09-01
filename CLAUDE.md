@@ -9,9 +9,19 @@ thời gian thực nằm chung một repo. `git clone` + `npm install` + `npm st
 
 ## Một ứng dụng, nhiều game
 
-Ứng dụng chứa **nhiều game sự kiện**: `TRUNG_SO` (đang chạy) và `VONG_QUAY_MAY_MAN` (khung
-rỗng). **Cơ sở · nhân viên · khách tiềm năng · kho quà là DANH MỤC DÙNG CHUNG**, chỉ tồn
-tại MỘT nơi — mọi game tham chiếu bằng id, không ai giữ bản sao (ADR-005).
+Ứng dụng chứa **nhiều game sự kiện**: `TRUNG_SO` và `CHON_SO` (cả hai đang chạy), và
+`VONG_QUAY_MAY_MAN` (khung rỗng). **Cơ sở · nhân viên · khách tiềm năng · kho quà là DANH
+MỤC DÙNG CHUNG**, chỉ tồn tại MỘT nơi — mọi game tham chiếu bằng id, không ai giữ bản sao
+(ADR-005).
+
+Phân biệt bằng cột `chuong_trinh.tro_choi`. **Máy chủ** rẽ nhánh bằng MỘT lớp luật chơi
+(`lib/tro-choi/luat.ts`, fail-closed) — xương sống chống gian lận phải giống hệt nhau ở mọi
+game. **Giao diện** rẽ bằng hai bộ component riêng, điều phối bằng đúng hai câu `if` ở gốc
+cây thành phần trong `app/choi/[ma]/page.tsx` và `app/man-hinh/[ma]/page.tsx`.
+
+- **TRÚNG SỐ** — có số trúng định trước, có kho quà, ván nhiều lần bấm, có người trượt.
+- **CHỌN SỐ** — không trúng/thua, không kho quà. Chạy một DẢI SỐ xoay vòng; mỗi người bấm
+  MỘT lần và nhận số của mình; quà đánh số thứ tự nằm NGOÀI hệ thống (ADR-009).
 
 ## Trò chơi hoạt động thế nào — HAI chế độ
 
@@ -126,7 +136,7 @@ nhất**, không phải lần cuối. Giới hạn là **1 VÁN/SĐT/ngày**, kh
 ## Lệnh
 
 `npm run dev` (chỉ máy này) · `npm run dev:dienthoai` (mở cho cả mạng LAN) · `npm test` ·
-`npm run lint` · `npm run build` · `npm run e2e` (18 kịch bản trình duyệt thật trên bản
+`npm run lint` · `npm run build` · `npm run e2e` (20 kịch bản trình duyệt thật trên bản
 build, CSDL tạm) · `npm run anh-chup` (bộ ảnh nghiệm thu GĐ 20.1) · `npm run sao-luu`
 (**chạy TRƯỚC mọi việc đụng CSDL**) · `npm run don-du-lieu-thu -- --xem` (dọn dữ liệu chơi thử trước khi giao máy cho quầy) · `npm run tao-quan-tri -- <tên>` (tạo tài khoản, hỏi
 mật khẩu qua stdin) · `npm run trung-tam` (**mở máy tại quầy**: sao lưu + dựng + chạy cho
@@ -159,3 +169,30 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Game CHỌN SỐ (v3) — bài học mới
+
+- 🔴 **`layMot` trả `undefined` khi không có dòng, KHÔNG phải `null`.** So
+  `!== null` làm `coLuotDangMo` báo "đang có người chơi" ngay từ lượt đầu tiên và
+  khoá chặt cả chương trình — không ai mở nổi ván nào, mà không một dòng lỗi.
+  Dùng `!= null` hoặc `toBeFalsy()` khi kiểm sự tồn tại của một dòng.
+- 🔴 **Phép kẹp `Math.min/max` trong `dungLuot` quy mọi lần "hết giờ" về ĐÚNG MỘT
+  mốc thời gian**, nên mọi người để hết giờ đều nhận **cùng một con số**. Ở Trúng
+  Số đó chỉ là một số trượt nên không ai thấy suốt từ v1; ở Chọn Số đó là mười
+  phụ huynh cùng cầm `0037` đi nhận một phần quà. Luật Chọn Số trả `null` khi hết
+  giờ để huỷ lượt.
+- 🔴 **Bảng tra luật chơi phải FAIL-CLOSED.** Cho một game chưa khai luật rơi về
+  luật của game khác nghĩa là Chọn Số chạy `resolveRound` với `so_trung = 0`, ghi
+  `trung = 1` mỗi khi số ra đúng 0, rồi bốc quà trên một kho rỗng — và đẩy vào
+  cột "Đã trúng" của file Excel gửi đội sale. Ném lỗi, đừng đoán.
+- **Thêm khoá `locale` TRƯỚC khi có chỗ dùng là `tests/locale.test.ts` đỏ ngay.**
+  Thêm khoá và chỗ dùng trong CÙNG một commit. Và luôn viết `T.a` / `T.b` tường
+  minh — truy cập động `T[bien]` làm CẢ HAI khoá bị coi là mồ côi.
+- **Cạm bẫy "hai lượt e2e" áp cả với HAI LỆNH LIÊN TIẾP**, không chỉ hai lượt
+  trong cùng một lệnh shell. Chạy `npm run e2e -- chon-so` rồi `npm run e2e` ngay
+  sau đó làm 2/20 kịch bản báo hỏng hoàn toàn oan. Chờ cổng 3111 trống hẳn
+  (`lsof -iTCP:3111 -sTCP:LISTEN`) rồi mới chạy lượt sau.
+- **`lib/db/luoc-do.ts` là hình dạng NGUYÊN THUỶ, không phải hình dạng hiện tại.**
+  Mọi cột thêm sau (`co_so_id`, `che_do`, `tro_choi`, `dai_tu`…) chỉ sống trong
+  `COT_BO_SUNG` của `nang-cap.ts`. Thêm cột vào cả hai file là dựng hai nguồn sự
+  thật.
