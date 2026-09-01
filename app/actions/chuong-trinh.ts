@@ -3,12 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { DIFFICULTIES, WHEEL_SIZE, type DifficultyId } from "@/config/game";
+import type { DifficultyId } from "@/config/game";
 import { T } from "@/config/locale";
 import {
   CHE_DO_CHOI,
   NGUON_CO_SO,
-  SO_LAN_CHOI,
   type CheDoChoi,
   type NguonCoSo,
 } from "@/config/to-chuc";
@@ -24,6 +23,7 @@ import {
   xoaChuongTrinh,
   type TrangThaiChuongTrinh,
 } from "@/lib/chuong-trinh/kho";
+import { kiemThietLap } from "@/lib/chuong-trinh/kiem-hop-le";
 import { nguoiDangDangNhap } from "@/lib/bao-ve/phien-hien-tai";
 import { phamViCua } from "@/lib/bao-ve/quyen";
 import { ghiNhatKy, HANH_DONG } from "@/lib/nhat-ky/kho";
@@ -59,14 +59,15 @@ export async function taoChuongTrinhForm(
   const nguonCoSo = String(form.get("nguonCoSo") ?? "gan_san") as NguonCoSo;
   const soLanChoi = docSo(form.get("soLanChoi"));
 
-  if (tenGiaiThuong === "") return { loi: "Chưa điền tên phần thưởng." };
-  if (!Number.isFinite(soTrung) || soTrung < 0 || soTrung >= WHEEL_SIZE) {
-    return { loi: "Số trúng thưởng phải là 4 chữ số từ 0000 đến 9999." };
-  }
-  if (!(mucDo in DIFFICULTIES)) return { loi: "Chưa chọn độ khó." };
-  if (!Number.isFinite(tranGiai) || tranGiai < 0) {
-    return { loi: "Trần giải mỗi ngày không được là số âm." };
-  }
+  // Một bộ luật DUY NHẤT cho cả tạo lẫn sửa — xem `lib/chuong-trinh/kiem-hop-le.ts`.
+  const loiThietLap = kiemThietLap({
+    soTrung,
+    mucDo,
+    tenGiaiThuong,
+    tranGiaiMoiNgay: tranGiai,
+    soLanChoi,
+  });
+  if (loiThietLap) return { loi: loiThietLap };
 
   // Cơ sở: phải TỒN TẠI và đang BẬT. Tắt rồi mà vẫn tạo được chương trình mới ở
   // đó thì cái nút Tắt chẳng có nghĩa gì.
@@ -76,13 +77,6 @@ export async function taoChuongTrinhForm(
 
   if (!CHE_DO_CHOI.includes(cheDo)) return { loi: T.createErrMode };
   if (!NGUON_CO_SO.includes(nguonCoSo)) return { loi: T.createErrBranchSource };
-  if (
-    !Number.isFinite(soLanChoi) ||
-    soLanChoi < SO_LAN_CHOI.toiThieu ||
-    soLanChoi > SO_LAN_CHOI.toiDa
-  ) {
-    return { loi: T.createErrTries(SO_LAN_CHOI.toiThieu, SO_LAN_CHOI.toiDa) };
-  }
 
   const ct = taoChuongTrinh({
     // Bản chụp: tên cơ sở lúc tạo. Đổi tên cơ sở sang năm không được làm sai
