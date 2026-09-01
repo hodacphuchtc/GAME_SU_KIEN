@@ -41,6 +41,38 @@ export type TinTrongPhong =
       lechTotNhat: number | null;
       soTotNhat: number | null;
     }
+  /**
+   * GAME CHỌN SỐ — hai loại tin RIÊNG, cố ý không nhồi vào `bat-dau`/`ket-qua`.
+   *
+   * 🔴 Vì sao: tin `ket-qua` mang 15 trường, BẢY trong đó là khái niệm trúng/quà
+   * (`trung`, `khoangLech`, `tenGiaiThuong`, `lechTotNhat`, `soTotNhat`…). Nhồi
+   * Chọn Số vào đó là để lại bảy trường nói dối trong mỗi gói tin. Và vì hai
+   * game dùng hai bộ component riêng, tin mới không bao giờ tới màn hình của
+   * Trúng Số — chúng rơi vào `default: return` mà không gây tác dụng phụ nào.
+   */
+  | {
+      loai: "bat-dau-chon-so";
+      luotId: number;
+      batDauLuc: number;
+      nhip: RoundSettings;
+      /**
+       * Ảnh chụp VÒNG CHẠY tại lúc mở lượt. Hai màn hình dựng lại vòng bằng
+       * chính `vongChay()` rồi tự chạy — chỉ MỐC BẮT ĐẦU đi qua mạng, không
+       * phải từng khung hình.
+       */
+      dai: { tu: number; den: number };
+      daRa: number[];
+    }
+  | {
+      loai: "ket-qua-chon-so";
+      luotId: number;
+      so: number;
+      maXacThuc: string;
+      tenRutGon: string;
+      /** Còn bao nhiêu số chưa phát. `null` khi không bật loại trừ. */
+      conLai: number | null;
+      giayXemKetQua: number;
+    }
   | { loai: "roi-di" }
   /**
    * Chương trình vừa bị tắt hoặc bật lại. Điện thoại LUÔN mở kênh này (không phụ

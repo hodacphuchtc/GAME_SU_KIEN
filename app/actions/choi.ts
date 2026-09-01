@@ -2,7 +2,9 @@
 
 import { LCD_RESULT_SECONDS } from "@/config/game";
 import { T } from "@/config/locale";
+import { nhipCua } from "@/lib/chon-so/vong-so";
 import { timTheoMaCongKhai } from "@/lib/chuong-trinh/kho";
+import { soConLai, type KeoChonSo } from "@/lib/tro-choi/luat-chon-so";
 import { phat } from "@/lib/dong-bo/tram-phat";
 import { kiemGioiHan } from "@/lib/luot/gioi-han";
 import { batDauLuot, dungLuot, type ThietBiBam } from "@/lib/luot/luot-service";
@@ -108,12 +110,26 @@ export async function moLuot(
   const luot = batDauLuot(ma, nguoiChoiId, vanIdMuonTiep, coSoDaPhanGiai);
   if (!luot) return { ok: false };
 
-  phat(ma, {
-    loai: "bat-dau",
-    luotId: luot.luotId,
-    batDauLuc: luot.batDauLuc,
-    thamSo: luot.thamSo,
-  });
+  // Hai game phát hai loại tin khác nhau. Đây là tầng PHÁT TIN, không phải tầng
+  // chấm điểm — chấm điểm đã gom vào một lớp luật duy nhất ở `lib/tro-choi`.
+  if (ct.troChoi === "chon_so") {
+    const keo = luot.keo as KeoChonSo | undefined;
+    phat(ma, {
+      loai: "bat-dau-chon-so",
+      luotId: luot.luotId,
+      batDauLuc: luot.batDauLuc,
+      nhip: nhipCua({ tu: ct.daiTu, den: ct.daiDen }),
+      dai: keo?.dai ?? { tu: ct.daiTu, den: ct.daiDen },
+      daRa: keo?.daRa ?? [],
+    });
+  } else {
+    phat(ma, {
+      loai: "bat-dau",
+      luotId: luot.luotId,
+      batDauLuc: luot.batDauLuc,
+      thamSo: luot.thamSo,
+    });
+  }
   return {
     ok: true,
     luotId: luot.luotId,
@@ -235,6 +251,29 @@ export async function chotLuot(
   // người đang chơi mất nốt hai lần bấm còn lại.
   // Chế độ online không có chỗ nào để mà nhả.
   if (kq.van.vanXong && ct?.cheDo !== "online") nhaChoBatKe(ma, "nguoi_choi");
+
+  if (ct?.troChoi === "chon_so") {
+    phat(ma, {
+      loai: "ket-qua-chon-so",
+      luotId: kq.luotId,
+      so: kq.value,
+      maXacThuc: kq.maXacThuc,
+      tenRutGon: "",
+      conLai: soConLai(ct),
+      giayXemKetQua: LCD_RESULT_SECONDS.win,
+    });
+    return {
+      ok: true,
+      soDaDung: kq.value,
+      trung: false,
+      maXacThuc: kq.maXacThuc,
+      vanXong: true,
+      conLan: 0,
+      lanDaDung: 1,
+      soLanChoPhep: 1,
+    };
+  }
+
   // LUÔN phát, kể cả giữa ván — xem chú thích `vanXong` ở `kenh.ts`.
   phat(ma, {
     loai: "ket-qua",
