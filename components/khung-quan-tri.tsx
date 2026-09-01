@@ -9,16 +9,29 @@ import { T } from "@/config/locale";
 /**
  * Khung trang quản trị: thanh bên trái + vùng nội dung.
  *
- * Thanh bên cố ý chỉ có ĐÚNG MỘT mục — ứng dụng này làm đúng một việc. Không
- * thêm mục "cho có"; một thanh bên nhiều mục rỗng làm người dùng phải dò.
- * Trên điện thoại nó thu thành ngăn kéo mở bằng nút ☰.
+ * Thanh bên gom theo NHÓM: "Game sự kiện" xổ xuống danh sách game, rồi tới các
+ * mục dùng chung. Một app chứa nhiều game nên mục điều hướng phải nói rõ đâu là
+ * game, đâu là thứ dùng chung cho mọi game.
+ *
+ * Game chưa làm thì vẫn hiện nhưng MỜ và không bấm được — người dùng thấy được
+ * lộ trình mà không bấm vào một trang trống. Trên điện thoại thanh bên thu thành
+ * ngăn kéo mở bằng nút ☰.
  */
 
-function BieuTuongDemSo({ className = "" }: { className?: string }) {
+function BieuTuongTrungSo({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
       <rect x="2.5" y="5" width="19" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
       <path d="M7 9.5v5M11 9.5v5M15 9.5h2M15 12h2M15 14.5h2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BieuTuongVongQuay({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M12 3.5v17M3.5 12h17M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.2" />
     </svg>
   );
 }
@@ -47,25 +60,37 @@ function ThanhBen({ dong }: { dong?: () => void }) {
 
       <nav className="flex-1 px-3">
         <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-chi">
-          {T.adminGroup}
+          {T.adminGroupGame}
         </p>
+
         <Link
           href="/quan-tri"
           onClick={dong}
           aria-current={dangMo ? "page" : undefined}
           className={[
             "relative flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition",
-            dangMo
-              ? "bg-tim-nhat text-tim"
-              : "text-muc hover:bg-suong hover:text-tim",
+            dangMo ? "bg-tim-nhat text-tim" : "text-muc hover:bg-suong hover:text-tim",
           ].join(" ")}
         >
           {dangMo && (
             <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-tim" aria-hidden="true" />
           )}
-          <BieuTuongDemSo className="h-5 w-5 shrink-0" />
-          {T.adminNavDemSo}
+          <BieuTuongTrungSo className="h-5 w-5 shrink-0" />
+          {T.adminNavTrungSo}
         </Link>
+
+        {/* Game chưa làm: hiện để thấy lộ trình, nhưng KHÔNG bấm được — bấm vào
+            một trang trống còn tệ hơn không có mục nào. */}
+        <span
+          aria-disabled="true"
+          className="mt-1 flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-chi/70"
+        >
+          <BieuTuongVongQuay className="h-5 w-5 shrink-0" />
+          {T.adminNavVongQuay}
+          <span className="ml-auto rounded-full bg-chi/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+            {T.adminSapCo}
+          </span>
+        </span>
       </nav>
 
       <p className="px-6 py-5 text-xs leading-relaxed text-chi">{T.adminFooter}</p>

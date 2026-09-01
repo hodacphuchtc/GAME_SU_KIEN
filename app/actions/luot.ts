@@ -19,6 +19,6 @@ export async function datCoLuotAction(
 ): Promise<void> {
   datCoLuot(luotId, coLuot, bat);
   // Cập nhật cả trang chi tiết lẫn danh sách — con số ROI nằm ở trang danh sách.
-  revalidatePath(`/quan-tri/${ma}`);
+  revalidatePath(`/quan-tri/chuong-trinh/${ma}`);
   revalidatePath("/quan-tri");
 }

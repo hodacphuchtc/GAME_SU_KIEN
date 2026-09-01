@@ -11,7 +11,7 @@ import {
   nhanDienNguoiChoi,
   roiDi,
   xinCho,
-} from "@/app/actions/van-choi";
+} from "@/app/actions/choi";
 import { canStop, formatNumber } from "@/lib/bo-dem";
 import { doLechDongHo } from "@/lib/dong-bo/dong-ho";
 import { moKenh, type TinTrongPhong } from "@/lib/dong-bo/kenh";

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { csdl } from "@/lib/db/ket-noi";
 import { doiTrangThai, taoChuongTrinh, timTheoMa } from "@/lib/chuong-trinh/kho";
 import { giuCho } from "@/lib/phien/giu-cho";
-import { moLuot, xinCho } from "@/app/actions/van-choi";
+import { moLuot, xinCho } from "@/app/actions/choi";
 import { dungCsdlTam } from "./ho-tro/csdl-tam";
 
 /**

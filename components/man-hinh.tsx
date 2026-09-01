@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { LCD_IDLE_TIMEOUT_SECONDS, type RoundSettings } from "@/config/game";
 import { T } from "@/config/locale";
-import { chotLuot, moLuot, xinCho } from "@/app/actions/van-choi";
+import { chotLuot, moLuot, xinCho } from "@/app/actions/choi";
 import { canStop, formatNumber, valueAt } from "@/lib/bo-dem";
 import { doLechDongHo } from "@/lib/dong-bo/dong-ho";
 import { moKenh, type TinTrongPhong } from "@/lib/dong-bo/kenh";

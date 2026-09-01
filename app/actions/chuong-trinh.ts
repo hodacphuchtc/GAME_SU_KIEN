@@ -51,7 +51,7 @@ export async function taoChuongTrinhForm(
     tenGiaiThuong,
     tranGiaiMoiNgay: tranGiai,
   });
-  redirect(`/quan-tri/${ct.ma}`);
+  redirect(`/quan-tri/chuong-trinh/${ct.ma}`);
 }
 
 /**
@@ -68,5 +68,5 @@ export async function datTrangThaiChuongTrinh(
   // Gỡ người đang kẹt ở màn "Chưa chơi được" mà không bắt họ tải lại trang.
   phat(ma, { loai: "trang-thai", dangChay: trangThai === "dang_chay" });
   revalidatePath("/quan-tri");
-  redirect(`/quan-tri/${ma}`);
+  redirect(`/quan-tri/chuong-trinh/${ma}`);
 }

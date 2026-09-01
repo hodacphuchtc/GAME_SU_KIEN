@@ -104,7 +104,7 @@ export default function TrangDanhSach() {
               {danhSach.map((c) => (
                 <tr key={c.ma} className="border-b border-ke last:border-0 hover:bg-suong">
                   <td className="px-5 py-4">
-                    <Link href={`/quan-tri/${c.ma}`} className="font-semibold text-tim hover:underline">
+                    <Link href={`/quan-tri/chuong-trinh/${c.ma}`} className="font-semibold text-tim hover:underline">
                       {c.tenTrungTam}
                     </Link>
                     <span className="ml-2 font-mono text-xs text-chi">{c.ma}</span>

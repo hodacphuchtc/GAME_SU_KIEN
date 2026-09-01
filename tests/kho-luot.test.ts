@@ -4,7 +4,7 @@ import { csdl } from "@/lib/db/ket-noi";
 import { taoChuongTrinh } from "@/lib/chuong-trinh/kho";
 import { datCoLuot, lichSu } from "@/lib/luot/kho-luot";
 import { nhanDien } from "@/lib/nguoi-choi/nhan-dien";
-import { xinCho } from "@/app/actions/van-choi";
+import { xinCho } from "@/app/actions/choi";
 import { doiTrangThai } from "@/lib/chuong-trinh/kho";
 import { dungCsdlTam } from "./ho-tro/csdl-tam";
 
