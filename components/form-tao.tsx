@@ -25,6 +25,8 @@ export function FormTao({ coSo }: { coSo: CoSo[] }) {
   // Chế độ giữ ở state vì ô "cơ sở của người chơi" chỉ có nghĩa khi chơi online:
   // tại quầy thì phụ huynh đứng ngay trước mặt, không ai đi chọn cơ sở cả.
   const [cheDo, setCheDo] = useState<CheDoChoi>("tai_quay");
+  const [coSoId, setCoSoId] = useState<string>(String(coSo[0]?.id ?? ""));
+  const khongGanCoSo = coSoId === "";
   // Hai ô này phải CÓ KIỂM SOÁT: bảng tỉ lệ và dòng dự báo phải đổi ngay lúc
   // nhân viên gõ, chứ không phải sau khi họ đã bấm Tạo và lỡ treo giải.
   const [soLan, setSoLan] = useState<number>(SO_LAN_CHOI.macDinh);
@@ -47,8 +49,8 @@ export function FormTao({ coSo }: { coSo: CoSo[] }) {
           <span className="font-semibold text-muc">{T.createBranch}</span>
           <select
             name="coSoId"
-            required
-            defaultValue={coSo[0]?.id ?? ""}
+            value={coSoId}
+            onChange={(e) => setCoSoId(e.target.value)}
             className="rounded-xl border border-ke bg-white px-4 py-3 text-base text-muc focus:border-tim focus:outline-none"
           >
             {coSo.map((cs) => (
@@ -56,7 +58,15 @@ export function FormTao({ coSo }: { coSo: CoSo[] }) {
                 {nhanCoSo(cs)}
               </option>
             ))}
+            {/* Bỏ trống là một LỰA CHỌN, không phải quên điền — nên nó nằm cuối
+                danh sách và có tên rõ ràng, không phải một dòng trống. */}
+            <option value="">{T.createBranchSkip}</option>
           </select>
+          {khongGanCoSo && (
+            <span className="rounded-xl bg-tim-nhat p-3 text-xs leading-relaxed text-tim">
+              {T.createBranchSkipNote}
+            </span>
+          )}
         </label>
 
         <fieldset className="flex flex-col gap-2">
@@ -86,7 +96,7 @@ export function FormTao({ coSo }: { coSo: CoSo[] }) {
           </div>
         </fieldset>
 
-        {cheDo === "online" && (
+        {!khongGanCoSo && (
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="font-semibold text-muc">{T.createBranchSource}</span>
             <select

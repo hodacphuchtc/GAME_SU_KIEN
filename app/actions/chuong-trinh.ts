@@ -70,11 +70,16 @@ export async function taoChuongTrinhForm(
   });
   if (loiThietLap) return { loi: loiThietLap };
 
-  // Cơ sở: phải TỒN TẠI và đang BẬT. Tắt rồi mà vẫn tạo được chương trình mới ở
-  // đó thì cái nút Tắt chẳng có nghĩa gì.
-  const coSo = Number.isFinite(coSoId) ? timCoSo(coSoId) : null;
-  if (!coSo) return { loi: T.createErrNoBranch };
-  if (coSo.trangThai !== "bat") return { loi: T.createErrBranchOff };
+  // Ô cơ sở BỎ TRỐNG = cố ý không gán (GĐ 25). Khác hẳn với gõ một id không tồn
+  // tại — cái đó vẫn là lỗi.
+  const boTrong = String(form.get("coSoId") ?? "").trim() === "";
+  const coSo = !boTrong && Number.isFinite(coSoId) ? timCoSo(coSoId) : null;
+  if (!boTrong) {
+    // Cơ sở đã chọn thì phải TỒN TẠI và đang BẬT. Tắt rồi mà vẫn tạo được
+    // chương trình mới ở đó thì cái nút Tắt chẳng có nghĩa gì.
+    if (!coSo) return { loi: T.createErrNoBranch };
+    if (coSo.trangThai !== "bat") return { loi: T.createErrBranchOff };
+  }
 
   if (!CHE_DO_CHOI.includes(cheDo)) return { loi: T.createErrMode };
   if (!NGUON_CO_SO.includes(nguonCoSo)) return { loi: T.createErrBranchSource };
@@ -82,16 +87,21 @@ export async function taoChuongTrinhForm(
   const ct = taoChuongTrinh({
     // Bản chụp: tên cơ sở lúc tạo. Đổi tên cơ sở sang năm không được làm sai
     // tên trên biên lai đã in năm ngoái.
-    tenTrungTam: coSo.ten,
+    tenTrungTam: coSo ? coSo.ten : T.chuaGanCoSo,
     soTrung,
     mucDo,
     tenGiaiThuong,
     tranGiaiMoiNgay: tranGiai,
-    coSoId: coSo.id,
+    coSoId: coSo ? coSo.id : null,
     cheDo,
-    // Chơi tại quầy thì cơ sở luôn là cơ sở đã gán — không có chỗ nào để phụ
-    // huynh chọn, nên nhận giá trị kia từ form là nhận một lời nói dối.
-    nguonCoSo: cheDo === "tai_quay" ? "gan_san" : nguonCoSo,
+    // 🔴 Không gán cơ sở thì BUỘC phụ huynh tự chọn — không có cơ sở nào để mà
+    // "gán sẵn", và một ván không thuộc cơ sở nào sẽ rơi ra ngoài mọi báo cáo.
+    //
+    // Trước GĐ 25, dòng này còn ép mọi chương trình TẠI QUẦY về "gan_san" với
+    // lý do "phụ huynh đứng ngay trước mặt thì hỏi làm gì". Lý do đó sai với
+    // một quầy dùng chung mã QR cho nhiều cơ sở — nên nay chế độ không còn
+    // quyết thay người dùng nữa.
+    nguonCoSo: coSo ? nguonCoSo : "phu_huynh_chon",
     soLanChoi,
   });
   redirect(`/quan-tri/chuong-trinh/${ct.ma}`);

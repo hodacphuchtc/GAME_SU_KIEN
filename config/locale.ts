@@ -181,6 +181,10 @@ export const T = {
   // ---- Tạo chương trình: cơ sở + chế độ (GĐ 11.2) ----
   createBranch: "Cơ sở tổ chức",
   createBranchNone: "Chưa có cơ sở nào. Vào mục Cơ sở thêm một cái trước đã.",
+  createBranchSkip: "— Không gán cơ sở —",
+  createBranchSkipNote:
+    "Phụ huynh sẽ TỰ CHỌN cơ sở ở bước nhập họ tên và số điện thoại, danh sách lấy từ mục Cơ sở. Dùng khi một mã QR chạy cho nhiều cơ sở, hoặc khi quảng cáo chưa biết khách ở gần chỗ nào.",
+  chuaGanCoSo: "Chưa gán cơ sở",
   createBranchGo: "Mở mục Cơ sở",
   createMode: "Chế độ chơi",
   createModeCounter: "Tại quầy, có màn hình LCD",

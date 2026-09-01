@@ -59,8 +59,12 @@ describe("cơ sở của chương trình", () => {
     expect(danhSachChuongTrinh(TOAN_BO)).toHaveLength(0);
   });
 
-  it("từ chối khi không khai cơ sở nào", async () => {
-    const kq = await gui(form({ coSoId: "" }));
+  // 🔄 GĐ 25 ĐẢO ca này: bỏ trống ô cơ sở nay là một LỰA CHỌN hợp lệ ("không
+  // gán cơ sở, để phụ huynh tự chọn"), không còn là lỗi. Ca kiểm hành vi mới
+  // nằm ở khối "không gán cơ sở" cuối file. Giữ lại ca dưới đây vì nó canh thứ
+  // KHÁC hẳn: gõ một id KHÔNG TỒN TẠI vẫn phải bị từ chối.
+  it("từ chối id cơ sở không tồn tại — khác hẳn với bỏ trống có chủ ý", async () => {
+    const kq = await gui(form({ coSoId: "99999" }));
     expect(kq.loi).toBeTruthy();
     expect(danhSachChuongTrinh(TOAN_BO)).toHaveLength(0);
   });
@@ -111,12 +115,14 @@ describe("chế độ chơi và số lần bấm", () => {
     expect((await gui(form({ coSoId: String(cs.id), cheDo: "qua_buu_dien" }))).loi).toBeTruthy();
   });
 
-  it("chơi tại quầy thì nguồn cơ sở luôn là gán sẵn, kể cả khi form nói khác", async () => {
+  // 🔄 GĐ 25 ĐẢO ca này. Luật cũ: "tại quầy thì luôn ép về gán sẵn, vì phụ
+  // huynh đứng ngay trước mặt, không có màn nào để chọn". Luật đó sai với một
+  // quầy dùng CHUNG một mã QR cho nhiều cơ sở — và màn chọn thì vẫn có, nó
+  // hiện theo `nguonCoSo` chứ chưa bao giờ theo chế độ.
+  it("chơi tại quầy vẫn chọn được “để phụ huynh tự chọn” — chế độ không quyết thay người dùng", async () => {
     const cs = taoCoSo({ ten: "Cơ sở A" });
     await gui(form({ coSoId: String(cs.id), cheDo: "tai_quay", nguonCoSo: "phu_huynh_chon" }));
-    // Tại quầy không có màn nào để phụ huynh chọn cơ sở — nhận giá trị kia là
-    // ghi vào CSDL một điều không bao giờ xảy ra.
-    expect(danhSachChuongTrinh(TOAN_BO)[0].nguonCoSo).toBe("gan_san");
+    expect(danhSachChuongTrinh(TOAN_BO)[0].nguonCoSo).toBe("phu_huynh_chon");
   });
 
   it("chơi online thì giữ đúng nguồn cơ sở đã chọn", async () => {
@@ -125,5 +131,41 @@ describe("chế độ chơi và số lần bấm", () => {
     const ct = danhSachChuongTrinh(TOAN_BO)[0];
     expect(ct.cheDo).toBe("online");
     expect(ct.nguonCoSo).toBe("phu_huynh_chon");
+  });
+});
+
+describe("không gán cơ sở — phụ huynh tự chọn (GĐ 25)", () => {
+  it("để trống ô cơ sở thì tạo được, và chương trình không thuộc cơ sở nào", async () => {
+    expect(await gui(form({ coSoId: "" }))).toEqual({});
+    const ct = danhSachChuongTrinh(TOAN_BO)[0];
+    expect(ct.coSoId).toBeNull();
+  });
+
+  it("🔴 không gán cơ sở thì BUỘC nguồn là 'phụ huynh tự chọn'", async () => {
+    // Không gán cơ sở mà lại bảo "gán sẵn" thì chẳng có cơ sở nào để mà gán —
+    // và ván chơi sinh ra sẽ rơi ra ngoài mọi báo cáo theo cơ sở.
+    await gui(form({ coSoId: "", nguonCoSo: "gan_san" }));
+    expect(danhSachChuongTrinh(TOAN_BO)[0].nguonCoSo).toBe("phu_huynh_chon");
+  });
+
+  it("không gán cơ sở thì tên hiện là nhãn 'Chưa gán cơ sở', không rỗng", async () => {
+    await gui(form({ coSoId: "" }));
+    expect(danhSachChuongTrinh(TOAN_BO)[0].tenTrungTam.trim()).not.toBe("");
+  });
+
+  it("🔴 chế độ TẠI QUẦY cũng chọn được 'phụ huynh tự chọn' — không còn bị ép về gán sẵn", async () => {
+    // Trước GĐ 25, action ép nguonCoSo về "gan_san" cho mọi chương trình tại
+    // quầy. Nay quầy dùng chung một mã QR cho nhiều cơ sở cũng chạy được.
+    const cs = taoCoSo({ ten: "Cơ sở Hải Châu" });
+    await gui(form({ coSoId: String(cs.id), cheDo: "tai_quay", nguonCoSo: "phu_huynh_chon" }));
+    expect(danhSachChuongTrinh(TOAN_BO)[0].nguonCoSo).toBe("phu_huynh_chon");
+  });
+
+  it("có gán cơ sở + gán sẵn: vẫn giữ nguyên hành vi cũ", async () => {
+    const cs = taoCoSo({ ten: "Cơ sở Thanh Khê" });
+    await gui(form({ coSoId: String(cs.id), nguonCoSo: "gan_san" }));
+    const ct = danhSachChuongTrinh(TOAN_BO)[0];
+    expect(ct.coSoId).toBe(cs.id);
+    expect(ct.nguonCoSo).toBe("gan_san");
   });
 });

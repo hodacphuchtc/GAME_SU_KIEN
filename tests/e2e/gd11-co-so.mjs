@@ -88,8 +88,12 @@ ok("Trang tạo KHÔNG còn ô gõ tay tên trung tâm",
   (await page.locator('input[name="tenTrungTam"]').count()) === 0);
 
 const luaChon = await page.locator('select[name="coSoId"] option').allTextContents();
+// 🔄 GĐ 25 thêm một mục "— Không gán cơ sở —" vào cuối danh sách, nên số lựa
+// chọn tăng một. Đó là một LỰA CHỌN hợp lệ, không phải dòng trống bỏ quên.
 ok(`Chỉ còn danh sách xổ xuống dạng “CS2 — …” (thấy: ${luaChon.join(" | ")})`,
-  luaChon.length === 3 && luaChon.some((t) => t.startsWith("CS2 — 114 Hoàng Diệu")));
+  luaChon.some((t) => t.startsWith("CS2 — 114 Hoàng Diệu")));
+ok("Có mục “Không gán cơ sở” ở cuối danh sách (GĐ 25)",
+  luaChon.some((t) => t.includes("Không gán cơ sở")));
 ok("Cơ sở ĐÃ TẮT không xuất hiện trong danh sách chọn",
   !luaChon.some((t) => t.startsWith("CS1")));
 
@@ -97,8 +101,11 @@ await page.selectOption('select[name="coSoId"]',
   { label: "CS2 — 114 Hoàng Diệu, Đà Nẵng" });
 ok("Chọn được chế độ Tại quầy",
   await page.locator('input[name="cheDo"][value="tai_quay"]').isChecked());
-ok("Ô cơ sở của người chơi chỉ hiện khi chơi ONLINE",
-  (await page.locator('select[name="nguonCoSo"]').count()) === 0);
+// 🔄 GĐ 25 ĐẢO bước này. Luật cũ: ô "cơ sở của người chơi" chỉ hiện ở chế độ
+// online, vì "tại quầy phụ huynh đứng ngay trước mặt". Luật đó sai với một quầy
+// dùng CHUNG một mã QR cho nhiều cơ sở — nay ô hiện ở cả hai chế độ.
+ok("Ô cơ sở của người chơi hiện ở CẢ HAI chế độ (GĐ 25 mở khoá)",
+  (await page.locator('select[name="nguonCoSo"]').count()) === 1);
 // Radio là `sr-only` — người thật bấm vào NHÃN bọc ngoài, kịch bản cũng phải vậy.
 await page.locator('label:has(input[name="cheDo"][value="online"])').click();
 await page.waitForTimeout(200);
