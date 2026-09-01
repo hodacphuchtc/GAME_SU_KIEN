@@ -1,14 +1,13 @@
 import "server-only";
 
 import { WIN_VALID_SECONDS, type RoundSettings } from "@/config/game";
-import { resolveRound, type RoundResult } from "@/lib/bo-dem";
+import type { RoundResult } from "@/lib/bo-dem";
 import { timTheoMaCongKhai } from "@/lib/chuong-trinh/kho";
 import { chay, layMot } from "@/lib/db/truy-van";
 import { ngayVietNam } from "@/lib/db/thoi-gian";
-import { verifyCode } from "@/lib/ma-xac-thuc";
+import { luatCua } from "@/lib/tro-choi/luat";
 import {
   conLanBam,
-  ghiLanBam,
   moVan,
   timVan,
   vanDangMo,
@@ -44,6 +43,12 @@ export interface LuotDangChay {
   batDauLuc: number;
   thamSo: RoundSettings;
   soTrung: number;
+  /**
+   * Phần đuôi riêng của từng game, do `luat.truocKhiMo` sinh. Với CHỌN SỐ đây là
+   * ảnh chụp VÒNG CHẠY, gửi thẳng cho hai màn hình để chúng vẽ đúng dãy số mà
+   * máy chủ sẽ chấm. Trúng Số không dùng.
+   */
+  keo?: unknown;
 }
 
 /**
@@ -69,6 +74,13 @@ export function batDauLuot(
 ): LuotDangChay | null {
   const ct = timTheoMaCongKhai(ma);
   if (!ct || ct.trangThai !== "dang_chay") return null;
+
+  // Luật của game có quyền chặn ngay từ đây — CHỌN SỐ dùng nó để từ chối khi
+  // dải đã phát hết hoặc đang có người khác giữa lượt. Câu lỗi tiếng Việt do
+  // tầng server action hỏi lại và hiển thị; ở đây chỉ cần biết mở được hay không.
+  const luat = luatCua(ct.troChoi);
+  const truoc = luat.truocKhiMo(ct);
+  if (truoc.loi !== undefined) return null;
 
   let van: Van | null = null;
   if (vanIdMuonTiep !== null) {
@@ -121,6 +133,7 @@ export function batDauLuot(
     batDauLuc: bayGio,
     thamSo: ct.thamSo,
     soTrung: ct.soTrung,
+    keo: truoc.keo,
   };
 }
 
@@ -176,8 +189,24 @@ export function dungLuot(
 
   const hetGio = thietBi === "het_gio" || soMiliGiayDaTroi >= toiDaMs;
   const giay = Math.min(toiDaMs, Math.max(toiThieuMs, soMiliGiayDaTroi)) / 1000;
-  const ketQua = resolveRound(thamSo, chuongTrinh.soTrung, giay, hetGio);
-  const maXacThuc = verifyCode(chuongTrinh.soTrung);
+
+  // Từ C.2: phần CHẤM là chỗ duy nhất hai game khác nhau. Mọi thứ quanh nó —
+  // phép kẹp ở trên và câu UPDATE phân xử "ai bấm trước" ở dưới — dùng chung,
+  // và phải dùng chung: đó là xương sống chống gian lận.
+  const luat = luatCua(chuongTrinh.troChoi);
+  const cham = luat.cham(chuongTrinh, giay, hetGio);
+  if (cham === null) return null; // luật từ chối lượt này (vd: Chọn Số hết giờ)
+  const ketQua: RoundResult = {
+    value: cham.soDaDung,
+    // `target` chỉ có nghĩa với Trúng Số. Chọn Số mang 0 và không bao giờ đọc —
+    // màn hình của nó là component riêng, không có ô "SỐ TRÚNG THƯỞNG".
+    target: chuongTrinh.soTrung,
+    win: cham.trung,
+    distance: cham.khoangLech,
+    atSeconds: giay,
+    timedOut: cham.hetGio,
+  };
+  const maXacThuc = cham.maXacThuc;
   const ketThuc = Date.now();
 
   const doi = chay(
@@ -200,7 +229,7 @@ export function dungLuot(
   // tự này khiến "ai bấm trước" vẫn do câu UPDATE ở trên phân xử.
   const van = luot.van_id === null
     ? null
-    : ghiLanBam(luot.van_id, luotId, ketQua.distance, ketQua.value, ketQua.win, maXacThuc);
+    : luat.ghiVan(luot.van_id, luotId, cham);
 
   return {
     ...ketQua,

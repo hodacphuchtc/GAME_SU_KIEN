@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { DIFFICULTIES } from "@/config/game";
-import { timeAtCount } from "@/lib/bo-dem";
-import { taoChuongTrinh } from "@/lib/chuong-trinh/kho";
+import { resolveRound, timeAtCount } from "@/lib/bo-dem";
+import { taoChuongTrinh, timTheoMaCongKhai } from "@/lib/chuong-trinh/kho";
 import { layMot } from "@/lib/db/truy-van";
 import { batDauLuot, docKetQua, dungLuot } from "@/lib/luot/luot-service";
+import { verifyCode } from "@/lib/ma-xac-thuc";
+import { luatCua } from "@/lib/tro-choi/luat";
 import { chay } from "@/lib/db/truy-van";
 import { coSoThu } from "./ho-tro/co-so-thu";
 import { dungCsdlTam } from "./ho-tro/csdl-tam";
@@ -140,5 +142,52 @@ describe("chốt một lượt chơi", () => {
 
   it("chương trình không tồn tại thì không mở được lượt", () => {
     expect(batDauLuot("KHONGCO", null)).toBeNull();
+  });
+});
+
+/**
+ * LỚP LUẬT CHƠI (C.2 · v3).
+ *
+ * 🔴 Vì sao có bài test này: `dungLuot` là nơi quyết định AI NHẬN QUÀ, và
+ * `ghiLanBam` quấn ba việc trong một giao dịch (lần tốt nhất · chốt ván · bốc
+ * quà). Tách nó ra sau một lớp trừu tượng là việc đáng sợ nhất của cả gói v3.
+ *
+ * Bài test này khẳng định đúng một điều: đi qua lớp mới cho ra kết quả y HỆT
+ * gọi thẳng hàm cũ. Nếu nó xanh mà e2e đỏ thì lỗi nằm ở chỗ khác.
+ */
+describe("lớp luật chơi — bọc lại nhưng không đổi hành vi", () => {
+  it("🔴 luật trúng số cho kết quả y hệt resolveRound gọi thẳng", () => {
+    const ct = timTheoMaCongKhai(ma)!;
+    const luat = luatCua("trung_so");
+    for (const giay of [6, 6.5, 10, 29.999]) {
+      const truc = resolveRound(ct.thamSo, ct.soTrung, giay, false);
+      const qua = luat.cham(ct, giay, false);
+      expect(qua).not.toBeNull();
+      expect(qua!.soDaDung).toBe(truc.value);
+      expect(qua!.trung).toBe(truc.win);
+      expect(qua!.khoangLech).toBe(truc.distance);
+    }
+  });
+
+  it("cờ hết giờ đi qua lớp mới không bị nuốt", () => {
+    const ct = timTheoMaCongKhai(ma)!;
+    const luat = luatCua("trung_so");
+    const truc = resolveRound(ct.thamSo, ct.soTrung, 30, true);
+    const qua = luat.cham(ct, 30, true)!;
+    expect(qua.hetGio).toBe(true);
+    expect(qua.soDaDung).toBe(truc.value);
+  });
+
+  it("mã xác thực vẫn sinh từ số trúng, không đổi công thức", () => {
+    const ct = timTheoMaCongKhai(ma)!;
+    expect(luatCua("trung_so").cham(ct, 10, false)!.maXacThuc).toBe(
+      verifyCode(ct.soTrung),
+    );
+  });
+
+  it("🔴 game chưa khai luật thì NÉM, không rơi về luật của game khác", () => {
+    // Fail-closed. Rơi về luật Trúng Số nghĩa là chạy resolveRound với
+    // so_trung = 0 rồi bốc quà trên kho rỗng — không một dòng lỗi nào báo.
+    expect(() => luatCua("khong_ton_tai" as never)).toThrow();
   });
 });
