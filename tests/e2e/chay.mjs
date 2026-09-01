@@ -45,6 +45,10 @@ const KICH_BAN = [
   { ten: "gd24-sua-chuong-trinh", nen: "lich-su-day-du" },
   { ten: "gd25-khong-gan-co-so", nen: "hai-co-so" },
   { ten: "gd26-goi-y", nen: "hai-co-so" },
+  // v3 — game CHỌN SỐ. gd19 mở CẢ hai màn hình và so bốn chữ số; gd20 chơi tới
+  // cạn dải ba số để kiểm loại trừ và cái kết "hết sạch số".
+  { ten: "gd19-chon-so", nen: "chon-so" },
+  { ten: "gd20-chon-so-loai-tru", nen: "chon-so" },
 ];
 
 const thuMuc = mkdtempSync(join(tmpdir(), "gsk-e2e-"));
