@@ -9,8 +9,8 @@ import { formatNumber } from "@/lib/bo-dem";
 import { timTheoMa } from "@/lib/chuong-trinh/kho";
 import { lichSu, soGiaiHomNay } from "@/lib/luot/kho-luot";
 import { NutIn } from "@/components/nut-in";
-import { OGhiDanh } from "@/components/o-ghi-danh";
-import { NutTat } from "@/components/nut-tat";
+import { OTichLuot } from "@/components/o-tich-luot";
+import { NutBatTat } from "@/components/nut-bat-tat";
 
 export const dynamic = "force-dynamic";
 
@@ -87,13 +87,7 @@ export default async function TrangChiTiet({
           >
             {T.detailOpenScreen}
           </a>
-          {dangChay ? (
-            <NutTat ma={ct.ma} />
-          ) : (
-            <span className="rounded-xl bg-chi/10 px-5 py-3 text-sm font-bold text-chi">
-              {T.detailStopped}
-            </span>
-          )}
+          <NutBatTat ma={ct.ma} dangChay={dangChay} />
         </div>
       </div>
 
@@ -148,6 +142,8 @@ export default async function TrangChiTiet({
                   <th className="px-5 py-3 font-semibold">{T.colStopped}</th>
                   <th className="px-5 py-3 font-semibold">{T.colResult}</th>
                   <th className="px-5 py-3 font-semibold">{T.colDevice}</th>
+                  <th className="px-5 py-3 font-semibold">{T.colCode}</th>
+                  <th className="px-5 py-3 font-semibold">{T.colAwarded}</th>
                   <th className="px-5 py-3 font-semibold">{T.colEnrolled}</th>
                 </tr>
               </thead>
@@ -176,13 +172,38 @@ export default async function TrangChiTiet({
                     <td className="px-5 py-3 text-chi">
                       {NHAN_THIET_BI[l.thietBiBam ?? ""] ?? "—"}
                     </td>
+                    {/* Mã xác thực phải tra được ở ĐÂY. Không có cột này thì
+                        phụ huynh bấm nhầm "thử lại" trên điện thoại là mất mã,
+                        và nhân viên không còn chỗ nào để đối chiếu. */}
+                    <td className="px-5 py-3 font-mono text-xs tracking-widest text-muc">
+                      {l.maXacThuc ?? "—"}
+                    </td>
+                    <td className="px-5 py-3">
+                      {l.trung ? (
+                        <OTichLuot
+                          luotId={l.id}
+                          ma={ct.ma}
+                          coLuot="trao-thuong"
+                          banDau={l.daTraoThuong}
+                          nhan={T.awardToggle}
+                        />
+                      ) : (
+                        <span className="text-chi">—</span>
+                      )}
+                    </td>
                     <td className="px-5 py-3">
                       {/* Chỉ lượt có danh tính mới đánh dấu được — lượt ẩn danh
                           không có ai để mà ghi danh. */}
                       {l.hoTen === null ? (
                         <span className="text-chi">—</span>
                       ) : (
-                        <OGhiDanh luotId={l.id} ma={ct.ma} banDau={l.daGhiDanh} />
+                        <OTichLuot
+                          luotId={l.id}
+                          ma={ct.ma}
+                          coLuot="ghi-danh"
+                          banDau={l.daGhiDanh}
+                          nhan={T.enrollToggle}
+                        />
                       )}
                     </td>
                   </tr>

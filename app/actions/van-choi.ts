@@ -5,11 +5,7 @@ import { timTheoMa } from "@/lib/chuong-trinh/kho";
 import { phat } from "@/lib/dong-bo/tram-phat";
 import { kiemGioiHan } from "@/lib/luot/gioi-han";
 import { batDauLuot, dungLuot, type ThietBiBam } from "@/lib/luot/luot-service";
-import {
-  danhDauQuanTamHocThu,
-  nhanDien,
-  tenRutGon,
-} from "@/lib/nguoi-choi/nhan-dien";
+import { nhanDien, tenRutGon } from "@/lib/nguoi-choi/nhan-dien";
 import { giaHanCho, giuCho, nhaCho, nhaChoBatKe, type LoaiCho } from "@/lib/phien/giu-cho";
 
 /**
@@ -22,6 +18,12 @@ import { giaHanCho, giuCho, nhaCho, nhaChoBatKe, type LoaiCho } from "@/lib/phie
 export interface TraLoiGiuCho {
   duoc: boolean;
   conBanBao?: number;
+  /**
+   * VÌ SAO cần: trước đây `duoc: false` dùng chung cho hai ca hoàn toàn khác
+   * nhau, nên màn "Chưa chơi được" luôn hiển thị sai một trong hai — phụ huynh
+   * đọc "màn hình đang có người chơi" trong khi thật ra chẳng có ai.
+   */
+  lyDo?: "da-ket-thuc" | "dang-ban";
   /** Có sẵn để màn hình vẽ ngay mà không phải gọi thêm lượt nữa. */
   soTrung?: number;
   tenTrungTam?: string;
@@ -34,10 +36,10 @@ export async function xinCho(
   token: string,
 ): Promise<TraLoiGiuCho> {
   const ct = timTheoMa(ma);
-  if (!ct || ct.trangThai !== "dang_chay") return { duoc: false };
+  if (!ct || ct.trangThai !== "dang_chay") return { duoc: false, lyDo: "da-ket-thuc" };
 
   const kq = giuCho(ma, loai, token);
-  if (!kq.duoc) return { duoc: false, conBanBao: kq.conBanBao };
+  if (!kq.duoc) return { duoc: false, lyDo: "dang-ban", conBanBao: kq.conBanBao };
 
   if (loai === "nguoi_choi") {
     phat(ma, { loai: "nguoi-choi-vao", tenRutGon: "" });
@@ -168,10 +170,13 @@ export async function chotLuot(
   };
 }
 
-/**
- * 97% người chơi sẽ THUA, và màn thua đang là ngõ cụt. Đây là chỗ biến nó thành
- * cửa mời học thử — giá trị thật của cả trò chơi nằm ở đây, không nằm ở 3% trúng.
+/*
+ * ĐÃ GỠ `quanTamHocThu` (01/09/2026 — GĐ 8.1).
+ *
+ * Nút "NHẬN BUỔI HỌC THỬ" ở màn thua bị bỏ vì không trúng thì không nhận quà.
+ * Nhưng gỡ nút KHÔNG đủ: mọi hàm export trong file "use server" là một endpoint
+ * HTTP công khai có action-id ổn định. Để lại `quanTamHocThu(id: number)` mà
+ * không còn giao diện nghĩa là ai cũng POST được id bất kỳ để bật cờ quan tâm
+ * cho bất kỳ phụ huynh nào. Hàm thư viện `danhDauQuanTamHocThu` thì GIỮ — nó
+ * không phải endpoint, và màn "nhân viên đánh dấu tại quầy" sau này cần tới.
  */
-export async function quanTamHocThu(nguoiChoiId: number): Promise<boolean> {
-  return danhDauQuanTamHocThu(nguoiChoiId);
-}

@@ -1,9 +1,11 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { DIFFICULTIES, WHEEL_SIZE, type DifficultyId } from "@/config/game";
-import { doiTrangThai, taoChuongTrinh } from "@/lib/chuong-trinh/kho";
+import { doiTrangThai, taoChuongTrinh, type TrangThaiChuongTrinh } from "@/lib/chuong-trinh/kho";
+import { phat } from "@/lib/dong-bo/tram-phat";
 
 /**
  * Tạo chương trình từ form của nhân viên.
@@ -52,7 +54,19 @@ export async function taoChuongTrinhForm(
   redirect(`/quan-tri/${ct.ma}`);
 }
 
-export async function tatChuongTrinh(ma: string): Promise<void> {
-  doiTrangThai(ma, "ket_thuc");
+/**
+ * Nhận TRẠNG THÁI ĐÍCH chứ không phải "lật".
+ *
+ * Lật thì nhấp đúp sẽ lật hai lần và người bấm không hiểu vì sao chẳng có gì
+ * thay đổi. Trạng thái đích thì bấm bao nhiêu lần cũng ra đúng một kết quả.
+ */
+export async function datTrangThaiChuongTrinh(
+  ma: string,
+  trangThai: TrangThaiChuongTrinh,
+): Promise<void> {
+  doiTrangThai(ma, trangThai);
+  // Gỡ người đang kẹt ở màn "Chưa chơi được" mà không bắt họ tải lại trang.
+  phat(ma, { loai: "trang-thai", dangChay: trangThai === "dang_chay" });
+  revalidatePath("/quan-tri");
   redirect(`/quan-tri/${ma}`);
 }

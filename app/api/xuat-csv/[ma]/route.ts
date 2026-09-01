@@ -22,6 +22,7 @@ const COT = [
   "Mã xác thực",
   "Đã trao thưởng",
   "Quan tâm học thử",
+  "Đồng ý nhận tư vấn",
 ];
 
 function oCsv(gt: string | number | null): string {
@@ -55,6 +56,7 @@ export async function GET(
       l.maXacThuc ?? "",
       l.daTraoThuong ? "x" : "",
       l.quanTamHocThu ? "x" : "",
+      l.dongYTuVan ? "x" : "",
     ]
       .map(oCsv)
       .join(";"),

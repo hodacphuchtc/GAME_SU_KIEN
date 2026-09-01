@@ -9,7 +9,6 @@ import {
   chotLuot,
   moLuot,
   nhanDienNguoiChoi,
-  quanTamHocThu,
   roiDi,
   xinCho,
 } from "@/app/actions/van-choi";
@@ -67,7 +66,10 @@ export function ManDienThoai({
   const [loiForm, setLoiForm] = useState("");
   const [dangGui, setDangGui] = useState(false);
   const [chiVui, setChiVui] = useState(false);
-  const [daNhanHocThu, setDaNhanHocThu] = useState(false);
+  // Vì sao giữ lý do: "chương trình đã tắt" và "ghế đang bận" là hai chuyện
+  // khác hẳn nhau với phụ huynh đang đứng ở quầy — một cái thì chờ được, một
+  // cái thì chờ mãi cũng vô ích.
+  const [lyDoBan, setLyDoBan] = useState<"da-ket-thuc" | "dang-ban" | null>(null);
   // Giữ giá trị người dùng đã gõ trong state: React tự dọn form sau mỗi lần
   // chạy action, nên nếu để ô tự do thì gõ nhầm số điện thoại một lần là mất
   // luôn cả họ tên vừa nhập — phụ huynh đứng ở quầy sẽ bỏ cuộc ngay.
@@ -94,6 +96,7 @@ export function ManDienThoai({
       ]);
       if (huy) return;
       lechRef.current = lech.lech;
+      setLyDoBan(cho.duoc ? null : (cho.lyDo ?? "dang-ban"));
       setBuoc(cho.duoc ? "nhap-thong-tin" : "ban");
     })();
     return () => {
@@ -123,6 +126,20 @@ export function ManDienThoai({
     }, 100);
   }, []);
 
+  /**
+   * Xin lại chỗ. Trước GĐ 8.3, màn "Chưa chơi được" là NGÕ CỤT TUYỆT ĐỐI: không
+   * có nút nào, phải tự tải lại trang mới thoát ra. Nút này chạy được cả khi
+   * kênh SSE đã đứt, nên nó là đường thoát chắc chắn hơn tin đẩy ở (5).
+   */
+  const xinLaiCho = useCallback(async () => {
+    const cho = await xinCho(ma, "nguoi_choi", token);
+    setLyDoBan(cho.duoc ? null : (cho.lyDo ?? "dang-ban"));
+    if (cho.duoc) {
+      setLoiForm("");
+      setBuoc(nguoiChoiId === null ? "nhap-thong-tin" : "san-sang");
+    }
+  }, [ma, token, nguoiChoiId]);
+
   const nhanTin = useCallback(
     (tin: TinTrongPhong) => {
       switch (tin.loai) {
@@ -149,11 +166,17 @@ export function ManDienThoai({
           setBuoc("ket-qua");
           vibrate(tin.trung ? VIBRATE_WIN : VIBRATE_LOSE);
           return;
+        case "trang-thai":
+          // Chương trình vừa bật lại: máy đang kẹt ở màn "Chưa chơi được" tự
+          // thoát ra, không bắt phụ huynh tải lại trang. Bị tắt giữa chừng thì
+          // để yên — ván đang chạy vẫn phải kết thúc tử tế.
+          if (tin.dangChay) void xinLaiCho();
+          return;
         default:
           return;
       }
     },
-    [theoDoiMoKhoa],
+    [theoDoiMoKhoa, xinLaiCho],
   );
 
   useEffect(() => moKenh(ma, nhanTin), [ma, nhanTin]);
@@ -226,7 +249,6 @@ export function ManDienThoai({
 
   const choiLai = useCallback(async () => {
     setKetQua(null);
-    setDaNhanHocThu(false);
     // Chỗ đã được nhả lúc chốt ván — phải xin lại, và có thể người khác đã vào.
     const cho = await xinCho(ma, "nguoi_choi", token);
     setBuoc(cho.duoc ? "san-sang" : "ban");
@@ -256,14 +278,24 @@ export function ManDienThoai({
         {buoc === "ban" && (
           <div className="w-full rounded-2xl bg-vang/15 p-5 text-center">
             <p className="text-base font-black text-muc">{T.blocked}</p>
-            <p className="mt-1 text-sm text-muc">{loiForm || T.phoneBusy}</p>
-            {loiForm !== "" && (
+            <p className="mt-1 text-sm text-muc">
+              {loiForm || (lyDoBan === "da-ket-thuc" ? T.phoneEnded : T.phoneBusy)}
+            </p>
+            {loiForm !== "" ? (
               <button
                 type="button"
                 onClick={nhapLai}
                 className="mt-4 rounded-xl bg-tim px-5 py-3 text-sm font-black text-white"
               >
                 {T.formSubmit}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void xinLaiCho()}
+                className="mt-4 rounded-xl bg-tim px-5 py-3 text-sm font-black text-white"
+              >
+                {T.phoneRetry}
               </button>
             )}
           </div>
@@ -405,31 +437,12 @@ export function ManDienThoai({
                   {ketQua.khoangLech <= NEAR_MISS_THRESHOLD ? T.soClose : T.stillFar}
                 </p>
 
-                {nguoiChoiId !== null &&
-                  (daNhanHocThu ? (
-                    <p className="mt-3 w-full rounded-2xl bg-luc/10 p-4 text-sm font-semibold text-luc">
-                      {T.trialDone}
-                    </p>
-                  ) : (
-                    <div className="mt-3 w-full rounded-2xl border border-tim/30 bg-tim-nhat p-4">
-                      <p className="text-sm font-bold text-tim">
-                        {ketQua.khoangLech <= NEAR_MISS_THRESHOLD
-                          ? T.trialOfferNear(ketQua.khoangLech)
-                          : T.trialOfferFar}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void quanTamHocThu(nguoiChoiId).then(() =>
-                            setDaNhanHocThu(true),
-                          );
-                        }}
-                        className="mt-3 w-full rounded-xl bg-tim py-3 text-sm font-black text-white"
-                      >
-                        {T.trialButton}
-                      </button>
-                    </div>
-                  ))}
+                {/* Nền `bg-suong` chứ KHÔNG phải `bg-tim-nhat` có viền như khối ưu
+                    đãi cũ: nền tím có viền đọc như một thẻ bấm được, mà ở đây
+                    không còn hành động nào để mời. */}
+                <p className="mt-3 w-full rounded-2xl bg-suong px-4 py-3 text-center text-sm font-semibold text-chi">
+                  {T.loseThanks}
+                </p>
               </>
             )}
           </div>
@@ -438,13 +451,23 @@ export function ManDienThoai({
 
       <div className={buoc === "nhap-thong-tin" || buoc === "ban" ? "hidden" : "px-5 pb-8"}>
         {buoc === "ket-qua" ? (
-          <button
-            type="button"
-            onPointerDown={() => void choiLai()}
-            className="w-full rounded-3xl bg-cam py-6 text-2xl font-black text-white active:scale-[0.99]"
-          >
-            {T.tryAgain}
-          </button>
+          /*
+           * 🔴 Khi đang THẮNG và mã còn hiệu lực thì KHÔNG vẽ nút đáy.
+           *
+           * `choiLai()` chạy `setKetQua(null)` ngay lập tức, mà nút này là khối
+           * cam to nhất màn hình nằm ngay dưới thẻ mã xác thực. Phụ huynh đưa
+           * máy cho nhân viên, ai chạm nhầm là MẤT MÃ, không hoàn tác được.
+           * Hết 60 giây thì mã vô giá trị rồi, lúc đó mới cho nút quay lại.
+           */
+          ketQua?.trung && conHieuLuc > 0 ? null : (
+            <button
+              type="button"
+              onPointerDown={() => void choiLai()}
+              className="w-full rounded-3xl bg-cam py-6 text-2xl font-black text-white active:scale-[0.99]"
+            >
+              {ketQua?.trung ? T.playAgain : T.tryAgain}
+            </button>
+          )
         ) : (
           <button
             type="button"

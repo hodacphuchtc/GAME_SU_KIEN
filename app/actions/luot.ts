@@ -2,20 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 
-import { datGhiDanh } from "@/lib/luot/kho-luot";
+import { datCoLuot, type CoLuot } from "@/lib/luot/kho-luot";
 
 /**
- * Nhân viên tự tay đánh dấu một lượt đã thành học viên.
+ * Hai cờ nhân viên tích ở quầy: "đã trao quà" (đối soát giải thưởng) và
+ * "đã ghi danh" (đóng vòng lặp lead → học viên).
  *
- * Đây là mắt xích đóng vòng lặp: không có nó thì cả hệ thống chỉ đếm được số
- * người CHƠI, không bao giờ trả lời được có ai thành học viên hay không.
+ * `da_trao_thuong` có trong lược đồ từ v1 nhưng KHÔNG nơi nào ghi vào — cột chết
+ * suốt mấy tháng, và cột "Đã trao thưởng" trong file xuất vĩnh viễn rỗng.
  */
-export async function datGhiDanhLuot(
+export async function datCoLuotAction(
   luotId: number,
-  daGhiDanh: boolean,
+  coLuot: CoLuot,
+  bat: boolean,
   ma: string,
 ): Promise<void> {
-  datGhiDanh(luotId, daGhiDanh);
+  datCoLuot(luotId, coLuot, bat);
   // Cập nhật cả trang chi tiết lẫn danh sách — con số ROI nằm ở trang danh sách.
   revalidatePath(`/quan-tri/${ma}`);
   revalidatePath("/quan-tri");

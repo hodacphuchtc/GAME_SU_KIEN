@@ -97,6 +97,15 @@ export const T = {
   roiDong: (khach: number, ghiDanh: number, phanTram: string) =>
     `Tháng này: ${khach} khách để lại số → ${ghiDanh} đã ghi danh (${phanTram})`,
   colEnrolled: "Đã ghi danh",
+  colCode: "Mã xác thực",
+  colAwarded: "Đã trao quà",
+  awardToggle: "Đánh dấu đã trao quà cho khách này",
+  detailStart: "BẬT LẠI CHƯƠNG TRÌNH",
+  detailStopConfirm: "Tắt chương trình này? Người đang quét mã sẽ không chơi được nữa.",
+  listTurnOn: "Bật",
+  listTurnOff: "Tắt",
+  phoneEnded: "Chương trình đã kết thúc. Bạn hỏi nhân viên lễ tân giúp nhé!",
+  phoneRetry: "THỬ LẠI",
   enrollToggle: "Đánh dấu khách này đã ghi danh học",
 
   // ---- Màn điện thoại ----
@@ -122,15 +131,14 @@ export const T = {
 
   // ---- Mời học thử sau khi thua ----
   /** Lệch sát thì reo lên; lệch xa mà vẫn "thôi" thì đọc như trêu người ta. */
-  trialOfferNear: (n: number) => `Lệch ${n} số thôi! Tặng bạn 1 buổi học thử miễn phí`,
-  trialOfferFar: "Chưa trúng lần này — tặng bạn 1 buổi học thử miễn phí",
-  trialButton: "NHẬN BUỔI HỌC THỬ",
-  trialDone: "Đã ghi nhận! Nhân viên sẽ liên hệ với bạn.",
 
   // ---- Kết quả ----
   congrats: "CHÚC MỪNG!",
   wonExact: "Bạn đã dừng đúng số",
-  lost: "CHƯA TRÚNG",
+  lost: "KHÔNG TRÚNG THƯỞNG",
+  // Người không trúng KHÔNG nhận gì. Câu này thay cho ưu đãi cũ: nói thật, nói
+  // tử tế, và không hứa điều gì mà quầy không định trao.
+  loseThanks: "Cảm ơn Quý Phụ huynh đã tham gia",
   youStoppedAt: "Bạn dừng ở",
   offByN: (n: number) => `lệch ${n} số`,
   soClose: "Sát quá! Thử lại ngay đi",

@@ -29,7 +29,13 @@ export type TinTrongPhong =
       tenRutGon: string;
       tenGiaiThuong: string;
     }
-  | { loai: "roi-di" };
+  | { loai: "roi-di" }
+  /**
+   * Chương trình vừa bị tắt hoặc bật lại. Điện thoại LUÔN mở kênh này (không phụ
+   * thuộc đang ở bước nào), nên máy đang kẹt ở màn "Chưa chơi được" vẫn nhận
+   * được và tự thoát ra — không bắt phụ huynh tải lại trang.
+   */
+  | { loai: "trang-thai"; dangChay: boolean };
 
 export function moKenh(
   phong: string,

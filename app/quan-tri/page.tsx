@@ -5,6 +5,7 @@ import { T } from "@/config/locale";
 import { formatNumber } from "@/lib/bo-dem";
 import { danhSachChuongTrinh } from "@/lib/chuong-trinh/kho";
 import { thongKeGhiDanh } from "@/lib/luot/kho-luot";
+import { NutBatTatNho } from "@/components/nut-bat-tat-nho";
 
 // Đọc thẳng cơ sở dữ liệu ở mỗi lượt tải: nhân viên tắt chương trình lúc 9h thì
 // 9h01 danh sách phải hiện "đã kết thúc", không phải sau khi bản dựng hết hạn.
@@ -120,7 +121,10 @@ export default function TrangDanhSach() {
                   <td className="px-5 py-4 tabular-nums">{c.soLuot}</td>
                   <td className="px-5 py-4 tabular-nums">{c.soGiai}</td>
                   <td className="px-5 py-4">
-                    <NhanTrangThai dangChay={c.trangThai === "dang_chay"} />
+                    <div className="flex items-center gap-2">
+                      <NhanTrangThai dangChay={c.trangThai === "dang_chay"} />
+                      <NutBatTatNho ma={c.ma} dangChay={c.trangThai === "dang_chay"} />
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -123,10 +123,23 @@ export function danhSachChuongTrinh(): ChuongTrinhKemSoLieu[] {
   return dong.map(doiDong);
 }
 
+/**
+ * Bật hoặc tắt chương trình, đồng thời DỌN SẠCH cả bốn ô giữ chỗ — ở CẢ HAI chiều.
+ *
+ * 🔴 Vì sao phải dọn: `ROOM_HOLD_SECONDS` là 120 giây. Nhân viên tắt chương trình
+ * đúng lúc có người đang giữ chỗ, rồi 20 giây sau bật lại → suốt HAI PHÚT đầu,
+ * người mới quét mã bị báo "màn hình đang có người chơi" bởi một chiếc điện
+ * thoại đã rời đi từ lâu. Nhìn y như bật lại không ăn thua. Một câu UPDATE,
+ * không thêm lượt đi–về nào — cứ dọn.
+ */
 export function doiTrangThai(ma: string, trangThai: TrangThaiChuongTrinh): boolean {
   return (
     chay(
-      "update chuong_trinh set trang_thai = ?, sua_luc = ? where ma = ?",
+      `update chuong_trinh
+          set trang_thai = ?, sua_luc = ?,
+              token_man_hinh = null, han_man_hinh = null,
+              token_nguoi_choi = null, han_nguoi_choi = null
+        where ma = ?`,
       trangThai,
       Date.now(),
       ma,

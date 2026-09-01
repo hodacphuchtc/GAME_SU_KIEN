@@ -319,6 +319,11 @@ export function ManHinh({ ma, soTrung, tenTrungTam, tenGiaiThuong, thamSo }: Man
                   <p className="text-lg text-chi lg:text-2xl">
                     {satNut ? T.soClose : T.stillFar}
                   </p>
+                  {/* Hai màn hình phải nói cùng một câu, cùng một giây, trong
+                      cùng một phòng — nếu không chúng cãi nhau trước mặt khách. */}
+                  <p className="mt-4 text-xl text-chi lg:text-3xl">
+                    {T.loseThanks}
+                  </p>
                 </>
               )}
             </div>
