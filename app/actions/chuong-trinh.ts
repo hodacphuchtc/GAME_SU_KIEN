@@ -12,8 +12,21 @@ import {
   type CheDoChoi,
   type NguonCoSo,
 } from "@/config/to-chuc";
+import { headers } from "next/headers";
+
 import { timCoSo } from "@/lib/co-so/kho";
-import { doiTrangThai, taoChuongTrinh, type TrangThaiChuongTrinh } from "@/lib/chuong-trinh/kho";
+import {
+  anChuongTrinh,
+  demRangBuoc,
+  doiTrangThai,
+  taoChuongTrinh,
+  timTheoMa,
+  xoaChuongTrinh,
+  type TrangThaiChuongTrinh,
+} from "@/lib/chuong-trinh/kho";
+import { nguoiDangDangNhap } from "@/lib/bao-ve/phien-hien-tai";
+import { phamViCua } from "@/lib/bao-ve/quyen";
+import { ghiNhatKy, HANH_DONG } from "@/lib/nhat-ky/kho";
 import { phat } from "@/lib/dong-bo/tram-phat";
 
 /**
@@ -104,4 +117,60 @@ export async function datTrangThaiChuongTrinh(
   phat(ma, { loai: "trang-thai", dangChay: trangThai === "dang_chay" });
   revalidatePath("/quan-tri");
   redirect(`/quan-tri/chuong-trinh/${ma}`);
+}
+
+export interface KetQuaDon {
+  /** `xoa` = xoá hẳn · `an` = chỉ ẩn vì đã có ván chơi. */
+  daLam?: "xoa" | "an";
+  loi?: string;
+}
+
+/**
+ * Xoá chương trình — hoặc ẩn nó, nếu xoá là mất sổ đối soát.
+ *
+ * 🔴 **Máy chủ tự quyết xoá hay ẩn**, không nhận lệnh đó từ máy khách. Hộp xác
+ * nhận trên trình duyệt chỉ để báo trước cho người bấm; nếu tin tham số client
+ * gửi lên thì một yêu cầu nặn tay là xoá sạch lịch sử trao thưởng của cả tháng.
+ *
+ * Ranh giới: **chưa có ván nào ⇒ xoá hẳn** (chương trình tạo nhầm, tạo thử);
+ * **đã có ván ⇒ ẩn**, vì `van_choi` là sổ đối soát khi phụ huynh khiếu nại phần
+ * quà đã nhận.
+ */
+export async function xoaHoacAnChuongTrinh(ma: string): Promise<KetQuaDon> {
+  const nguoi = await nguoiDangDangNhap();
+  if (!nguoi) return { loi: T.nvErrQuyen };
+
+  // Lọc theo phạm vi ngay ở đây: không ai được dọn chương trình của cơ sở khác.
+  const ct = timTheoMa(ma.toUpperCase(), phamViCua(nguoi));
+  if (!ct) return { loi: T.createErrNoBranch };
+
+  const rb = demRangBuoc(ct.id);
+  const h = await headers();
+  const ip = h.get("x-forwarded-for") ?? h.get("x-real-ip");
+
+  if (rb.soVan === 0) {
+    xoaChuongTrinh(ct.id);
+    ghiNhatKy({
+      nhanVienId: nguoi.id,
+      hanhDong: HANH_DONG.xoaChuongTrinh,
+      doiTuong: `${ct.ma} · ${ct.tenTrungTam}`,
+      soDong: 0,
+      diaChiIp: ip,
+    });
+    revalidatePath("/quan-tri");
+    redirect("/quan-tri");
+  }
+
+  anChuongTrinh(ct.id);
+  // Người đang mở màn chơi phải được biết ngay, đừng để họ bấm vào hư không.
+  phat(ct.ma, { loai: "trang-thai", dangChay: false });
+  ghiNhatKy({
+    nhanVienId: nguoi.id,
+    hanhDong: HANH_DONG.anChuongTrinh,
+    doiTuong: `${ct.ma} · ${ct.tenTrungTam}`,
+    soDong: rb.soVan,
+    diaChiIp: ip,
+  });
+  revalidatePath("/quan-tri");
+  redirect("/quan-tri");
 }

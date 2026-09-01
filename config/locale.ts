@@ -96,6 +96,21 @@ export const T = {
   awardToggle: "Đánh dấu đã trao quà cho khách này",
   detailStart: "BẬT LẠI CHƯƠNG TRÌNH",
   detailStopConfirm: "Tắt chương trình này? Người đang quét mã sẽ không chơi được nữa.",
+  // ---- Dọn dẹp: xoá / ẩn (GĐ 23) ----
+  donXoa: "Xoá",
+  donAn: "Ẩn khỏi danh sách",
+  donHienCaDaAn: "Hiện cả mục đã ẩn",
+  donNhanDaAn: "Đã ẩn",
+  donXacNhanXoaCt: (ten: string) =>
+    `Xoá hẳn chương trình "${ten}"? Chưa ai chơi ván nào nên không mất lịch sử gì. Kho quà đã khai của nó sẽ mất theo. Khách tiềm năng KHÔNG bị xoá.`,
+  donXacNhanAnCt: (ten: string, van: number, giai: number) =>
+    `Chương trình "${ten}" đã có ${van} ván chơi và ${giai} giải đã trao — KHÔNG xoá được, nó là sổ đối soát khi phụ huynh khiếu nại phần quà. Ẩn khỏi danh sách? Chương trình sẽ ngừng nhận lượt chơi, mã QR đã dán không dùng được nữa. Lấy lại bằng ô "Hiện cả mục đã ẩn".`,
+
+  donXacNhanXoaCoSo: (ten: string) =>
+    `Xoá hẳn cơ sở "${ten}"? Nó chưa gắn với khách, nhân viên, chương trình hay ván chơi nào nên không mất dữ liệu gì.`,
+  donXacNhanAnCoSo: (ten: string, lead: number, nv: number, ct: number) =>
+    `Cơ sở "${ten}" đang có ${lead} khách tiềm năng, ${nv} nhân viên và ${ct} chương trình — KHÔNG xoá được, vì xoá là mất theo cả danh bạ khách lẫn nhân viên. Ẩn khỏi danh sách? Mọi dữ liệu giữ nguyên, lấy lại bằng ô "Hiện cả mục đã ẩn".`,
+
   listTurnOn: "Bật",
   listTurnOff: "Tắt",
   phoneEnded: "Chương trình đã kết thúc. Bạn hỏi nhân viên lễ tân giúp nhé!",
@@ -269,6 +284,11 @@ export const T = {
     gan_lead: "Gán khách cho sale",
     xoa_theo_sdt: "Xoá dữ liệu theo SĐT",
     canh_bao_kho: "Kho quà chạm ngưỡng",
+    xoa_chuong_trinh: "Xoá chương trình",
+    an_chuong_trinh: "Ẩn chương trình",
+    xoa_co_so: "Xoá cơ sở",
+    an_co_so: "Ẩn cơ sở",
+    sua_chuong_trinh: "Sửa thiết lập chương trình",
   } as Record<string, string>,
   nkHeThong: "Hệ thống",
 

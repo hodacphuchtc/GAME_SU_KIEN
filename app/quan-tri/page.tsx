@@ -3,11 +3,12 @@ import Link from "next/link";
 import { DIFFICULTIES, type DifficultyId } from "@/config/game";
 import { T } from "@/config/locale";
 import { formatNumber } from "@/lib/bo-dem";
-import { danhSachChuongTrinh } from "@/lib/chuong-trinh/kho";
+import { danhSachChuongTrinh, type TrangThaiChuongTrinh } from "@/lib/chuong-trinh/kho";
 import { batBuocDangNhap } from "@/lib/bao-ve/phien-hien-tai";
 import { phamViCua } from "@/lib/bao-ve/quyen";
 import { thongKeGhiDanh } from "@/lib/luot/kho-luot";
 import { NutBatTatNho } from "@/components/nut-bat-tat-nho";
+import { NutXoaChuongTrinh } from "@/components/nut-xoa-chuong-trinh";
 import { mucCanhBaoKho } from "@/lib/qua/canh-bao";
 import { danhSachQua } from "@/lib/qua/kho-qua";
 import { DaiCanhBaoKho } from "@/components/dai-canh-bao-kho";
@@ -25,15 +26,24 @@ function TheSoLieu({ so, nhan }: { so: string; nhan: string }) {
   );
 }
 
-function NhanTrangThai({ dangChay }: { dangChay: boolean }) {
+function NhanTrangThai({ trangThai }: { trangThai: TrangThaiChuongTrinh }) {
+  // BA trạng thái, không phải hai: "đã ẩn" khác hẳn "đã kết thúc" — một cái là
+  // dọn khỏi giao diện, cái kia là hết chương trình.
+  const kieu =
+    trangThai === "dang_chay"
+      ? "bg-luc/10 text-luc"
+      : trangThai === "da_an"
+        ? "bg-cam/10 text-cam"
+        : "bg-chi/10 text-chi";
+  const chu =
+    trangThai === "dang_chay"
+      ? T.statusRunning
+      : trangThai === "da_an"
+        ? T.donNhanDaAn
+        : T.statusEnded;
   return (
-    <span
-      className={[
-        "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
-        dangChay ? "bg-luc/10 text-luc" : "bg-chi/10 text-chi",
-      ].join(" ")}
-    >
-      {dangChay ? T.statusRunning : T.statusEnded}
+    <span className={["inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", kieu].join(" ")}>
+      {chu}
     </span>
   );
 }
@@ -58,11 +68,17 @@ function DongRoi({ soKhach, soGhiDanh }: { soKhach: number; soGhiDanh: number })
   );
 }
 
-export default async function TrangDanhSach() {
+export default async function TrangDanhSach({
+  searchParams,
+}: {
+  searchParams: Promise<{ an?: string }>;
+}) {
   // 🔴 Lọc ở TẦNG SQL, không ẩn bằng giao diện: quản lý cơ sở này không được
   // thấy chương trình của cơ sở kia, kể cả trong mã nguồn trang gửi về máy khách.
   const nguoi = await batBuocDangNhap();
-  const danhSach = danhSachChuongTrinh(phamViCua(nguoi));
+  const { an } = await searchParams;
+  const hienCaDaAn = an === "1";
+  const danhSach = danhSachChuongTrinh(phamViCua(nguoi), hienCaDaAn);
   // Cảnh báo kho hiện ở CẢ danh sách lẫn trang chi tiết (Đ14): quản lý mở danh
   // sách trước, và nếu dải chỉ nằm trong trang chi tiết thì họ phải bấm vào
   // từng chương trình mới biết cái nào sắp hết quà.
@@ -81,12 +97,28 @@ export default async function TrangDanhSach() {
           <h1 className="text-2xl font-black text-muc sm:text-3xl">{T.listTitle}</h1>
           <p className="mt-1 text-sm text-chi">{T.listSubtitle}</p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Ô lọc là thứ khiến "ẩn" khác hẳn "xoá": người dùng lấy lại được.
+              Không có nó thì ẩn đọc lên y như xoá, và ta mất luôn lý do để ẩn. */}
+          <Link
+            href={hienCaDaAn ? "/quan-tri" : "/quan-tri?an=1"}
+            data-loc-an={hienCaDaAn ? "1" : "0"}
+            className={[
+              "rounded-xl border px-4 py-3 text-sm font-bold transition",
+              hienCaDaAn
+                ? "border-tim bg-tim-nhat text-tim"
+                : "border-ke bg-white text-muc hover:border-tim hover:text-tim",
+            ].join(" ")}
+          >
+            {T.donHienCaDaAn}
+          </Link>
         <Link
           href="/quan-tri/tao"
           className="rounded-xl bg-cam px-5 py-3 text-sm font-black text-white shadow-sm transition hover:brightness-95"
         >
           + {T.listNew}
         </Link>
+        </div>
       </div>
 
       <div className="mt-6">
@@ -142,9 +174,19 @@ export default async function TrangDanhSach() {
                   <td className="px-5 py-4 tabular-nums">{c.soLuot}</td>
                   <td className="px-5 py-4 tabular-nums">{c.soGiai}</td>
                   <td className="px-5 py-4">
-                    <div className="flex items-center gap-2">
-                      <NhanTrangThai dangChay={c.trangThai === "dang_chay"} />
-                      <NutBatTatNho ma={c.ma} dangChay={c.trangThai === "dang_chay"} />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <NhanTrangThai trangThai={c.trangThai} />
+                      {c.trangThai !== "da_an" && (
+                        <>
+                          <NutBatTatNho ma={c.ma} dangChay={c.trangThai === "dang_chay"} />
+                          <NutXoaChuongTrinh
+                            ma={c.ma}
+                            ten={c.tenTrungTam}
+                            soVan={c.soVan}
+                            soGiaiDaTrao={c.soGiaiDaTrao}
+                          />
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

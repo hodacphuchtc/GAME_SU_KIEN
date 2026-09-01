@@ -18,6 +18,11 @@ export const HANH_DONG = {
   ganLead: "gan_lead",
   xoaTheoSdt: "xoa_theo_sdt",
   canhBaoKho: "canh_bao_kho",
+  xoaChuongTrinh: "xoa_chuong_trinh",
+  anChuongTrinh: "an_chuong_trinh",
+  xoaCoSo: "xoa_co_so",
+  anCoSo: "an_co_so",
+  suaChuongTrinh: "sua_chuong_trinh",
 } as const;
 
 export type HanhDong = (typeof HANH_DONG)[keyof typeof HANH_DONG];

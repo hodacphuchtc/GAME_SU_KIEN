@@ -11,7 +11,15 @@ export const TIEN_TO_CO_SO = "CS";
 /** Tên gán cho nhóm chương trình cũ không có tên trung tâm lúc nâng cấp lược đồ. */
 export const TEN_CO_SO_MAC_DINH = "Chưa phân loại";
 
-export const TRANG_THAI_CO_SO = ["bat", "tat"] as const;
+/**
+ * Ba mức, vì nhu cầu thật sự có ba:
+ * - `bat`    đang hoạt động;
+ * - `tat`    tạm ngừng — không hiện ở ô chọn khi tạo chương trình, nhưng vẫn
+ *            nằm trong bảng cho ai cần nhìn;
+ * - `da_an`  dọn khỏi mắt hẳn (GĐ 23.2) — quầy đã đóng cửa từ lâu. Dữ liệu vẫn
+ *            còn nguyên, lấy lại bằng ô "Hiện cả mục đã ẩn".
+ */
+export const TRANG_THAI_CO_SO = ["bat", "tat", "da_an"] as const;
 export type TrangThaiCoSo = (typeof TRANG_THAI_CO_SO)[number];
 
 export const TRANG_THAI_NHAN_VIEN = ["dang_lam", "da_nghi"] as const;

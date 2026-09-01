@@ -44,8 +44,71 @@ function doiDong(dong: DongCoSo): CoSo {
  */
 const SAP_THEO_SO = `order by cast(substr(ma, ${TIEN_TO_CO_SO.length + 1}) as integer), id`;
 
-export function danhSachCoSo(): CoSo[] {
-  return layNhieu<DongCoSo>(`select * from co_so ${SAP_THEO_SO}`).map(doiDong);
+export function danhSachCoSo(hienCaDaAn = false): CoSo[] {
+  const loc = hienCaDaAn ? "" : "where trang_thai <> 'da_an' ";
+  return layNhieu<DongCoSo>(`select * from co_so ${loc}${SAP_THEO_SO}`).map(doiDong);
+}
+
+export interface RangBuocCoSo {
+  soLead: number;
+  soNhanVien: number;
+  soChuongTrinh: number;
+  soVan: number;
+}
+
+/**
+ * Đếm thứ đang níu cơ sở này lại — để hộp xác nhận nói bằng CON SỐ.
+ *
+ * 🔴 Bốn con số này quyết định xoá hay ẩn, và ngưỡng ở đây CHẶT hơn chương
+ * trình vì một lý do đo được trên lược đồ: `khach_tiem_nang.co_so_id` và
+ * `nhan_vien.co_so_id` đều là `ON DELETE CASCADE`. Một câu `delete from co_so`
+ * là cuốn theo **toàn bộ danh bạ khách và nhân viên** của cơ sở đó — im lặng,
+ * không hỏi, không hoàn tác.
+ */
+export function demRangBuocCoSo(id: number): RangBuocCoSo {
+  const d = layMot<{
+    so_lead: number;
+    so_nhan_vien: number;
+    so_chuong_trinh: number;
+    so_van: number;
+  }>(
+    `select (select count(*) from khach_tiem_nang where co_so_id = ?) as so_lead,
+            (select count(*) from nhan_vien       where co_so_id = ?) as so_nhan_vien,
+            (select count(*) from chuong_trinh    where co_so_id = ?) as so_chuong_trinh,
+            (select count(*) from van_choi        where co_so_id = ?) as so_van`,
+    id,
+    id,
+    id,
+    id,
+  );
+  return {
+    soLead: d?.so_lead ?? 0,
+    soNhanVien: d?.so_nhan_vien ?? 0,
+    soChuongTrinh: d?.so_chuong_trinh ?? 0,
+    soVan: d?.so_van ?? 0,
+  };
+}
+
+/**
+ * Xoá HẲN. Chỉ gọi khi **cả bốn** con số của `demRangBuocCoSo` bằng 0 — server
+ * action là nơi canh, không tin tham số từ máy khách.
+ */
+export function xoaCoSo(id: number): boolean {
+  return chay("delete from co_so where id = ?", id) > 0;
+}
+
+/**
+ * Ẩn khỏi giao diện, giữ trọn dữ liệu.
+ *
+ * Khác `datTrangThaiCoSo(id, "tat")` ở chỗ: "tắt" nghĩa là *đừng cho chọn nó khi
+ * tạo chương trình mới* nhưng vẫn nằm trong bảng cho ai cần nhìn; "ẩn" là *dọn
+ * khỏi mắt hẳn*. Hai mức, vì nhu cầu thật sự có hai: tạm ngừng một quầy khác với
+ * dọn một quầy đã đóng cửa từ năm ngoái.
+ */
+export function anCoSo(id: number): boolean {
+  return (
+    chay("update co_so set trang_thai = 'da_an', sua_luc = ? where id = ?", Date.now(), id) > 0
+  );
 }
 
 /** Chỉ cơ sở đang bật — dùng cho mọi ô chọn mà người dùng nhìn thấy. */

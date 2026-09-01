@@ -4,7 +4,18 @@ import { useCallback, useState, useTransition } from "react";
 
 import { T } from "@/config/locale";
 import type { CoSo } from "@/lib/co-so/nhan";
-import { datTrangThaiCoSoAction } from "@/app/actions/co-so";
+import { datTrangThaiCoSoAction, xoaHoacAnCoSo } from "@/app/actions/co-so";
+
+/**
+ * Ràng buộc ĐÃ ĐẾM ở máy chủ, truyền xuống để nút hỏi đúng câu. Không gọi kho
+ * từ đây: component máy khách không được đụng thẳng vào SQL (ADR-008).
+ */
+export interface RangBuocDaDoc {
+  soLead: number;
+  soNhanVien: number;
+  soChuongTrinh: number;
+  soVan: number;
+}
 import { FormCoSo } from "@/components/form-co-so";
 
 /**
@@ -36,7 +47,58 @@ function NutBatTatCoSo({ cs }: { cs: CoSo }) {
   );
 }
 
-export function BangCoSo({ danhSach }: { danhSach: CoSo[] }) {
+function NutXoaCoSo({ cs, rangBuoc }: { cs: CoSo; rangBuoc: RangBuocDaDoc }) {
+  const [dangGui, batDau] = useTransition();
+  const [loi, setLoi] = useState("");
+  const seXoaHan =
+    rangBuoc.soLead === 0 &&
+    rangBuoc.soNhanVien === 0 &&
+    rangBuoc.soChuongTrinh === 0 &&
+    rangBuoc.soVan === 0;
+
+  return (
+    <>
+      <button
+        type="button"
+        disabled={dangGui}
+        data-nut-don={seXoaHan ? "xoa" : "an"}
+        onClick={() => {
+          // Hỏi đúng câu ứng với kết cục máy chủ sắp làm. Hỏi "xoá hẳn nhé"
+          // rồi lại chỉ ẩn là nói dối người dùng — hỏi sai một lần thì lần sau
+          // họ không đọc hộp thoại nữa.
+          const cau = seXoaHan
+            ? T.donXacNhanXoaCoSo(cs.ten)
+            : T.donXacNhanAnCoSo(
+                cs.ten,
+                rangBuoc.soLead,
+                rangBuoc.soNhanVien,
+                rangBuoc.soChuongTrinh,
+              );
+          if (!window.confirm(cau)) return;
+          batDau(async () => {
+            const kq = await xoaHoacAnCoSo(cs.id);
+            if (kq.loi) setLoi(kq.loi);
+          });
+        }}
+        className="rounded-lg border border-do/40 px-2.5 py-1 text-xs font-bold text-do transition hover:bg-do/10 disabled:opacity-50"
+      >
+        {seXoaHan ? T.donXoa : T.donAn}
+      </button>
+      {loi !== "" && <span className="ml-2 text-xs font-semibold text-do">{loi}</span>}
+    </>
+  );
+}
+
+export function BangCoSo({
+  danhSach,
+  rangBuoc,
+  hienCaDaAn,
+}: {
+  danhSach: CoSo[];
+  /** id cơ sở → số dòng đang níu nó lại. */
+  rangBuoc: Record<number, RangBuocDaDoc>;
+  hienCaDaAn: boolean;
+}) {
   // `null` = đóng · `"moi"` = đang thêm · số = đang sửa cơ sở có id đó.
   const [dangMo, setDangMo] = useState<number | "moi" | null>(null);
   const dong = useCallback(() => setDangMo(null), []);
@@ -50,15 +112,31 @@ export function BangCoSo({ danhSach }: { danhSach: CoSo[] }) {
           <h1 className="text-2xl font-black text-muc sm:text-3xl">{T.coSoTitle}</h1>
           <p className="mt-1 max-w-2xl text-sm text-chi">{T.coSoSubtitle}</p>
         </div>
-        {dangMo === null && (
-          <button
-            type="button"
-            onClick={() => setDangMo("moi")}
-            className="rounded-xl bg-cam px-5 py-3 text-sm font-black text-white"
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Ô lọc là thứ khiến "ẩn" khác hẳn "xoá": lấy lại được. Không có nó
+              thì ẩn đọc lên y như xoá, và ta mất luôn lý do để ẩn. */}
+          <a
+            href={hienCaDaAn ? "/quan-tri/co-so" : "/quan-tri/co-so?an=1"}
+            data-loc-an={hienCaDaAn ? "1" : "0"}
+            className={[
+              "rounded-xl border px-4 py-3 text-sm font-bold transition",
+              hienCaDaAn
+                ? "border-tim bg-tim-nhat text-tim"
+                : "border-ke bg-white text-muc hover:border-tim hover:text-tim",
+            ].join(" ")}
           >
-            {T.coSoNew}
-          </button>
-        )}
+            {T.donHienCaDaAn}
+          </a>
+          {dangMo === null && (
+            <button
+              type="button"
+              onClick={() => setDangMo("moi")}
+              className="rounded-xl bg-cam px-5 py-3 text-sm font-black text-white"
+            >
+              {T.coSoNew}
+            </button>
+          )}
+        </div>
       </div>
 
       {dangMo !== null && (
@@ -108,10 +186,18 @@ export function BangCoSo({ danhSach }: { danhSach: CoSo[] }) {
                         <span
                           className={[
                             "whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold",
-                            tat ? "bg-chi/10 text-chi" : "bg-luc/10 text-luc",
+                            cs.trangThai === "da_an"
+                              ? "bg-cam/10 text-cam"
+                              : tat
+                                ? "bg-chi/10 text-chi"
+                                : "bg-luc/10 text-luc",
                           ].join(" ")}
                         >
-                          {tat ? T.coSoOff : T.coSoOn}
+                          {cs.trangThai === "da_an"
+                            ? T.donNhanDaAn
+                            : tat
+                              ? T.coSoOff
+                              : T.coSoOn}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -123,7 +209,18 @@ export function BangCoSo({ danhSach }: { danhSach: CoSo[] }) {
                           >
                             {T.coSoEdit}
                           </button>
-                          <NutBatTatCoSo cs={cs} />
+                          {cs.trangThai !== "da_an" && <NutBatTatCoSo cs={cs} />}
+                          <NutXoaCoSo
+                            cs={cs}
+                            rangBuoc={
+                              rangBuoc[cs.id] ?? {
+                                soLead: 0,
+                                soNhanVien: 0,
+                                soChuongTrinh: 0,
+                                soVan: 0,
+                              }
+                            }
+                          />
                         </div>
                       </td>
                     </tr>

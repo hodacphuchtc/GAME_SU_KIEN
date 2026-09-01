@@ -22,7 +22,16 @@ import type { PhamVi } from "@/lib/bao-ve/quyen";
  * muộn cũng có người gọi thiếu tham số ở khu quản trị, và không gì báo lỗi cả.
  */
 
-export type TrangThaiChuongTrinh = "dang_chay" | "ket_thuc";
+/**
+ * `da_an` (GĐ 23.1) = dọn khỏi giao diện nhưng **giữ trọn dữ liệu**. Dùng cho
+ * chương trình đã có ván chơi: xoá hẳn là mất sổ đối soát giải thưởng đã trao,
+ * và đó là thứ bảo vệ trung tâm khi phụ huynh khiếu nại phần quà.
+ *
+ * 🔴 Ẩn CŨNG LÀ NGỪNG CHẠY. Ẩn khỏi giao diện mà vẫn nhận lượt chơi là trường
+ * hợp tệ nhất: nhân viên tưởng đã dọn xong, còn phụ huynh vẫn quét được mã QR
+ * đã dán và vẫn trúng quà mà không ai theo dõi.
+ */
+export type TrangThaiChuongTrinh = "dang_chay" | "ket_thuc" | "da_an";
 
 export interface ChuongTrinh {
   id: number;
@@ -45,6 +54,13 @@ export interface ChuongTrinh {
 export interface ChuongTrinhKemSoLieu extends ChuongTrinh {
   soLuot: number;
   soGiai: number;
+  /**
+   * Số VÁN — khác `soLuot` (số lần bấm). Danh sách cần nó để nút dọn hỏi đúng
+   * câu: hỏi "xoá hẳn nhé" trong khi máy chủ sắp ẩn là nói dối người dùng, mà
+   * hỏi sai một lần thì lần sau họ không đọc hộp thoại nữa.
+   */
+  soVan: number;
+  soGiaiDaTrao: number;
 }
 
 interface DongChuongTrinh {
@@ -64,6 +80,8 @@ interface DongChuongTrinh {
   so_lan_choi: number;
   so_luot?: number;
   so_giai?: number;
+  so_van?: number;
+  so_giai_da_trao?: number;
 }
 
 function doiDong(dong: DongChuongTrinh): ChuongTrinhKemSoLieu {
@@ -90,6 +108,8 @@ function doiDong(dong: DongChuongTrinh): ChuongTrinhKemSoLieu {
     soLanChoi: dong.so_lan_choi,
     soLuot: dong.so_luot ?? 0,
     soGiai: dong.so_giai ?? 0,
+    soVan: dong.so_van ?? 0,
+    soGiaiDaTrao: dong.so_giai_da_trao ?? 0,
   };
 }
 
@@ -185,18 +205,72 @@ export function timTheoMaCongKhai(ma: string): ChuongTrinh | null {
 }
 
 /** Danh sách kèm số lượt và số giải — một câu truy vấn, không đếm vòng lặp. */
-export function danhSachChuongTrinh(pv: PhamVi): ChuongTrinhKemSoLieu[] {
+export function danhSachChuongTrinh(
+  pv: PhamVi,
+  hienCaDaAn = false,
+): ChuongTrinhKemSoLieu[] {
   const { menh, thamSo } = locPhamVi(pv);
+  const locAn = hienCaDaAn ? "" : " and c.trang_thai <> 'da_an'";
   const dong = layNhieu<DongChuongTrinh>(
     `select c.*,
               (select count(*) from luot_choi l where l.chuong_trinh_id = c.id) as so_luot,
-              (select count(*) from luot_choi l where l.chuong_trinh_id = c.id and l.trung = 1) as so_giai
+              (select count(*) from luot_choi l where l.chuong_trinh_id = c.id and l.trung = 1) as so_giai,
+              (select count(*) from van_choi v where v.chuong_trinh_id = c.id) as so_van,
+              (select count(*) from van_choi v where v.chuong_trinh_id = c.id and v.da_trao_thuong = 1) as so_giai_da_trao
          from chuong_trinh c
-        where 1 = 1${menh}
+        where 1 = 1${menh}${locAn}
         order by c.id desc`,
     ...thamSo,
   );
   return dong.map(doiDong);
+}
+
+export interface RangBuocChuongTrinh {
+  soVan: number;
+  soGiaiDaTrao: number;
+}
+
+/**
+ * Đếm thứ sẽ mất nếu xoá — để hộp xác nhận nói bằng CON SỐ, không bằng lời doạ.
+ *
+ * "Sẽ mất 14 ván chơi và 2 giải đã trao" khiến người ta dừng lại; "hành động này
+ * không thể hoàn tác" thì ai cũng bấm qua.
+ */
+export function demRangBuoc(id: number): RangBuocChuongTrinh {
+  const d = layMot<{ so_van: number; so_giai: number }>(
+    `select (select count(*) from van_choi where chuong_trinh_id = ?)                       as so_van,
+            (select count(*) from van_choi where chuong_trinh_id = ? and da_trao_thuong = 1) as so_giai`,
+    id,
+    id,
+  );
+  return { soVan: d?.so_van ?? 0, soGiaiDaTrao: d?.so_giai ?? 0 };
+}
+
+/**
+ * Xoá HẲN. Chỉ gọi khi `demRangBuoc().soVan === 0` — người gọi tự canh, và
+ * server action là nơi canh (không tin tham số từ máy khách).
+ *
+ * Cascade dọn `qua_tang`, `luot_choi`, `van_choi` của chính nó.
+ * 🔴 `khach_tiem_nang.chuong_trinh_id_dau` là `ON DELETE SET NULL` ⇒ **khách
+ * tiềm năng KHÔNG mất theo**. Đó là điều kiện của cả tính năng này.
+ */
+export function xoaChuongTrinh(id: number): boolean {
+  return chay("delete from chuong_trinh where id = ?", id) > 0;
+}
+
+/** Ẩn khỏi giao diện, giữ trọn dữ liệu. Dọn cả bốn ô giữ chỗ như `doiTrangThai`. */
+export function anChuongTrinh(id: number): boolean {
+  return (
+    chay(
+      `update chuong_trinh
+          set trang_thai = 'da_an', sua_luc = ?,
+              token_man_hinh = null, han_man_hinh = null,
+              token_nguoi_choi = null, han_nguoi_choi = null
+        where id = ?`,
+      Date.now(),
+      id,
+    ) > 0
+  );
 }
 
 /**
