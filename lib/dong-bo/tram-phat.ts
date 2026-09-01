@@ -11,7 +11,7 @@
 
 type Gui = (tin: string) => void;
 
-const KHOA = Symbol.for("dem-so.tram-phat");
+const KHOA = Symbol.for("game-su-kien.tram-phat");
 
 type Kho = typeof globalThis & { [KHOA]?: Map<string, Set<Gui>> };
 

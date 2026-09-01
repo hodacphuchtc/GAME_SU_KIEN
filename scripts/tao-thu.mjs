@@ -6,7 +6,7 @@ import { mkdirSync } from "node:fs";
 const so = Number(process.argv[2] ?? 211);
 const muc = process.argv[3] ?? "vua";
 mkdirSync("du-lieu", { recursive: true });
-const db = new DatabaseSync("du-lieu/dem-so.db");
+const db = new DatabaseSync("du-lieu/game-su-kien.db");
 
 const BANG_CHU = "ACDEFGHJKLMNPQRTUVWXY3479";
 const ma = Array.from(

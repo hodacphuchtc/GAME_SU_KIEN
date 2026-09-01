@@ -9,18 +9,38 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
+import { doiTenTep } from "./doi-ten-tep";
 import { LUOC_DO } from "./luoc-do";
 import { nangCap } from "./nang-cap";
 
-const KHOA = Symbol.for("dem-so.csdl");
+const KHOA = Symbol.for("game-su-kien.csdl");
 
 type Kho = typeof globalThis & { [KHOA]?: DatabaseSync };
 
+/** Tên cũ giữ lại để đổi tên được; sau vài phiên bản không còn máy nào dùng thì bỏ. */
+const TEN_TEP_CU = "dem-so.db";
+const TEN_TEP = "game-su-kien.db";
+
 export function duongDanCsdl(): string {
-  return process.env.DEM_SO_CSDL ?? resolve(process.cwd(), "du-lieu", "dem-so.db");
+  return (
+    process.env.GAME_SU_KIEN_CSDL ??
+    process.env.DEM_SO_CSDL ??
+    resolve(process.cwd(), "du-lieu", TEN_TEP)
+  );
+}
+
+/**
+ * Chỉ đổi tên khi dùng ĐƯỜNG DẪN MẶC ĐỊNH. Có biến môi trường nghĩa là người
+ * dùng (hoặc bộ test) đang tự chỉ định chỗ — đụng vào là vượt quyền.
+ */
+function doiTenNeuCan(duongDan: string): void {
+  if (process.env.GAME_SU_KIEN_CSDL || process.env.DEM_SO_CSDL) return;
+  doiTenTep(resolve(process.cwd(), "du-lieu", TEN_TEP_CU), duongDan);
 }
 
 export function moCsdl(duongDan = duongDanCsdl()): DatabaseSync {
+  // TRƯỚC khi mở: đổi tên tệp đang có tiến trình giữ là cách chắc chắn để hỏng.
+  doiTenNeuCan(duongDan);
   const db = new DatabaseSync(duongDan);
   db.exec(LUOC_DO);
   // Lược đồ dựng hình dạng lý tưởng cho CSDL trắng; nâng cấp kéo CSDL cũ về đó.

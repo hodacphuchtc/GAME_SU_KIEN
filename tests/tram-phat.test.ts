@@ -5,7 +5,7 @@ import { dangKy, phat, soNguoiNghe, soPhongDangMo } from "@/lib/dong-bo/tram-pha
 /** Dọn sạch trạm phát giữa các ca test — nó sống ở globalThis nên không tự mất. */
 function donSach() {
   const kho = globalThis as Record<symbol, unknown>;
-  delete kho[Symbol.for("dem-so.tram-phat")];
+  delete kho[Symbol.for("game-su-kien.tram-phat")];
 }
 
 beforeEach(donSach);

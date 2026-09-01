@@ -35,9 +35,9 @@ function chay(lenh, thamSo) {
 }
 
 function cacChuongTrinhDangChay() {
-  if (!existsSync("du-lieu/dem-so.db")) return [];
+  if (!existsSync("du-lieu/game-su-kien.db")) return [];
   try {
-    const db = new DatabaseSync("du-lieu/dem-so.db");
+    const db = new DatabaseSync("du-lieu/game-su-kien.db");
     const ds = db
       .prepare(
         "select ma, ten_trung_tam, so_trung from chuong_trinh where trang_thai = 'dang_chay' order by id desc limit 5",
@@ -99,7 +99,7 @@ if (ds.length === 0) {
 }
 console.log("");
 console.log("  Phụ huynh chỉ cần QUÉT MÃ QR đang hiện trên màn hình LCD.");
-console.log("  Dữ liệu nằm ở du-lieu/dem-so.db — tắt máy bật lại vẫn còn.");
+console.log("  Dữ liệu nằm ở du-lieu/game-su-kien.db — tắt máy bật lại vẫn còn.");
 console.log(`  Bản sao lưu: ${thuMucSaoLuu()} (giữ ${SO_BAN_GIU_LAI} bản gần nhất).`);
 console.log("──────────────────────────────────────────────────────────────\n");
 

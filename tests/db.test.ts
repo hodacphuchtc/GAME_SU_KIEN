@@ -9,7 +9,7 @@ import { ngayVietNam } from "@/lib/db/thoi-gian";
 const cacFileTam: string[] = [];
 
 function csdlTam() {
-  const duongDan = join(tmpdir(), `dem-so-test-${Math.random().toString(36).slice(2)}.db`);
+  const duongDan = join(tmpdir(), `game-su-kien-test-${Math.random().toString(36).slice(2)}.db`);
   cacFileTam.push(duongDan);
   return { db: moCsdl(duongDan), duongDan };
 }

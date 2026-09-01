@@ -34,7 +34,7 @@ export function duongDanCsdl() {
   return (
     process.env.GAME_SU_KIEN_CSDL ??
     process.env.DEM_SO_CSDL ??
-    resolve(process.cwd(), "du-lieu", "dem-so.db")
+    resolve(process.cwd(), "du-lieu", "game-su-kien.db")
   );
 }
 
