@@ -11,6 +11,7 @@ import { taoChuongTrinhForm, type KetQuaTaoForm } from "@/app/actions/chuong-tri
 import { formatNumber } from "@/lib/bo-dem";
 import { Led4Digits } from "@/components/led-4-so";
 import { BangTiLe } from "@/components/bang-ti-le";
+import { GoiY } from "@/components/goi-y";
 
 /**
  * Màn thiết lập ván chơi.
@@ -46,7 +47,10 @@ export function FormTao({ coSo }: { coSo: CoSo[] }) {
 
       <div className="mt-6 grid gap-5 rounded-2xl border border-ke bg-white p-5 sm:p-6">
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-semibold text-muc">{T.createBranch}</span>
+          <span className="font-semibold text-muc">
+            {T.createBranch}
+            <GoiY chu={T.gyCoSo} />
+          </span>
           <select
             name="coSoId"
             value={coSoId}
@@ -70,7 +74,10 @@ export function FormTao({ coSo }: { coSo: CoSo[] }) {
         </label>
 
         <fieldset className="flex flex-col gap-2">
-          <legend className="text-sm font-semibold text-muc">{T.createMode}</legend>
+          <legend className="text-sm font-semibold text-muc">
+            {T.createMode}
+            <GoiY chu={T.gyCheDo} />
+          </legend>
           <div className="grid gap-2 sm:grid-cols-2">
             {(
               [
@@ -112,7 +119,10 @@ export function FormTao({ coSo }: { coSo: CoSo[] }) {
 
         <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-semibold text-muc">{T.createTarget}</span>
+            <span className="font-semibold text-muc">
+              {T.createTarget}
+              <GoiY chu={T.gySoTrung} />
+            </span>
             <input
               name="soTrung"
               inputMode="numeric"
@@ -130,7 +140,10 @@ export function FormTao({ coSo }: { coSo: CoSo[] }) {
         </div>
 
         <fieldset className="flex flex-col gap-2">
-          <legend className="text-sm font-semibold text-muc">{T.difficulty}</legend>
+          <legend className="text-sm font-semibold text-muc">
+            {T.difficulty}
+            <GoiY chu={T.gyDoKho} />
+          </legend>
           <div className="grid grid-cols-3 gap-2">
             {MUC_CHON.map((id) => (
               <label key={id} className="cursor-pointer">
@@ -165,7 +178,10 @@ export function FormTao({ coSo }: { coSo: CoSo[] }) {
             />
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-semibold text-muc">{T.createCap}</span>
+            <span className="font-semibold text-muc">
+              {T.createCap}
+              <GoiY chu={T.gyTranGiai} />
+            </span>
             <input
               name="tranGiaiMoiNgay"
               type="number"
@@ -178,7 +194,10 @@ export function FormTao({ coSo }: { coSo: CoSo[] }) {
         </div>
 
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-semibold text-muc">{T.createTries}</span>
+          <span className="font-semibold text-muc">
+            {T.createTries}
+            <GoiY chu={T.gySoLanBam} />
+          </span>
           <input
             name="soLanChoi"
             type="number"

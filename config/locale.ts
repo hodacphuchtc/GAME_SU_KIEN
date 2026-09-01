@@ -196,6 +196,43 @@ export const T = {
   createBranchSourceAsk: "Để phụ huynh tự chọn",
   createTries: "Số lần bấm mỗi ván",
   createTriesNote: "Mỗi ván chỉ một phần quà. Bấm nhiều lần thì lấy lần lệch ít nhất, và trúng là dừng ngay.",
+  // ---- Dấu ? giải thích thông số (GĐ 26) ----
+  // Viết theo lối "đặt số này thì điều gì xảy ra", KHÔNG định nghĩa lại tên ô.
+  // Một gợi ý chỉ nhắc lại cái nhãn là một gợi ý vô dụng.
+  goiYNhan: "Xem giải thích",
+  gySoTrung:
+    "Con số phụ huynh phải bấm DỪNG đúng lúc bảng LED hiện ra. Trùng khít cả 4 chữ số mới " +
+    "tính trúng, lệch một số cũng là chưa trúng. 🔴 Đổi số này KHÔNG làm đổi tỉ lệ trúng — " +
+    "tỉ lệ do độ khó quyết định, không do con số. Chọn số dễ nhớ để in lên tờ QR là được.",
+  gyDoKho:
+    "Quyết định dãy số chạy nhanh cỡ nào và nút DỪNG bị khoá bao lâu. Đây mới là thứ đổi " +
+    "tỉ lệ trúng — xem bảng ngay bên dưới, nó tính lại ngay khi bạn đổi mức. Mức càng khó " +
+    "thì dãy chạy càng nhanh và cửa sổ bấm trúng càng hẹp.",
+  gyTranGiai:
+    "Số giải TỐI ĐA phát ra trong một ngày. Chạm trần thì người chơi vẫn chơi và vẫn thấy " +
+    "mình dừng đúng số, nhưng màn kết quả báo hết quà hôm nay. Để 0 là không giới hạn — " +
+    "khi đó thứ duy nhất chặn ngân sách là số lượng trong kho quà.",
+  gySoLanBam:
+    "Một VÁN được bấm mấy lần. Ván vẫn chỉ nhận MỘT phần quà: trúng là dừng ngay, không " +
+    "trúng thì lấy lần lệch ít nhất. Tăng số này là tăng tỉ lệ trúng theo công thức " +
+    "1−(1−p)^N — nhìn dòng dự báo tiền quà bên dưới trước khi chốt.",
+  gyCheDo:
+    "TẠI QUẦY: dãy số chỉ hiện trên màn hình LCD, điện thoại phụ huynh là nút bấm, một " +
+    "lúc một người. ONLINE: điện thoại tự vẽ dãy số, ai vào cũng chơi ngay không phải xếp " +
+    "hàng — dùng cho link quảng cáo.",
+  gyCoSo:
+    "Cơ sở đứng tên chương trình này. Mọi ván chơi và khách tiềm năng sinh ra sẽ gom về " +
+    "đây để báo cáo. Chọn “Không gán cơ sở” khi một mã QR chạy cho nhiều cơ sở — lúc đó " +
+    "phụ huynh tự chọn ở bước nhập số điện thoại.",
+  gyKhoSoLuong:
+    "Số phần quà loại này còn trong kho. Hết thì máy TỰ tụt xuống loại kế tiếp, người " +
+    "chơi không hề biết. 🔴 Để TRỐNG = không giới hạn, và đó là loại ĐÁY KHO — kho phải " +
+    "luôn có ít nhất một loại như vậy, nếu không hết hàng là người trúng chẳng nhận được gì.",
+  gyKhoTranNgay:
+    "Trần riêng cho LOẠI quà này trong một ngày, tách khỏi trần chung của chương trình. " +
+    "Dùng để giữ món đắt tiền không bị phát hết trong buổi sáng. Để 0 là không giới hạn " +
+    "trong ngày.",
+
   // ---- Sửa thiết lập chương trình (GĐ 24) ----
   suaMo: "Sửa thiết lập",
   suaDong: "Đóng",

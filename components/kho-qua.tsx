@@ -3,6 +3,7 @@
 import { useActionState, useCallback, useEffect, useState, useTransition } from "react";
 
 import { T } from "@/config/locale";
+import { GoiY } from "@/components/goi-y";
 import { conLai, coLoaiDay } from "@/lib/qua/chon-qua";
 import type { QuaTang } from "@/lib/qua/kho-qua";
 import {
@@ -66,7 +67,10 @@ function FormQua({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-semibold text-muc">{T.khoQty}</span>
+          <span className="font-semibold text-muc">
+            {T.khoQty}
+            <GoiY chu={T.gyKhoSoLuong} />
+          </span>
           <input
             name="soLuong"
             type="number"
@@ -79,7 +83,10 @@ function FormQua({
           <span className="text-xs leading-relaxed text-chi">{T.khoQtyHint}</span>
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-semibold text-muc">{T.khoCapDay}</span>
+          <span className="font-semibold text-muc">
+            {T.khoCapDay}
+            <GoiY chu={T.gyKhoTranNgay} />
+          </span>
           <input
             name="tranMoiNgay"
             type="number"
