@@ -79,6 +79,17 @@ const COT_BO_SUNG: ReadonlyArray<[bang: string, cot: string, dinhNghia: string]>
   // GĐ 17.2 — lead đến từ chế độ ONLINE: phụ huynh tự gõ số, hệ thống KHÔNG
   // gửi mã xác minh (xem N.9). Sale phải biết trước khi tính vào chỉ tiêu.
   ["khach_tiem_nang", "chua_xac_thuc", "integer not null default 0"],
+  // GĐ C.0 (v3) — game CHỌN SỐ: thay "số trúng + kho quà" bằng một DẢI SỐ chạy
+  // xoay vòng. Chương trình trúng số không bao giờ đọc ba cột này; mặc định chỉ
+  // là chỗ trống hợp lệ để `not null` không phải dựng lại bảng.
+  //
+  // 🔴 Trần của dải là WHEEL_SIZE − 1 = 9999, ràng buộc ở tầng ứng dụng
+  // (`kiemThietLapChonSo`): bảng LED chỉ có 4 chữ số và `formatNumber` lấy dư
+  // theo WHEEL_SIZE, nên số 10042 sẽ hiện thành 0042 — trùng số 42, KHÔNG có gì
+  // báo lỗi. SQLite không có CHECK thêm được qua ALTER TABLE.
+  ["chuong_trinh", "dai_tu", "integer not null default 1"],
+  ["chuong_trinh", "dai_den", "integer not null default 100"],
+  ["chuong_trinh", "loai_tru_da_ra", "integer not null default 0"],
 ];
 
 /**

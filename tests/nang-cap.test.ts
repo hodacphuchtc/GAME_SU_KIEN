@@ -127,6 +127,25 @@ describe("lớp CẤU TRÚC — coCot / themCot", () => {
     }
   });
 
+  it("nangCap thêm ba cột dải số của game CHỌN SỐ (v3)", () => {
+    chayNangCap();
+    for (const c of ["dai_tu", "dai_den", "loai_tru_da_ra"]) {
+      expect(coCot(db, "chuong_trinh", c)).toBe(true);
+    }
+  });
+
+  it("🔴 chương trình cũ giữ nguyên thân phận trúng số, dải số nhận giá trị mặc định", () => {
+    themChuongTrinh("AAAA", "Trung tâm A");
+    chayNangCap();
+    // Ba cột mới KHÔNG được đổi thân phận của chương trình đang chạy thật:
+    // nó vẫn là trúng số, và dải số chỉ là chỗ trống chờ game kia dùng tới.
+    expect(
+      db
+        .prepare("select tro_choi, dai_tu, dai_den, loai_tru_da_ra from chuong_trinh")
+        .get(),
+    ).toEqual({ tro_choi: "trung_so", dai_tu: 1, dai_den: 100, loai_tru_da_ra: 0 });
+  });
+
   it("dựng đủ 9 bảng", () => {
     chayNangCap();
     expect(dem("select count(*) as n from sqlite_master where type='table' and name not like 'sqlite_%'")).toBe(9);

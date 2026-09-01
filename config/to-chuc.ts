@@ -60,6 +60,22 @@ export type NguonCoSo = (typeof NGUON_CO_SO)[number];
 export const SO_LAN_CHOI = { toiThieu: 1, toiDa: 5, macDinh: 1 } as const;
 
 /**
+ * Các game chạy trên CÙNG MỘT app (ADR-005), phân biệt bằng cột
+ * `chuong_trinh.tro_choi`.
+ *
+ * 🔴 Cơ sở · nhân viên · khách tiềm năng là danh mục DÙNG CHUNG, chỉ tồn tại
+ * một nơi. Hai app riêng là hai bản sao danh bạ khách, và chúng chỉ lệch vào
+ * đúng ngày ai đó sửa một bên.
+ *
+ * - `trung_so` — có số trúng định trước, có kho quà, ván nhiều lần bấm.
+ * - `chon_so`  — không trúng/thua, không kho quà; chạy một DẢI SỐ xoay vòng,
+ *   mỗi người bấm một lần và nhận số của mình. Quà đánh số nằm NGOÀI hệ thống.
+ */
+export const TRO_CHOI = ["trung_so", "chon_so"] as const;
+export type TroChoi = (typeof TRO_CHOI)[number];
+export const TRO_CHOI_MAC_DINH: TroChoi = "trung_so";
+
+/**
  * Còn dưới tỉ lệ này của số lượng ban đầu thì dải cảnh báo chuyển VÀNG.
  * 0,2 = còn 20%. Chọn 20% vì nó cho quản lý khoảng một ngày để xoay quà.
  */
