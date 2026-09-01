@@ -7,6 +7,8 @@ import { DIFFICULTIES, type DifficultyId } from "@/config/game";
 import { T } from "@/config/locale";
 import { formatNumber } from "@/lib/bo-dem";
 import { timTheoMa } from "@/lib/chuong-trinh/kho";
+import { batBuocDangNhap } from "@/lib/bao-ve/phien-hien-tai";
+import { phamViCua } from "@/lib/bao-ve/quyen";
 import { nhanCoSo } from "@/lib/co-so/nhan";
 import { timCoSo } from "@/lib/co-so/kho";
 import { SO_LAN_CHOI } from "@/config/to-chuc";
@@ -52,7 +54,12 @@ export default async function TrangChiTiet({
   params: Promise<{ ma: string }>;
 }) {
   const { ma } = await params;
-  const ct = timTheoMa(ma.toUpperCase());
+  // 🔴 Lọc theo phạm vi người đăng nhập, ở TẦNG SQL. Trước GĐ 21.1 trang này
+  // không đọc phiên lần nào: sale của cơ sở này gõ đúng mã là đọc trọn lịch sử
+  // cơ sở kia. Trả `notFound()` chứ không phải "không có quyền" — không xác
+  // nhận sự tồn tại của thứ người ta không được thấy.
+  const nguoi = await batBuocDangNhap();
+  const ct = timTheoMa(ma.toUpperCase(), phamViCua(nguoi));
   if (!ct) notFound();
 
   const h = await headers();

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { timTheoMa } from "@/lib/chuong-trinh/kho";
+import { timTheoMaCongKhai } from "@/lib/chuong-trinh/kho";
 import { coSoDangBat } from "@/lib/co-so/kho";
 import { nhanCoSo } from "@/lib/co-so/nhan";
 import { ManDienThoai } from "@/components/man-dien-thoai";
@@ -13,7 +13,7 @@ export default async function TrangChoi({
   params: Promise<{ ma: string }>;
 }) {
   const { ma } = await params;
-  const ct = timTheoMa(ma.toUpperCase());
+  const ct = timTheoMaCongKhai(ma.toUpperCase());
   if (!ct) notFound();
 
   return (

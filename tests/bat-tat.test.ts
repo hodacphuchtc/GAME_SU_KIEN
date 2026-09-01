@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { csdl } from "@/lib/db/ket-noi";
-import { doiTrangThai, taoChuongTrinh, timTheoMa } from "@/lib/chuong-trinh/kho";
+import { doiTrangThai, taoChuongTrinh, timTheoMaCongKhai } from "@/lib/chuong-trinh/kho";
 import { giuCho } from "@/lib/phien/giu-cho";
 import { moLuot, xinCho } from "@/app/actions/choi";
 import { coSoThu } from "./ho-tro/co-so-thu";
@@ -58,9 +58,9 @@ describe("bật lại được", () => {
 
   it("trạng thái lưu đúng ở cả hai chiều", () => {
     doiTrangThai(ma, "ket_thuc");
-    expect(timTheoMa(ma)!.trangThai).toBe("ket_thuc");
+    expect(timTheoMaCongKhai(ma)!.trangThai).toBe("ket_thuc");
     doiTrangThai(ma, "dang_chay");
-    expect(timTheoMa(ma)!.trangThai).toBe("dang_chay");
+    expect(timTheoMaCongKhai(ma)!.trangThai).toBe("dang_chay");
   });
 });
 
@@ -104,13 +104,13 @@ describe("gọi lặp không gây tác dụng phụ", () => {
   it("tắt hai lần liên tiếp vẫn là tắt", () => {
     doiTrangThai(ma, "ket_thuc");
     doiTrangThai(ma, "ket_thuc");
-    expect(timTheoMa(ma)!.trangThai).toBe("ket_thuc");
+    expect(timTheoMaCongKhai(ma)!.trangThai).toBe("ket_thuc");
   });
 
   it("bật hai lần liên tiếp vẫn là đang chạy", () => {
     doiTrangThai(ma, "dang_chay");
     doiTrangThai(ma, "dang_chay");
-    expect(timTheoMa(ma)!.trangThai).toBe("dang_chay");
+    expect(timTheoMaCongKhai(ma)!.trangThai).toBe("dang_chay");
   });
 
   it("mã không tồn tại thì trả false, không ném", () => {

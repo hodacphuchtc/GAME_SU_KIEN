@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { timTheoMa } from "@/lib/chuong-trinh/kho";
+import { timTheoMaCongKhai } from "@/lib/chuong-trinh/kho";
 import { ManHinh } from "@/components/man-hinh";
 import { canhBaoKho } from "@/lib/qua/kho-qua";
 
@@ -12,7 +12,7 @@ export default async function TrangManHinh({
   params: Promise<{ ma: string }>;
 }) {
   const { ma } = await params;
-  const ct = timTheoMa(ma.toUpperCase());
+  const ct = timTheoMaCongKhai(ma.toUpperCase());
   if (!ct) notFound();
 
   return (

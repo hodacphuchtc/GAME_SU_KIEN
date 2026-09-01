@@ -2,7 +2,7 @@
 
 import { LCD_RESULT_SECONDS } from "@/config/game";
 import { T } from "@/config/locale";
-import { timTheoMa } from "@/lib/chuong-trinh/kho";
+import { timTheoMaCongKhai } from "@/lib/chuong-trinh/kho";
 import { phat } from "@/lib/dong-bo/tram-phat";
 import { kiemGioiHan } from "@/lib/luot/gioi-han";
 import { batDauLuot, dungLuot, type ThietBiBam } from "@/lib/luot/luot-service";
@@ -38,7 +38,7 @@ export async function xinCho(
   loai: LoaiCho,
   token: string,
 ): Promise<TraLoiGiuCho> {
-  const ct = timTheoMa(ma);
+  const ct = timTheoMaCongKhai(ma);
   if (!ct || ct.trangThai !== "dang_chay") return { duoc: false, lyDo: "da-ket-thuc" };
 
   // 🔴 Chế độ ONLINE KHÔNG giữ chỗ. Giữ chỗ sinh ra vì "một màn hình LCD chỉ
@@ -99,7 +99,7 @@ export async function moLuot(
   vanIdMuonTiep: number | null = null,
   coSoDaPhanGiai: number | null = null,
 ): Promise<TraLoiMoLuot> {
-  const ct = timTheoMa(ma);
+  const ct = timTheoMaCongKhai(ma);
   if (!ct || ct.trangThai !== "dang_chay") return { ok: false, loi: T.phoneEnded };
 
   const gioiHan = kiemGioiHan(ct.id, nguoiChoiId, ct.tranGiaiMoiNgay);
@@ -177,7 +177,7 @@ export async function nhanDienNguoiChoi(
   dongYTuVan: boolean,
   coSoKhai: number | null = null,
 ): Promise<TraLoiNhanDien> {
-  const ct = timTheoMa(ma);
+  const ct = timTheoMaCongKhai(ma);
   if (!ct) return { ok: false, loi: T.phoneEnded };
 
   const coSo = phanGiaiCoSo(ct, coSoKhai);
@@ -227,7 +227,7 @@ export async function chotLuot(
   const kq = dungLuot(luotId, soMiliGiayDaTroi, thietBi);
   if (!kq) return { ok: false };
 
-  const ct = timTheoMa(ma);
+  const ct = timTheoMaCongKhai(ma);
 
   // Nhả chỗ NGAY khi VÁN chốt hẳn: giữ thêm hai phút nữa thì người đang xếp
   // hàng phía sau quét mã chỉ thấy "đang có người chơi" mà chẳng hiểu vì sao.

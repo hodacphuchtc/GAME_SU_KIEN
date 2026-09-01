@@ -4,6 +4,8 @@ import { DIFFICULTIES, type DifficultyId } from "@/config/game";
 import { T } from "@/config/locale";
 import { formatNumber } from "@/lib/bo-dem";
 import { danhSachChuongTrinh } from "@/lib/chuong-trinh/kho";
+import { batBuocDangNhap } from "@/lib/bao-ve/phien-hien-tai";
+import { phamViCua } from "@/lib/bao-ve/quyen";
 import { thongKeGhiDanh } from "@/lib/luot/kho-luot";
 import { NutBatTatNho } from "@/components/nut-bat-tat-nho";
 import { mucCanhBaoKho } from "@/lib/qua/canh-bao";
@@ -56,8 +58,11 @@ function DongRoi({ soKhach, soGhiDanh }: { soKhach: number; soGhiDanh: number })
   );
 }
 
-export default function TrangDanhSach() {
-  const danhSach = danhSachChuongTrinh();
+export default async function TrangDanhSach() {
+  // 🔴 Lọc ở TẦNG SQL, không ẩn bằng giao diện: quản lý cơ sở này không được
+  // thấy chương trình của cơ sở kia, kể cả trong mã nguồn trang gửi về máy khách.
+  const nguoi = await batBuocDangNhap();
+  const danhSach = danhSachChuongTrinh(phamViCua(nguoi));
   // Cảnh báo kho hiện ở CẢ danh sách lẫn trang chi tiết (Đ14): quản lý mở danh
   // sách trước, và nếu dải chỉ nằm trong trang chi tiết thì họ phải bấm vào
   // từng chương trình mới biết cái nào sắp hết quà.

@@ -4,10 +4,22 @@ import { DIFFICULTIES, type DifficultyId, type RoundSettings } from "@/config/ga
 import { SO_LAN_CHOI, type CheDoChoi, type NguonCoSo } from "@/config/to-chuc";
 import { chay, layMot, layNhieu } from "@/lib/db/truy-van";
 import { sinhMa } from "@/lib/chuong-trinh/ma-chuong-trinh";
+import type { PhamVi } from "@/lib/bao-ve/quyen";
 
 /**
  * Kho đọc–ghi chương trình. MỌI câu lệnh SQL của bảng `chuong_trinh` nằm ở đây,
  * không rải rác trong component — đổi cột thì chỉ sửa một chỗ.
+ *
+ * 🔴 HAI ĐƯỜNG ĐỌC, cố ý tách tên (GĐ 21.1):
+ *
+ * - `timTheoMa(ma, phamVi)` · `danhSachChuongTrinh(phamVi)` — dùng trong `/quan-tri`,
+ *   nơi LUÔN có người đăng nhập. Lọc theo cơ sở ngay trong câu SQL.
+ * - `timTheoMaCongKhai(ma)` — dùng ở `/choi/[ma]` và `/man-hinh/[ma]`, nơi KHÔNG có
+ *   ai đăng nhập. Phụ huynh quét mã QR thì lấy đâu ra phạm vi; lọc ở đó là khoá
+ *   cửa chính trò chơi.
+ *
+ * Tên khác hẳn nhau là có chủ ý: một cái tên chung với tham số tuỳ chọn thì sớm
+ * muộn cũng có người gọi thiếu tham số ở khu quản trị, và không gì báo lỗi cả.
  */
 
 export type TrangThaiChuongTrinh = "dang_chay" | "ket_thuc";
@@ -105,7 +117,8 @@ export interface DauVaoTaoChuongTrinh {
   thamSo?: RoundSettings;
   tenGiaiThuong: string;
   tranGiaiMoiNgay: number;
-  coSoId: number;
+  /** `null` = chưa gán cơ sở; phụ huynh tự chọn ở bước nhập thông tin (GĐ 25). */
+  coSoId: number | null;
   cheDo?: CheDoChoi;
   nguonCoSo?: NguonCoSo;
   soLanChoi?: number;
@@ -137,19 +150,51 @@ export function taoChuongTrinh(dauVao: DauVaoTaoChuongTrinh): ChuongTrinh {
   return doiDong(layMot<DongChuongTrinh>("select * from chuong_trinh where ma = ?", ma)!);
 }
 
-export function timTheoMa(ma: string): ChuongTrinh | null {
+/**
+ * Mệnh đề WHERE theo phạm vi, viết MỘT lần cho cả file.
+ *
+ * 🔴 Chương trình CHƯA GÁN CƠ SỞ (`co_so_id is null`) chỉ quản trị toàn hệ thống
+ * thấy. Nó không thuộc cơ sở nào, nên không có cơ sở nào để mà nhận nó về —
+ * hướng lệch an toàn là giấu, không phải là cho mọi người thấy.
+ */
+function locPhamVi(pv: PhamVi): { menh: string; thamSo: number[] } {
+  if (pv.coSoId === null) return { menh: "", thamSo: [] };
+  return { menh: " and c.co_so_id = ?", thamSo: [pv.coSoId] };
+}
+
+/** Đọc trong khu quản trị — LUÔN lọc theo phạm vi của người đang đăng nhập. */
+export function timTheoMa(ma: string, pv: PhamVi): ChuongTrinh | null {
+  const { menh, thamSo } = locPhamVi(pv);
+  const dong = layMot<DongChuongTrinh>(
+    `select c.* from chuong_trinh c where c.ma = ?${menh}`,
+    ma,
+    ...thamSo,
+  );
+  return dong ? doiDong(dong) : null;
+}
+
+/**
+ * Đọc trên đường CÔNG KHAI: `/choi/[ma]` và `/man-hinh/[ma]`.
+ *
+ * Không lọc, và đó là đúng: phụ huynh quét mã QR không đăng nhập gì cả. Mã bốn
+ * ký tự chính là thứ đóng vai chìa khoá ở đây.
+ */
+export function timTheoMaCongKhai(ma: string): ChuongTrinh | null {
   const dong = layMot<DongChuongTrinh>("select * from chuong_trinh where ma = ?", ma);
   return dong ? doiDong(dong) : null;
 }
 
 /** Danh sách kèm số lượt và số giải — một câu truy vấn, không đếm vòng lặp. */
-export function danhSachChuongTrinh(): ChuongTrinhKemSoLieu[] {
+export function danhSachChuongTrinh(pv: PhamVi): ChuongTrinhKemSoLieu[] {
+  const { menh, thamSo } = locPhamVi(pv);
   const dong = layNhieu<DongChuongTrinh>(
     `select c.*,
               (select count(*) from luot_choi l where l.chuong_trinh_id = c.id) as so_luot,
               (select count(*) from luot_choi l where l.chuong_trinh_id = c.id and l.trung = 1) as so_giai
          from chuong_trinh c
+        where 1 = 1${menh}
         order by c.id desc`,
+    ...thamSo,
   );
   return dong.map(doiDong);
 }

@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { datTrangThaiCoSo, taoCoSo } from "@/lib/co-so/kho";
 import { danhSachChuongTrinh } from "@/lib/chuong-trinh/kho";
+
+/** Bài này kiểm van vào của việc TẠO, không kiểm quyền — xem `quyen-chuong-trinh.test.ts`. */
+const TOAN_BO = { coSoId: null, nhanVienId: null };
 import { csdl } from "@/lib/db/ket-noi";
 import { taoChuongTrinhForm } from "@/app/actions/chuong-trinh";
 import { dungCsdlTam } from "./ho-tro/csdl-tam";
@@ -53,13 +56,13 @@ describe("cơ sở của chương trình", () => {
   it("từ chối cơ sở không tồn tại", async () => {
     const kq = await gui(form({ coSoId: "9999" }));
     expect(kq.loi).toBeTruthy();
-    expect(danhSachChuongTrinh()).toHaveLength(0);
+    expect(danhSachChuongTrinh(TOAN_BO)).toHaveLength(0);
   });
 
   it("từ chối khi không khai cơ sở nào", async () => {
     const kq = await gui(form({ coSoId: "" }));
     expect(kq.loi).toBeTruthy();
-    expect(danhSachChuongTrinh()).toHaveLength(0);
+    expect(danhSachChuongTrinh(TOAN_BO)).toHaveLength(0);
   });
 
   it("từ chối cơ sở đang tắt", async () => {
@@ -67,7 +70,7 @@ describe("cơ sở của chương trình", () => {
     datTrangThaiCoSo(cs.id, "tat");
     const kq = await gui(form({ coSoId: String(cs.id) }));
     expect(kq.loi).toBeTruthy();
-    expect(danhSachChuongTrinh()).toHaveLength(0);
+    expect(danhSachChuongTrinh(TOAN_BO)).toHaveLength(0);
   });
 
   it("ten_trung_tam được chép đúng từ co_so.ten", async () => {
@@ -75,7 +78,7 @@ describe("cơ sở của chương trình", () => {
     // Form KHÔNG gửi tên trung tâm nữa — nó phải được chép từ bảng cơ sở.
     expect(await gui(form({ coSoId: String(cs.id) }))).toEqual({});
 
-    const ct = danhSachChuongTrinh()[0];
+    const ct = danhSachChuongTrinh(TOAN_BO)[0];
     expect(ct.tenTrungTam).toBe("Trung tâm Sata Robo Hải Châu");
     expect(ct.coSoId).toBe(cs.id);
   });
@@ -86,7 +89,7 @@ describe("cơ sở của chương trình", () => {
     csdl().prepare("update co_so set ten = ? where id = ?").run("Cơ sở đã đổi tên", cs.id);
 
     // Bản chụp giữ nguyên: biên lai in năm ngoái không được sai vì đổi tên năm nay.
-    expect(danhSachChuongTrinh()[0].tenTrungTam).toBe("Cơ sở cũ");
+    expect(danhSachChuongTrinh(TOAN_BO)[0].tenTrungTam).toBe("Cơ sở cũ");
   });
 });
 
@@ -97,10 +100,10 @@ describe("chế độ chơi và số lần bấm", () => {
       const kq = await gui(form({ coSoId: String(cs.id), soLanChoi: sai }));
       expect(kq.loi, `phải từ chối "${sai}"`).toBeTruthy();
     }
-    expect(danhSachChuongTrinh()).toHaveLength(0);
+    expect(danhSachChuongTrinh(TOAN_BO)).toHaveLength(0);
 
     expect(await gui(form({ coSoId: String(cs.id), soLanChoi: "5" }))).toEqual({});
-    expect(danhSachChuongTrinh()[0].soLanChoi).toBe(5);
+    expect(danhSachChuongTrinh(TOAN_BO)[0].soLanChoi).toBe(5);
   });
 
   it("từ chối chế độ chơi lạ", async () => {
@@ -113,13 +116,13 @@ describe("chế độ chơi và số lần bấm", () => {
     await gui(form({ coSoId: String(cs.id), cheDo: "tai_quay", nguonCoSo: "phu_huynh_chon" }));
     // Tại quầy không có màn nào để phụ huynh chọn cơ sở — nhận giá trị kia là
     // ghi vào CSDL một điều không bao giờ xảy ra.
-    expect(danhSachChuongTrinh()[0].nguonCoSo).toBe("gan_san");
+    expect(danhSachChuongTrinh(TOAN_BO)[0].nguonCoSo).toBe("gan_san");
   });
 
   it("chơi online thì giữ đúng nguồn cơ sở đã chọn", async () => {
     const cs = taoCoSo({ ten: "Cơ sở A" });
     await gui(form({ coSoId: String(cs.id), cheDo: "online", nguonCoSo: "phu_huynh_chon" }));
-    const ct = danhSachChuongTrinh()[0];
+    const ct = danhSachChuongTrinh(TOAN_BO)[0];
     expect(ct.cheDo).toBe("online");
     expect(ct.nguonCoSo).toBe("phu_huynh_chon");
   });

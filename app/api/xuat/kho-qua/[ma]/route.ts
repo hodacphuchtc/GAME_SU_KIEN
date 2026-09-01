@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 
 import { timTheoMa } from "@/lib/chuong-trinh/kho";
 import { nguoiDangDangNhap } from "@/lib/bao-ve/phien-hien-tai";
+import { phamViCua } from "@/lib/bao-ve/quyen";
 import { ghiNhatKy, HANH_DONG } from "@/lib/nhat-ky/kho";
 import { danhSachQua } from "@/lib/qua/kho-qua";
 import { bangKhoQua } from "@/lib/xuat/bang-kho-qua";
@@ -13,7 +14,7 @@ export async function GET(_yc: Request, ctx: { params: Promise<{ ma: string }> }
   if (!nguoi) return new Response("Chưa đăng nhập", { status: 401 });
 
   const { ma } = await ctx.params;
-  const ct = timTheoMa(ma.toUpperCase());
+  const ct = timTheoMa(ma.toUpperCase(), phamViCua(nguoi));
   if (!ct) return new Response("Không tìm thấy chương trình", { status: 404 });
 
   const kho = danhSachQua(ct.id);

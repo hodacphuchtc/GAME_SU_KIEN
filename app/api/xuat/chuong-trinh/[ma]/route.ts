@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 
 import { timTheoMa } from "@/lib/chuong-trinh/kho";
 import { nguoiDangDangNhap } from "@/lib/bao-ve/phien-hien-tai";
+import { phamViCua } from "@/lib/bao-ve/quyen";
 import { toanBoLichSu } from "@/lib/luot/kho-luot";
 import { ghiNhatKy, HANH_DONG } from "@/lib/nhat-ky/kho";
 import { bangLichSu } from "@/lib/xuat/bang-lich-su";
@@ -18,7 +19,9 @@ export async function GET(_yc: Request, ctx: { params: Promise<{ ma: string }> }
   if (!nguoi) return new Response("Chưa đăng nhập", { status: 401 });
 
   const { ma } = await ctx.params;
-  const ct = timTheoMa(ma.toUpperCase());
+  // Lọc theo phạm vi: sale của cơ sở này không được tải file của cơ sở khác.
+  // Trả 404 chứ không 403 — không xác nhận sự tồn tại của thứ họ không được thấy.
+  const ct = timTheoMa(ma.toUpperCase(), phamViCua(nguoi));
   if (!ct) return new Response("Không tìm thấy chương trình", { status: 404 });
 
   const dong = toanBoLichSu(ct.id);

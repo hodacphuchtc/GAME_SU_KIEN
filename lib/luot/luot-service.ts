@@ -2,7 +2,7 @@ import "server-only";
 
 import { WIN_VALID_SECONDS, type RoundSettings } from "@/config/game";
 import { resolveRound, type RoundResult } from "@/lib/bo-dem";
-import { timTheoMa } from "@/lib/chuong-trinh/kho";
+import { timTheoMaCongKhai } from "@/lib/chuong-trinh/kho";
 import { chay, layMot } from "@/lib/db/truy-van";
 import { ngayVietNam } from "@/lib/db/thoi-gian";
 import { verifyCode } from "@/lib/ma-xac-thuc";
@@ -67,7 +67,7 @@ export function batDauLuot(
    */
   coSoDaPhanGiai: number | null = null,
 ): LuotDangChay | null {
-  const ct = timTheoMa(ma);
+  const ct = timTheoMaCongKhai(ma);
   if (!ct || ct.trangThai !== "dang_chay") return null;
 
   let van: Van | null = null;
@@ -160,7 +160,7 @@ export function dungLuot(
     luot.chuong_trinh_id,
   );
   if (!ct) return null;
-  const chuongTrinh = timTheoMa(ct.ma);
+  const chuongTrinh = timTheoMaCongKhai(ct.ma);
   if (!chuongTrinh) return null;
 
   const thamSo = chuongTrinh.thamSo;
