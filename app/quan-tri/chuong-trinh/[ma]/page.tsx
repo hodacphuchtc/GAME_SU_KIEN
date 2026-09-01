@@ -14,39 +14,15 @@ import { timCoSo } from "@/lib/co-so/kho";
 import { SO_LAN_CHOI } from "@/config/to-chuc";
 import { lichSu, soGiaiHomNay } from "@/lib/luot/kho-luot";
 import { NutIn } from "@/components/nut-in";
-import { OTichVan } from "@/components/o-tich-van";
 import { NutBatTat } from "@/components/nut-bat-tat";
 import { KhoQua } from "@/components/kho-qua";
 import { danhSachQua } from "@/lib/qua/kho-qua";
 import { mucCanhBaoKho } from "@/lib/qua/canh-bao";
 import { DaiCanhBaoKho } from "@/components/dai-canh-bao-kho";
+import { BangLichSu } from "@/components/bang-lich-su";
+import { ghiNhatKy, HANH_DONG } from "@/lib/nhat-ky/kho";
 
 export const dynamic = "force-dynamic";
-
-const NHAN_THIET_BI: Record<string, string> = {
-  man_hinh: T.deviceScreen,
-  dien_thoai: T.devicePhone,
-  het_gio: T.deviceTimeout,
-};
-
-function gioPhut(luc: number | null): string {
-  if (luc === null) return "—";
-  return new Intl.DateTimeFormat("vi-VN", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(luc));
-}
-
-/** Che bớt tên để bảng công khai không lộ danh tính đầy đủ. */
-function tenRutGon(hoTen: string | null): string {
-  if (!hoTen) return "—";
-  const tu = hoTen.trim().split(/\s+/);
-  if (tu.length === 1) return tu[0];
-  return `${tu[0]} ${tu[tu.length - 1][0]}.`;
-}
 
 export default async function TrangChiTiet({
   params,
@@ -73,6 +49,16 @@ export default async function TrangChiTiet({
   const cacLuot = lichSu(ct.id);
   const giaiHomNay = soGiaiHomNay(ct.id);
   const dangChay = ct.trangThai === "dang_chay";
+
+  // Trang này hiện họ tên và số điện thoại phụ huynh ⇒ mỗi lần mở là một lần
+  // dữ liệu cá nhân rời khỏi máy chủ. NĐ 13/2023 đòi biết ai đã xem, lúc nào.
+  ghiNhatKy({
+    nhanVienId: nguoi.id,
+    hanhDong: HANH_DONG.xemLead,
+    doiTuong: `chuong-trinh:${ct.ma}`,
+    soDong: cacLuot.length,
+    diaChiIp: h.get("x-forwarded-for") ?? h.get("x-real-ip"),
+  });
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -145,104 +131,7 @@ export default async function TrangChiTiet({
         <p className="khong-in text-center text-xs text-chi">{T.detailQrHint}</p>
       </section>
 
-      <section className="khong-in mt-6">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-black text-muc">{T.detailHistory}</h2>
-          {cacLuot.length > 0 && (
-            <a
-              href={`/api/xuat/chuong-trinh/${ct.ma}`}
-              className="rounded-xl border border-ke px-4 py-2 text-sm font-bold text-muc"
-            >
-              {T.detailExport}
-            </a>
-          )}
-        </div>
-
-        {cacLuot.length === 0 ? (
-          <p className="mt-3 rounded-2xl border border-dashed border-ke bg-white/60 px-6 py-12 text-center text-sm text-chi">
-            {T.detailHistoryEmpty}
-          </p>
-        ) : (
-          <div className="mt-3 overflow-x-auto rounded-2xl border border-ke bg-white">
-            <table className="w-full min-w-[44rem] text-left text-sm">
-              <thead className="border-b border-ke text-xs uppercase tracking-wide text-chi">
-                <tr>
-                  <th className="px-5 py-3 font-semibold">{T.colTime}</th>
-                  <th className="px-5 py-3 font-semibold">{T.colPlayer}</th>
-                  <th className="px-5 py-3 font-semibold">{T.colStopped}</th>
-                  <th className="px-5 py-3 font-semibold">{T.colResult}</th>
-                  <th className="px-5 py-3 font-semibold">{T.colDevice}</th>
-                  <th className="px-5 py-3 font-semibold">{T.colCode}</th>
-                  <th className="px-5 py-3 font-semibold">{T.colAwarded}</th>
-                  <th className="px-5 py-3 font-semibold">{T.colEnrolled}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cacLuot.map((l) => (
-                  <tr key={l.id} className="border-b border-ke last:border-0">
-                    <td className="px-5 py-3 tabular-nums text-chi">
-                      {gioPhut(l.ketThucLuc)}
-                    </td>
-                    <td className="px-5 py-3">{tenRutGon(l.hoTen)}</td>
-                    <td className="px-5 py-3 font-mono font-bold text-muc">
-                      {l.soDaDung === null ? "—" : formatNumber(l.soDaDung)}
-                    </td>
-                    <td className="px-5 py-3">
-                      {l.trung ? (
-                        <span className="rounded-full bg-luc/10 px-2.5 py-1 text-xs font-black text-luc">
-                          {T.resultWin}
-                        </span>
-                      ) : (
-                        <span className="text-chi">
-                          {T.resultLose}
-                          {l.khoangLech !== null && ` · ${T.offByN(l.khoangLech)}`}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3 text-chi">
-                      {NHAN_THIET_BI[l.thietBiBam ?? ""] ?? "—"}
-                    </td>
-                    {/* Mã xác thực phải tra được ở ĐÂY. Không có cột này thì
-                        phụ huynh bấm nhầm "thử lại" trên điện thoại là mất mã,
-                        và nhân viên không còn chỗ nào để đối chiếu. */}
-                    <td className="px-5 py-3 font-mono text-xs tracking-widest text-muc">
-                      {l.maXacThuc ?? "—"}
-                    </td>
-                    <td className="px-5 py-3">
-                      {l.trung ? (
-                        <OTichVan
-                          vanId={l.id}
-                          ma={ct.ma}
-                          coVan="trao-thuong"
-                          banDau={l.daTraoThuong}
-                          nhan={T.awardToggle}
-                        />
-                      ) : (
-                        <span className="text-chi">—</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3">
-                      {/* Chỉ ván có danh tính mới đánh dấu được — ván ẩn danh
-                          không có ai để mà ghi danh. */}
-                      {l.hoTen === null ? (
-                        <span className="text-chi">—</span>
-                      ) : (
-                        <OTichVan
-                          vanId={l.id}
-                          ma={ct.ma}
-                          coVan="ghi-danh"
-                          banDau={l.daGhiDanh}
-                          nhan={T.enrollToggle}
-                        />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <BangLichSu ma={ct.ma} cacLuot={cacLuot} />
     </div>
   );
 }
