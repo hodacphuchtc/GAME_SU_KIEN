@@ -9,6 +9,8 @@ import { danhSachQua, themQua } from "@/lib/qua/kho-qua";
 import { bangKhoQua } from "@/lib/xuat/bang-kho-qua";
 import { bangLead } from "@/lib/xuat/bang-lead";
 import { bangLichSu } from "@/lib/xuat/bang-lich-su";
+import { bangSoDaChon } from "@/lib/xuat/bang-so-da-chon";
+import { T } from "@/config/locale";
 import { coSoThu } from "./ho-tro/co-so-thu";
 import { dungCsdlTam } from "./ho-tro/csdl-tam";
 import { ghiVanDaChot } from "./ho-tro/van-thu";
@@ -138,5 +140,63 @@ describe("bảng kho quà", () => {
     // đọc lên là "hết hàng" — đúng ngược nghĩa.
     expect(t.dong[1][2]).toEqual({ kieu: "chu", gt: "Không giới hạn" });
     expect(t.dong[1][4]).toEqual({ kieu: "chu", gt: "Không giới hạn" });
+  });
+});
+
+/**
+ * BẢNG XUẤT CỦA GAME CHỌN SỐ (C.9 · v3).
+ *
+ * 🔴 Vì sao có bảng riêng: `bangLichSu` có cột "Kết quả" và "Lệch". Chương trình
+ * Chọn Số không có số trúng, nên bảng kia sẽ ghi "Trượt" trên MỌI dòng rồi gửi
+ * file đó cho đội sale — một trò không có giải mà báo cáo nói ai cũng trượt.
+ */
+describe("bảng xuất Chọn Số", () => {
+  function dungChonSoCoVan(soDaDung: number) {
+    const ct = taoChuongTrinh({
+      tenTrungTam: "Trung tâm Hoa Mai",
+      coSoId: coSoThu("Trung tâm Hoa Mai"),
+      soTrung: 0,
+      mucDo: "vua",
+      tenGiaiThuong: "Quà Tết 2026",
+      tranGiaiMoiNgay: 0,
+      troChoi: "chon_so",
+      daiTu: 1,
+      daiDen: 100,
+      loaiTruDaRa: true,
+    });
+    nhanDien("Nguyễn Văn A", "0912345678", true);
+    ghiVanDaChot({
+      chuongTrinhId: ct.id,
+      nguoiChoiId: 1,
+      ngay: "2026-09-01",
+      soDaDung,
+    });
+    return ct;
+  }
+
+  it("🔴 KHÔNG có cột Kết quả / Lệch — trò này không có ai trượt", () => {
+    const ct = dungChonSoCoVan(42);
+    const bang = bangSoDaChon("Số đã phát", lichSu(ct.id));
+    expect(bang.tieuDe).not.toContain(T.colResult);
+    expect(bang.tieuDe).not.toContain("Lệch");
+    expect(JSON.stringify(bang.dong)).not.toContain(T.resultLose);
+  });
+
+  it("🔴 số may mắn ra kiểu CHỮ, giữ nguyên số 0 đầu", () => {
+    const ct = dungChonSoCoVan(42);
+    const bang = bangSoDaChon("Số đã phát", lichSu(ct.id));
+    const cot = bang.tieuDe.indexOf(T.chonSoCotSo);
+    expect(cot).toBeGreaterThanOrEqual(0);
+    const o = bang.dong[0][cot];
+    // Excel đọc số sẽ ăn mất số 0 đầu: 0042 thành 42, mà con số phụ huynh cầm
+    // trên tay là 0042.
+    expect(o).toEqual({ kieu: "chu", gt: "0042" });
+  });
+
+  it("số 0 vẫn ra 0000, không thành ô trống", () => {
+    const ct = dungChonSoCoVan(0);
+    const bang = bangSoDaChon("Số đã phát", lichSu(ct.id));
+    const cot = bang.tieuDe.indexOf(T.chonSoCotSo);
+    expect(bang.dong[0][cot]).toEqual({ kieu: "chu", gt: "0000" });
   });
 });

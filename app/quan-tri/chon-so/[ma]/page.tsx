@@ -10,6 +10,11 @@ import { coDai, nhipCua } from "@/lib/chon-so/vong-so";
 import { soConLai } from "@/lib/tro-choi/luat-chon-so";
 import { NutBatTat } from "@/components/nut-bat-tat";
 import { NutIn } from "@/components/nut-in";
+import { BangLichSuChonSo } from "@/components/bang-lich-su-chon-so";
+import { FormSuaChonSo } from "@/components/form-sua-chon-so";
+import { DAI_TOI_DA } from "@/config/chon-so";
+import { lichSu, soDaRa } from "@/lib/luot/kho-luot";
+import { ghiNhatKy, HANH_DONG } from "@/lib/nhat-ky/kho";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +47,16 @@ export default async function TrangChiTietChonSo({
   const tong = coDai(dai);
   const con = soConLai(ct);
   const giayMotVong = tong / nhipCua(dai).maxSpeed;
+  const cacLuot = lichSu(ct.id);
+
+  // Trang này hiện họ tên và số điện thoại phụ huynh ⇒ mỗi lần mở là một lần dữ
+  // liệu cá nhân rời khỏi máy chủ. NĐ 13/2023 đòi biết ai đã xem, lúc nào.
+  ghiNhatKy({
+    nhanVienId: nguoi.id,
+    hanhDong: HANH_DONG.xemLead,
+    doiTuong: `chon-so:${ct.ma}`,
+    soDong: cacLuot.length,
+  });
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -85,6 +100,19 @@ export default async function TrangChiTietChonSo({
           <NutIn />
         </div>
       </section>
+
+      <FormSuaChonSo
+        ma={ct.ma}
+        daiTu={ct.daiTu}
+        daiDen={ct.daiDen}
+        loaiTruDaRa={ct.loaiTruDaRa}
+        tenDot={ct.tenGiaiThuong}
+        // Lấy TRỌN dải 0…9999 chứ không chỉ dải hiện hành: cảnh báo phải đếm
+        // được cả những số đã phát mà dải hiện tại đã bỏ rơi từ lần sửa trước.
+        soDaPhat={[...soDaRa(ct.id, 0, DAI_TOI_DA)]}
+      />
+
+      <BangLichSuChonSo ma={ct.ma} cacLuot={cacLuot} />
     </div>
   );
 }
