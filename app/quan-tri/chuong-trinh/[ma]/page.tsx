@@ -20,6 +20,8 @@ import { danhSachQua } from "@/lib/qua/kho-qua";
 import { mucCanhBaoKho } from "@/lib/qua/canh-bao";
 import { DaiCanhBaoKho } from "@/components/dai-canh-bao-kho";
 import { BangLichSu } from "@/components/bang-lich-su";
+import { FormSuaChuongTrinh } from "@/components/form-sua-chuong-trinh";
+import { demRangBuoc } from "@/lib/chuong-trinh/kho";
 import { ghiNhatKy, HANH_DONG } from "@/lib/nhat-ky/kho";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +51,7 @@ export default async function TrangChiTiet({
   const cacLuot = lichSu(ct.id);
   const giaiHomNay = soGiaiHomNay(ct.id);
   const dangChay = ct.trangThai === "dang_chay";
+  const rangBuoc = demRangBuoc(ct.id);
 
   // Trang này hiện họ tên và số điện thoại phụ huynh ⇒ mỗi lần mở là một lần
   // dữ liệu cá nhân rời khỏi máy chủ. NĐ 13/2023 đòi biết ai đã xem, lúc nào.
@@ -103,6 +106,18 @@ export default async function TrangChiTiet({
           </a>
           <NutBatTat ma={ct.ma} dangChay={dangChay} />
         </div>
+      </div>
+
+      <div className="khong-in mt-4">
+        <FormSuaChuongTrinh
+          ma={ct.ma}
+          soTrungHienTai={ct.soTrung}
+          mucDoHienTai={ct.mucDo}
+          tenGiaiThuongHienTai={ct.tenGiaiThuong}
+          tranGiaiHienTai={ct.tranGiaiMoiNgay}
+          soLanChoiHienTai={ct.soLanChoi}
+          soVan={rangBuoc.soVan}
+        />
       </div>
 
       <KhoQua chuongTrinhId={ct.id} ma={ct.ma} kho={kho} />

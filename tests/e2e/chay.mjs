@@ -42,6 +42,7 @@ const KICH_BAN = [
   { ten: "gd17-che-do-online", nen: "ba-che-do" },
   { ten: "gd19-xuat-excel", nen: "ba-che-do", chayCung: "gd17-che-do-online" },
   { ten: "gd21-lich-su-day-du", nen: "lich-su-day-du" },
+  { ten: "gd24-sua-chuong-trinh", nen: "lich-su-day-du" },
 ];
 
 const thuMuc = mkdtempSync(join(tmpdir(), "gsk-e2e-"));

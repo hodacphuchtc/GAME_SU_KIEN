@@ -18,6 +18,7 @@ import {
   anChuongTrinh,
   demRangBuoc,
   doiTrangThai,
+  suaChuongTrinh,
   taoChuongTrinh,
   timTheoMa,
   xoaChuongTrinh,
@@ -111,6 +112,60 @@ export async function datTrangThaiChuongTrinh(
   phat(ma, { loai: "trang-thai", dangChay: trangThai === "dang_chay" });
   revalidatePath("/quan-tri");
   redirect(`/quan-tri/chuong-trinh/${ma}`);
+}
+
+export interface KetQuaSua {
+  loi?: string;
+  xong?: boolean;
+}
+
+/**
+ * Sửa thiết lập của một chương trình đang sống.
+ *
+ * Dùng CHUNG `kiemThietLap` với đường tạo — hai bộ luật lệch nhau là chuyện chỉ
+ * chờ ngày xảy ra, và bên lỏng hơn sẽ là bên người ta dùng để lách.
+ *
+ * Không nhận `coSoId` lẫn `cheDo`: đổi chúng là một chương trình khác.
+ */
+export async function suaChuongTrinhForm(
+  _truoc: KetQuaSua,
+  form: FormData,
+): Promise<KetQuaSua> {
+  const nguoi = await nguoiDangDangNhap();
+  if (!nguoi) return { loi: T.nvErrQuyen };
+
+  const ma = String(form.get("ma") ?? "").trim().toUpperCase();
+  const ct = timTheoMa(ma, phamViCua(nguoi));
+  if (!ct) return { loi: T.createErrNoBranch };
+
+  const d = {
+    soTrung: docSo(form.get("soTrung")),
+    mucDo: String(form.get("mucDo") ?? "") as DifficultyId,
+    tenGiaiThuong: String(form.get("tenGiaiThuong") ?? "").trim().slice(0, 80),
+    tranGiaiMoiNgay: docSo(form.get("tranGiaiMoiNgay")),
+    soLanChoi: docSo(form.get("soLanChoi")),
+  };
+
+  const loi = kiemThietLap(d);
+  if (loi) return { loi };
+
+  suaChuongTrinh(ct.id, d);
+
+  const rb = demRangBuoc(ct.id);
+  const h = await headers();
+  ghiNhatKy({
+    nhanVienId: nguoi.id,
+    hanhDong: HANH_DONG.suaChuongTrinh,
+    // Ghi lại số cũ → số mới VÀ số ván đang có: sau này còn tra được "ai đổi
+    // số, lúc nào, khi đã có bao nhiêu ván chấm theo số cũ".
+    doiTuong: `${ct.ma} · ${ct.soTrung} → ${d.soTrung}`,
+    soDong: rb.soVan,
+    diaChiIp: h.get("x-forwarded-for") ?? h.get("x-real-ip"),
+  });
+
+  revalidatePath(`/quan-tri/chuong-trinh/${ct.ma}`);
+  revalidatePath("/quan-tri");
+  return { xong: true };
 }
 
 export interface KetQuaDon {

@@ -5,6 +5,7 @@ import { SO_LAN_CHOI, type CheDoChoi, type NguonCoSo } from "@/config/to-chuc";
 import { chay, layMot, layNhieu } from "@/lib/db/truy-van";
 import { sinhMa } from "@/lib/chuong-trinh/ma-chuong-trinh";
 import type { PhamVi } from "@/lib/bao-ve/quyen";
+import type { ThietLapChuongTrinh } from "@/lib/chuong-trinh/kiem-hop-le";
 
 /**
  * Kho đọc–ghi chương trình. MỌI câu lệnh SQL của bảng `chuong_trinh` nằm ở đây,
@@ -223,6 +224,40 @@ export function danhSachChuongTrinh(
     ...thamSo,
   );
   return dong.map(doiDong);
+}
+
+/**
+ * Sửa thiết lập của một chương trình ĐANG SỐNG.
+ *
+ * 🔴 Ba thứ cố ý KHÔNG có mặt ở đây: `ma` (mã QR đã in ra giấy dán ở quầy),
+ * `coSoId` và `cheDo`. Đổi bất kỳ cái nào trong ba là một chương trình khác,
+ * không phải bản sửa — và lịch sử ván cũ sẽ treo lơ lửng giữa hai thân phận.
+ *
+ * `ten_trung_tam` cũng giữ nguyên: nó là BẢN CHỤP tên cơ sở lúc tạo, thứ in
+ * trên tờ giấy đã dán. Sửa nó là sửa quá khứ.
+ *
+ * Ván đã chơi KHÔNG bị đụng tới. Chúng được chấm theo số cũ, và đó là sự thật
+ * của ngày hôm đó — trang chi tiết có nhiệm vụ nói rõ điều này cho người sửa.
+ */
+export function suaChuongTrinh(id: number, d: ThietLapChuongTrinh): boolean {
+  return (
+    chay(
+      `update chuong_trinh
+          set so_trung = ?, muc_do = ?, tham_so = ?, ten_giai_thuong = ?,
+              tran_giai_moi_ngay = ?, so_lan_choi = ?, sua_luc = ?
+        where id = ?`,
+      d.soTrung,
+      d.mucDo,
+      // Ghi lại tham số của mức mới. Giữ bộ cũ thì nhãn nói "Khó" mà dãy số vẫn
+      // chạy theo nhịp "Vừa" — người chơi thấy một đằng, máy chấm một nẻo.
+      JSON.stringify(DIFFICULTIES[d.mucDo].settings),
+      d.tenGiaiThuong.trim(),
+      d.tranGiaiMoiNgay,
+      d.soLanChoi,
+      Date.now(),
+      id,
+    ) > 0
+  );
 }
 
 export interface RangBuocChuongTrinh {

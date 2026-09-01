@@ -192,6 +192,16 @@ export const T = {
   createBranchSourceAsk: "Để phụ huynh tự chọn",
   createTries: "Số lần bấm mỗi ván",
   createTriesNote: "Mỗi ván chỉ một phần quà. Bấm nhiều lần thì lấy lần lệch ít nhất, và trúng là dừng ngay.",
+  // ---- Sửa thiết lập chương trình (GĐ 24) ----
+  suaMo: "Sửa thiết lập",
+  suaDong: "Đóng",
+  suaTieuDe: "Sửa thiết lập chương trình",
+  suaLuu: "LƯU THAY ĐỔI",
+  suaXongNhac: "Đã lưu. Mã QR đã in vẫn dùng được — mã phòng không đổi.",
+  suaCanhBaoCoVan: (van: number, soCu: string) =>
+    `Chương trình này đã có ${van} ván chơi, và chúng được chấm theo số cũ ${soCu}. Đổi số bây giờ thì cột "Kết quả" của những ván đó không còn khớp với con số đang hiện. Lịch sử giữ nguyên, không bị sửa lại.`,
+  suaNhacKhongDoi: "Mã phòng, cơ sở và chế độ chơi KHÔNG đổi — đổi chúng là một chương trình khác.",
+
   createErrPrize: "Chưa điền tên phần thưởng.",
   createErrTarget: "Số trúng thưởng phải là 4 chữ số từ 0000 đến 9999.",
   createErrLevel: "Chưa chọn độ khó.",

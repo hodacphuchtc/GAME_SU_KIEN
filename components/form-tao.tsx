@@ -3,20 +3,14 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 
-import {
-  DIFFICULTIES,
-  MUC_CHON,
-  NGUONG_CANH_BAO_TRAN,
-  REACTION_JITTER_SECONDS,
-  VAN_UOC_TINH_MOI_NGAY,
-  type DifficultyId,
-} from "@/config/game";
+import { DIFFICULTIES, MUC_CHON, type DifficultyId } from "@/config/game";
 import { T } from "@/config/locale";
 import { SO_LAN_CHOI, type CheDoChoi } from "@/config/to-chuc";
 import { nhanCoSo, type CoSo } from "@/lib/co-so/nhan";
 import { taoChuongTrinhForm, type KetQuaTaoForm } from "@/app/actions/chuong-trinh";
-import { duBaoGiaiMoiNgay, estimateWinChance, formatNumber, formatOdds } from "@/lib/bo-dem";
+import { formatNumber } from "@/lib/bo-dem";
 import { Led4Digits } from "@/components/led-4-so";
+import { BangTiLe } from "@/components/bang-ti-le";
 
 /**
  * Màn thiết lập ván chơi.
@@ -42,10 +36,6 @@ export function FormTao({ coSo }: { coSo: CoSo[] }) {
 
   const soTrung = Number.parseInt(soText === "" ? "0" : soText, 10);
   const thamSo = DIFFICULTIES[mucDo].settings;
-  const uocTinh = estimateWinChance(thamSo, soTrung, soLan);
-  const motLan = estimateWinChance(thamSo, soTrung, 1);
-  const duBao = duBaoGiaiMoiNgay(uocTinh.perVan, VAN_UOC_TINH_MOI_NGAY);
-  const vuotTran = tranGiai > 0 && duBao >= tranGiai * NGUONG_CANH_BAO_TRAN;
 
   return (
     <form action={guiForm} className="mx-auto max-w-3xl">
@@ -151,67 +141,7 @@ export function FormTao({ coSo }: { coSo: CoSo[] }) {
           <p className="text-xs leading-relaxed text-chi">{DIFFICULTIES[mucDo].note}</p>
         </fieldset>
 
-        <div className="rounded-2xl bg-suong p-4">
-          <p className="text-xs font-bold uppercase tracking-widest text-chi">
-            {T.createOddsTitle}
-          </p>
-          {uocTinh.passes === 0 ? (
-            <p className="mt-2 text-sm font-semibold text-do">{T.createWarnUnreachable}</p>
-          ) : (
-            <>
-              <p className="mt-1 text-3xl font-black text-tim">
-                {formatOdds(uocTinh.perVan)}{" "}
-                <span className="text-base font-medium text-chi">{T.createOddsPerVan}</span>
-              </p>
-              <p className="mt-1 text-sm text-chi">
-                {formatOdds(uocTinh.perRound)} {T.createOddsPerPress} · {T.passCount}:{" "}
-                {uocTinh.passes} {T.times} ({T.atSecond}{" "}
-                {uocTinh.passSeconds.map((s) => s.toFixed(1)).join(", ")})
-              </p>
-              {soLan > 1 && (
-                <p className="mt-1 text-sm font-semibold text-muc">
-                  {T.createTriesEffect(
-                    soLan,
-                    formatOdds(motLan.perVan),
-                    formatOdds(uocTinh.perVan),
-                  )}
-                </p>
-              )}
-
-              {/* 🔴 Con số DUY NHẤT quy ra tiền được. Tỉ lệ phần trăm thì đọc lên
-                  ai cũng gật; "khoảng 4,6 giải mỗi ngày" mới khiến người ta dừng
-                  lại nhìn cái trần mình vừa đặt. */}
-              <div
-                className={[
-                  "mt-3 rounded-xl p-3",
-                  vuotTran ? "bg-do/10" : "bg-white",
-                ].join(" ")}
-              >
-                <p className="text-xs font-bold uppercase tracking-widest text-chi">
-                  {T.createForecast}
-                </p>
-                <p
-                  className={[
-                    "mt-0.5 text-lg font-black",
-                    vuotTran ? "text-do" : "text-muc",
-                  ].join(" ")}
-                >
-                  {T.createForecastLine(duBao.toFixed(1), VAN_UOC_TINH_MOI_NGAY)}
-                </p>
-                <p className="mt-0.5 text-sm text-chi">
-                  {tranGiai > 0 ? T.createForecastCap(tranGiai) : T.createForecastNoCap}
-                </p>
-                {vuotTran && (
-                  <p className="mt-2 text-sm font-semibold text-do">{T.createForecastOver}</p>
-                )}
-              </div>
-
-              <p className="mt-2 text-xs leading-relaxed text-chi">
-                {T.oddsNote} (Độ lệch phản xạ dùng để tính: {REACTION_JITTER_SECONDS} giây.)
-              </p>
-            </>
-          )}
-        </div>
+        <BangTiLe thamSo={thamSo} soTrung={soTrung} soLan={soLan} tranGiai={tranGiai} />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5 text-sm">
