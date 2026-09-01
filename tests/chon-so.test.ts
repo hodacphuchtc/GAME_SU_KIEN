@@ -1,12 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { T } from "@/config/locale";
-import { taoChuongTrinh, timTheoMaCongKhai } from "@/lib/chuong-trinh/kho";
+import {
+  danhSachChonSo,
+  suaChonSo,
+  taoChuongTrinh,
+  timTheoMaCongKhai,
+} from "@/lib/chuong-trinh/kho";
 import { chay, layMot } from "@/lib/db/truy-van";
+import { moLuot } from "@/app/actions/choi";
 import { batDauLuot, dungLuot } from "@/lib/luot/luot-service";
 import { coLuotDangMo, soDaRa } from "@/lib/luot/kho-luot";
 import { luatCua } from "@/lib/tro-choi/luat";
-import { soConLai } from "@/lib/tro-choi/luat-chon-so";
+import { soConLai, soConLaiCuaDong } from "@/lib/tro-choi/luat-chon-so";
 import { timVan } from "@/lib/van/kho-van";
 import { coSoThu } from "./ho-tro/co-so-thu";
 import { dungCsdlTam } from "./ho-tro/csdl-tam";
@@ -192,5 +198,69 @@ describe("mỗi lúc một lượt", () => {
     const ct = timTheoMaCongKhai(ma)!;
     expect(coLuotDangMo(ct.id, Date.now() - 20 * 1000)).toBe(false);
     expect(batDauLuot(ma, null)).not.toBeNull();
+  });
+});
+
+describe("hết sạch số thì chương trình TỰ DỪNG", () => {
+  it("🔴 ván sau khi cạn dải: báo đúng câu lỗi VÀ đóng chương trình", async () => {
+    const ma = chonSoThu({ tu: 1, den: 3, loaiTru: true });
+    [0, 1, 2].forEach((i) => choiMotVan(ma, 3 + i * 0.41));
+
+    // Người thứ tư quét mã: phải nhận câu lỗi nói rõ, không phải im lặng.
+    const kq = await moLuot(ma, null);
+    expect(kq.ok).toBe(false);
+    expect(kq.loi).toBe(T.chonSoHetSo);
+
+    // Và chương trình phải tự đóng — để nó "đang chạy" trong khi không còn số
+    // nào là mời người tiếp theo quét mã rồi mới nói không.
+    expect(timTheoMaCongKhai(ma)!.trangThai).toBe("ket_thuc");
+  });
+
+  it("chương trình còn số thì KHÔNG bị đóng nhầm", async () => {
+    const ma = chonSoThu({ tu: 1, den: 3, loaiTru: true });
+    choiMotVan(ma, 3);
+    const kq = await moLuot(ma, null);
+    expect(kq.ok).toBe(true);
+    expect(timTheoMaCongKhai(ma)!.trangThai).toBe("dang_chay");
+  });
+});
+
+describe("đếm 'còn lại N số' ở tầng SQL", () => {
+  it("danh sách đếm đúng mà không cần truy vấn thêm cho từng dòng", () => {
+    const ma = chonSoThu({ tu: 1, den: 10, loaiTru: true });
+    choiMotVan(ma, 3);
+    choiMotVan(ma, 3.6);
+    const pv = { coSoId: null, nhanVienId: null };
+    const dong = danhSachChonSo(pv).find((c) => c.ma === ma)!;
+    expect(dong.soDaRaDem).toBe(2);
+    expect(soConLaiCuaDong(dong)).toBe(8);
+  });
+
+  it("loại trừ TẮT thì cột 'còn lại' là null, không phải một con số vô nghĩa", () => {
+    const ma = chonSoThu({ tu: 1, den: 10, loaiTru: false });
+    choiMotVan(ma, 3);
+    const dong = danhSachChonSo({ coSoId: null, nhanVienId: null }).find((c) => c.ma === ma)!;
+    expect(soConLaiCuaDong(dong)).toBeNull();
+  });
+
+  it("🔴 thu hẹp dải: số đã phát nằm ngoài dải mới KHÔNG bị tính, và không âm", () => {
+    const ma = chonSoThu({ tu: 1, den: 100, loaiTru: true });
+    const ct = timTheoMaCongKhai(ma)!;
+    chay(
+      `insert into luot_choi (chuong_trinh_id, ngay, bat_dau_luc, ket_thuc_luc, so_da_dung)
+       values (?, '2026-09-01', 1, 2, 77), (?, '2026-09-01', 1, 2, 88), (?, '2026-09-01', 1, 2, 9)`,
+      ct.id,
+      ct.id,
+      ct.id,
+    );
+    suaChonSo(ct.id, {
+      daiTu: 1,
+      daiDen: 10,
+      loaiTruDaRa: true,
+      tenGiaiThuong: "Quà Tết 2026",
+    });
+    const dong = danhSachChonSo({ coSoId: null, nhanVienId: null }).find((c) => c.ma === ma)!;
+    expect(dong.soDaRaDem).toBe(1); // chỉ số 9 còn nằm trong dải 1–10
+    expect(soConLaiCuaDong(dong)).toBe(9);
   });
 });

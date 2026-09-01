@@ -4,7 +4,7 @@ import { T } from "@/config/locale";
 import { batBuocDangNhap } from "@/lib/bao-ve/phien-hien-tai";
 import { phamViCua } from "@/lib/bao-ve/quyen";
 import { danhSachChonSo, type TrangThaiChuongTrinh } from "@/lib/chuong-trinh/kho";
-import { soConLai } from "@/lib/tro-choi/luat-chon-so";
+import { soConLaiCuaDong } from "@/lib/tro-choi/luat-chon-so";
 
 // Đọc thẳng cơ sở dữ liệu ở mỗi lượt tải: nhân viên tắt chương trình lúc 9h thì
 // 9h01 danh sách phải hiện "đã kết thúc", không phải sau khi bản dựng hết hạn.
@@ -60,7 +60,7 @@ export default async function TrangChonSo() {
       ) : (
         <ul className="mt-6 grid gap-3">
           {ds.map((ct) => {
-            const con = soConLai(ct);
+            const con = soConLaiCuaDong(ct);
             return (
               <li key={ct.id}>
                 <Link

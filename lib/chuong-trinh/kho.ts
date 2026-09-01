@@ -80,6 +80,14 @@ export interface ChuongTrinhKemSoLieu extends ChuongTrinh {
    */
   soVan: number;
   soGiaiDaTrao: number;
+  /**
+   * Số lượng số ĐÃ PHÁT của game Chọn Số, đếm trong đúng dải hiện hành.
+   *
+   * 🔴 Đếm bằng MỘT truy vấn con ngay trong câu danh sách, không gọi `soDaRa`
+   * cho từng dòng — danh sách 30 chương trình mà mỗi dòng một truy vấn là 30
+   * lượt đi về cơ sở dữ liệu cho một trang chỉ để hiện một con số.
+   */
+  soDaRaDem: number;
 }
 
 interface DongChuongTrinh {
@@ -105,6 +113,7 @@ interface DongChuongTrinh {
   so_giai?: number;
   so_van?: number;
   so_giai_da_trao?: number;
+  so_da_ra_dem?: number;
 }
 
 function doiDong(dong: DongChuongTrinh): ChuongTrinhKemSoLieu {
@@ -137,6 +146,7 @@ function doiDong(dong: DongChuongTrinh): ChuongTrinhKemSoLieu {
     soGiai: dong.so_giai ?? 0,
     soVan: dong.so_van ?? 0,
     soGiaiDaTrao: dong.so_giai_da_trao ?? 0,
+    soDaRaDem: dong.so_da_ra_dem ?? 0,
   };
 }
 
@@ -307,7 +317,10 @@ function danhSachCuaGame(
               (select count(*) from luot_choi l where l.chuong_trinh_id = c.id) as so_luot,
               (select count(*) from luot_choi l where l.chuong_trinh_id = c.id and l.trung = 1) as so_giai,
               (select count(*) from van_choi v where v.chuong_trinh_id = c.id) as so_van,
-              (select count(*) from van_choi v where v.chuong_trinh_id = c.id and v.da_trao_thuong = 1) as so_giai_da_trao
+              (select count(*) from van_choi v where v.chuong_trinh_id = c.id and v.da_trao_thuong = 1) as so_giai_da_trao,
+              (select count(distinct l.so_da_dung) from luot_choi l
+                where l.chuong_trinh_id = c.id and l.ket_thuc_luc is not null
+                  and l.so_da_dung between c.dai_tu and c.dai_den) as so_da_ra_dem
          from chuong_trinh c
         where 1 = 1${menh}${locAn}${locTroChoi(tc)}
         order by c.id desc`,

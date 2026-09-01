@@ -42,6 +42,24 @@ export function soConLai(ct: ChuongTrinh): number | null {
   return coDai(daiCua(ct)) - daRaCua(ct).size;
 }
 
+/**
+ * Còn lại bao nhiêu số, tính từ MỘT DÒNG danh sách đã kèm sẵn phép đếm.
+ *
+ * Bản đối ứng của `soConLai` cho trang danh sách: cùng một ý nghĩa, nhưng
+ * không đụng cơ sở dữ liệu lần nữa. `null` = không bật loại trừ, đếm vô nghĩa.
+ */
+export function soConLaiCuaDong(ct: {
+  daiTu: number;
+  daiDen: number;
+  loaiTruDaRa: boolean;
+  soDaRaDem: number;
+}): number | null {
+  if (!ct.loaiTruDaRa) return null;
+  // Kẹp ở 0: thu hẹp dải sau khi đã phát có thể cho ra số âm nếu ai đó sửa
+  // truy vấn mà quên mệnh đề `between`.
+  return Math.max(0, ct.daiDen - ct.daiTu + 1 - ct.soDaRaDem);
+}
+
 export const luatChonSo: LuatChoi = {
   truocKhiMo(ct: ChuongTrinh): KetQuaTruocKhiMo {
     const dai = daiCua(ct);

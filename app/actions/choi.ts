@@ -3,8 +3,9 @@
 import { LCD_RESULT_SECONDS } from "@/config/game";
 import { T } from "@/config/locale";
 import { nhipCua } from "@/lib/chon-so/vong-so";
-import { timTheoMaCongKhai } from "@/lib/chuong-trinh/kho";
+import { doiTrangThai, timTheoMaCongKhai } from "@/lib/chuong-trinh/kho";
 import { soConLai, type KeoChonSo } from "@/lib/tro-choi/luat-chon-so";
+import { luatCua } from "@/lib/tro-choi/luat";
 import { phat } from "@/lib/dong-bo/tram-phat";
 import { kiemGioiHan } from "@/lib/luot/gioi-han";
 import { batDauLuot, dungLuot, type ThietBiBam } from "@/lib/luot/luot-service";
@@ -106,6 +107,23 @@ export async function moLuot(
 
   const gioiHan = kiemGioiHan(ct.id, nguoiChoiId, ct.tranGiaiMoiNgay);
   if (!gioiHan.choPhep) return { ok: false, loi: gioiHan.lyDo, chiVui: gioiHan.chiVui };
+
+  // Luật của game có quyền chặn trước cả khi mở lượt. Hỏi ở ĐÂY chứ không chỉ
+  // trong `batDauLuot`, vì chỗ này là nơi duy nhất còn cầm được CÂU LỖI để đưa
+  // lên màn hình — `batDauLuot` chỉ trả null.
+  if (ct.troChoi === "chon_so") {
+    const truoc = luatCua("chon_so").truocKhiMo(ct);
+    if (truoc.loi !== undefined) {
+      // Hết sạch số thì đóng chương trình luôn, và báo cho cả phòng biết. Để nó
+      // "đang chạy" trong khi không còn số nào là mời người tiếp theo quét mã
+      // rồi mới nói không.
+      if (truoc.loi === T.chonSoHetSo && ct.trangThai === "dang_chay") {
+        doiTrangThai(ma, "ket_thuc");
+        phat(ma, { loai: "trang-thai", dangChay: false });
+      }
+      return { ok: false, loi: truoc.loi };
+    }
+  }
 
   const luot = batDauLuot(ma, nguoiChoiId, vanIdMuonTiep, coSoDaPhanGiai);
   if (!luot) return { ok: false };
