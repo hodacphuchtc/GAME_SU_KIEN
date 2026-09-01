@@ -4,6 +4,8 @@ import { csdl } from "@/lib/db/ket-noi";
 import { taoChuongTrinh } from "@/lib/chuong-trinh/kho";
 import { datGhiDanh, thongKeGhiDanh } from "@/lib/luot/kho-luot";
 import { thangVietNam } from "@/lib/db/thoi-gian";
+import { coSoThu } from "./ho-tro/co-so-thu";
+import { ghiVanDaChot } from "./ho-tro/van-thu";
 import { dungCsdlTam } from "./ho-tro/csdl-tam";
 
 /**
@@ -17,14 +19,9 @@ import { dungCsdlTam } from "./ho-tro/csdl-tam";
 let don: () => void;
 let ctId: number;
 
-/** Tạo một người chơi và một lượt đã kết thúc trong ngày cho trước. */
-function ghiLuot(nguoiChoiId: number | null, ngay: string): number {
-  const db = csdl();
-  db.prepare(
-    `insert into luot_choi (chuong_trinh_id, nguoi_choi_id, ngay, bat_dau_luc, ket_thuc_luc, trung)
-     values (?, ?, ?, ?, ?, 0)`,
-  ).run(ctId, nguoiChoiId, ngay, Date.now(), Date.now());
-  return Number(db.prepare("select last_insert_rowid() as id").get()!.id);
+/** Một VÁN đã chốt trong ngày cho trước. Thước đo đếm theo ván, không theo lượt. */
+function ghiVan(nguoiChoiId: number | null, ngay: string): number {
+  return ghiVanDaChot({ chuongTrinhId: ctId, nguoiChoiId, ngay });
 }
 
 function taoNguoiChoi(sdt: string): number {
@@ -39,6 +36,7 @@ beforeEach(() => {
   don = dungCsdlTam();
   ctId = taoChuongTrinh({
     tenTrungTam: "Trung tâm thử",
+    coSoId: coSoThu("Trung tâm thử"),
     soTrung: 114,
     mucDo: "vua",
     tenGiaiThuong: "Balo STEM",
@@ -63,68 +61,68 @@ describe("thongKeGhiDanh", () => {
   const thang = "2026-09";
 
   it("đếm đúng số khách để lại số trong tháng", () => {
-    ghiLuot(taoNguoiChoi("0900000001"), "2026-09-01");
-    ghiLuot(taoNguoiChoi("0900000002"), "2026-09-15");
+    ghiVan(taoNguoiChoi("0900000001"), "2026-09-01");
+    ghiVan(taoNguoiChoi("0900000002"), "2026-09-15");
     expect(thongKeGhiDanh(thang)).toEqual({ soKhach: 2, soGhiDanh: 0 });
   });
 
   it("🔴 một khách chơi nhiều ngày vẫn tính LÀ MỘT", () => {
     const a = taoNguoiChoi("0900000001");
-    ghiLuot(a, "2026-09-01");
-    ghiLuot(a, "2026-09-02");
-    ghiLuot(a, "2026-09-03");
+    ghiVan(a, "2026-09-01");
+    ghiVan(a, "2026-09-02");
+    ghiVan(a, "2026-09-03");
     expect(thongKeGhiDanh(thang).soKhach).toBe(1);
   });
 
-  it("🔴 lượt ẩn danh không tính vào mẫu số", () => {
-    ghiLuot(null, "2026-09-01");
-    ghiLuot(taoNguoiChoi("0900000001"), "2026-09-01");
+  it("🔴 ván ẩn danh không tính vào mẫu số", () => {
+    ghiVan(null, "2026-09-01");
+    ghiVan(taoNguoiChoi("0900000001"), "2026-09-01");
     expect(thongKeGhiDanh(thang).soKhach).toBe(1);
   });
 
-  it("không đếm lượt của tháng khác", () => {
-    ghiLuot(taoNguoiChoi("0900000001"), "2026-08-31");
+  it("không đếm ván của tháng khác", () => {
+    ghiVan(taoNguoiChoi("0900000001"), "2026-08-31");
     expect(thongKeGhiDanh(thang).soKhach).toBe(0);
   });
 
   it("đếm được người đã ghi danh", () => {
     const a = taoNguoiChoi("0900000001");
-    const luot = ghiLuot(a, "2026-09-01");
-    ghiLuot(taoNguoiChoi("0900000002"), "2026-09-02");
-    datGhiDanh(luot, true);
+    const van = ghiVan(a, "2026-09-01");
+    ghiVan(taoNguoiChoi("0900000002"), "2026-09-02");
+    datGhiDanh(van, true);
     expect(thongKeGhiDanh(thang)).toEqual({ soKhach: 2, soGhiDanh: 1 });
   });
 
-  it("🔴 tích ghi danh hai LƯỢT của cùng một khách không cộng thành hai", () => {
+  it("🔴 tích ghi danh hai VÁN của cùng một khách không cộng thành hai", () => {
     const a = taoNguoiChoi("0900000001");
-    const l1 = ghiLuot(a, "2026-09-01");
-    const l2 = ghiLuot(a, "2026-09-02");
-    datGhiDanh(l1, true);
-    datGhiDanh(l2, true);
+    const v1 = ghiVan(a, "2026-09-01");
+    const v2 = ghiVan(a, "2026-09-02");
+    datGhiDanh(v1, true);
+    datGhiDanh(v2, true);
     expect(thongKeGhiDanh(thang)).toEqual({ soKhach: 1, soGhiDanh: 1 });
   });
 });
 
 describe("datGhiDanh", () => {
   it("bật rồi tắt lại được", () => {
-    const luot = ghiLuot(taoNguoiChoi("0900000001"), "2026-09-01");
-    datGhiDanh(luot, true);
+    const van = ghiVan(taoNguoiChoi("0900000001"), "2026-09-01");
+    datGhiDanh(van, true);
     expect(thongKeGhiDanh("2026-09").soGhiDanh).toBe(1);
-    datGhiDanh(luot, false);
+    datGhiDanh(van, false);
     expect(thongKeGhiDanh("2026-09").soGhiDanh).toBe(0);
   });
 
   it("bật hai lần liên tiếp không đổi gì thêm", () => {
-    const luot = ghiLuot(taoNguoiChoi("0900000001"), "2026-09-01");
-    datGhiDanh(luot, true);
-    const truoc = csdl().prepare("select ghi_danh_luc from luot_choi where id = ?").get(luot);
-    datGhiDanh(luot, true);
-    expect(csdl().prepare("select ghi_danh_luc from luot_choi where id = ?").get(luot)).toEqual(
+    const van = ghiVan(taoNguoiChoi("0900000001"), "2026-09-01");
+    datGhiDanh(van, true);
+    const truoc = csdl().prepare("select ghi_danh_luc from van_choi where id = ?").get(van);
+    datGhiDanh(van, true);
+    expect(csdl().prepare("select ghi_danh_luc from van_choi where id = ?").get(van)).toEqual(
       truoc,
     );
   });
 
-  it("lượt không tồn tại thì trả false, không ném", () => {
+  it("ván không tồn tại thì trả false, không ném", () => {
     expect(datGhiDanh(999999, true)).toBe(false);
   });
 });

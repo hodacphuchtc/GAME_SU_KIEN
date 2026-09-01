@@ -2,10 +2,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { csdl } from "@/lib/db/ket-noi";
 import { taoChuongTrinh } from "@/lib/chuong-trinh/kho";
-import { datCoLuot, lichSu } from "@/lib/luot/kho-luot";
+import { datCoVan, lichSu } from "@/lib/luot/kho-luot";
 import { nhanDien } from "@/lib/nguoi-choi/nhan-dien";
 import { xinCho } from "@/app/actions/choi";
 import { doiTrangThai } from "@/lib/chuong-trinh/kho";
+import { coSoThu } from "./ho-tro/co-so-thu";
 import { dungCsdlTam } from "./ho-tro/csdl-tam";
 
 /**
@@ -17,20 +18,37 @@ let don: () => void;
 let ma: string;
 let ctId: number;
 
-function ghiLuot(nguoiChoiId: number | null, trung = false): number {
+/**
+ * Dựng MỘT VÁN đã chốt kèm một lần bấm — từ GĐ 12.1 lịch sử đọc từ `van_choi`,
+ * nên chỉ ghi mỗi `luot_choi` thì bảng lịch sử rỗng và bài test canh nhầm chỗ.
+ * Trả về id của VÁN, vì mọi cờ tích đều nhắm vào ván.
+ */
+function ghiVan(nguoiChoiId: number | null, trung = false): number {
   const db = csdl();
+  const luc = Date.now();
   db.prepare(
     `insert into luot_choi
-       (chuong_trinh_id, nguoi_choi_id, ngay, bat_dau_luc, ket_thuc_luc, trung, ma_xac_thuc)
-     values (?, ?, '2026-09-01', ?, ?, ?, ?)`,
-  ).run(ctId, nguoiChoiId, Date.now(), Date.now(), trung ? 1 : 0, trung ? "K7M2" : null);
-  return Number(db.prepare("select last_insert_rowid() as id").get()!.id);
+       (chuong_trinh_id, nguoi_choi_id, ngay, bat_dau_luc, ket_thuc_luc, trung, khoang_lech)
+     values (?, ?, '2026-09-01', ?, ?, ?, 0)`,
+  ).run(ctId, nguoiChoiId, luc, luc, trung ? 1 : 0);
+  const luotId = Number(db.prepare("select last_insert_rowid() as id").get()!.id);
+
+  db.prepare(
+    `insert into van_choi
+       (chuong_trinh_id, nguoi_choi_id, ngay, so_lan_cho_phep, so_lan_da_dung,
+        luot_tot_nhat_id, trung, ma_xac_thuc, bat_dau_luc, ket_thuc_luc, tao_luc, sua_luc)
+     values (?, ?, '2026-09-01', 1, 1, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(ctId, nguoiChoiId, luotId, trung ? 1 : 0, trung ? "K7M2" : null, luc, luc, luc, luc);
+  const vanId = Number(db.prepare("select last_insert_rowid() as id").get()!.id);
+  db.prepare("update luot_choi set van_id = ? where id = ?").run(vanId, luotId);
+  return vanId;
 }
 
 beforeEach(() => {
   don = dungCsdlTam();
   const ct = taoChuongTrinh({
     tenTrungTam: "Trung tâm thử",
+    coSoId: coSoThu("Trung tâm thử"),
     soTrung: 114,
     mucDo: "vua",
     tenGiaiThuong: "Balo STEM",
@@ -45,49 +63,49 @@ afterEach(() => don());
 describe("LỖI 1 — cờ đồng ý nhận tư vấn phải ra tới dòng lịch sử", () => {
   it("🔴 người tích ô đồng ý thì dòng lịch sử mang cờ đó", () => {
     const kq = nhanDien("Nguyễn Văn A", "0912345678", true);
-    ghiLuot(kq.nguoiChoi!.id);
+    ghiVan(kq.nguoiChoi!.id);
     expect(lichSu(ctId)[0].dongYTuVan).toBe(true);
   });
 
   it("người KHÔNG tích thì cờ là false — căn cứ gọi điện phải phân biệt được", () => {
     const kq = nhanDien("Trần Thị B", "0912345679", false);
-    ghiLuot(kq.nguoiChoi!.id);
+    ghiVan(kq.nguoiChoi!.id);
     expect(lichSu(ctId)[0].dongYTuVan).toBe(false);
   });
 
-  it("lượt ẩn danh thì cờ là false, không ném", () => {
-    ghiLuot(null);
+  it("ván ẩn danh thì cờ là false, không ném", () => {
+    ghiVan(null);
     expect(lichSu(ctId)[0].dongYTuVan).toBe(false);
   });
 });
 
 describe("LỖI 2 — cờ đã trao quà (cột chết từ v1)", () => {
   it("🔴 bật được — trước GĐ 8.2 không nơi nào ghi vào cột này", () => {
-    const luot = ghiLuot(null, true);
-    expect(datCoLuot(luot, "trao-thuong", true)).toBe(true);
+    const van = ghiVan(null, true);
+    expect(datCoVan(van, "trao-thuong", true)).toBe(true);
     expect(lichSu(ctId)[0].daTraoThuong).toBe(true);
   });
 
   it("bật rồi tắt lại được", () => {
-    const luot = ghiLuot(null, true);
-    datCoLuot(luot, "trao-thuong", true);
-    datCoLuot(luot, "trao-thuong", false);
+    const van = ghiVan(null, true);
+    datCoVan(van, "trao-thuong", true);
+    datCoVan(van, "trao-thuong", false);
     expect(lichSu(ctId)[0].daTraoThuong).toBe(false);
   });
 
   it("bật hai lần không dời mốc thời gian", () => {
-    const luot = ghiLuot(null, true);
-    datCoLuot(luot, "trao-thuong", true);
-    const truoc = csdl().prepare("select trao_luc from luot_choi where id = ?").get(luot);
-    datCoLuot(luot, "trao-thuong", true);
-    expect(csdl().prepare("select trao_luc from luot_choi where id = ?").get(luot)).toEqual(truoc);
+    const van = ghiVan(null, true);
+    datCoVan(van, "trao-thuong", true);
+    const truoc = csdl().prepare("select trao_luc from van_choi where id = ?").get(van);
+    datCoVan(van, "trao-thuong", true);
+    expect(csdl().prepare("select trao_luc from van_choi where id = ?").get(van)).toEqual(truoc);
   });
 
   it("hai cờ độc lập nhau — tích trao quà không đụng ghi danh", () => {
-    const luot = ghiLuot(null, true);
-    datCoLuot(luot, "trao-thuong", true);
+    const van = ghiVan(null, true);
+    datCoVan(van, "trao-thuong", true);
     expect(lichSu(ctId)[0].daGhiDanh).toBe(false);
-    datCoLuot(luot, "ghi-danh", true);
+    datCoVan(van, "ghi-danh", true);
     expect(lichSu(ctId)[0].daTraoThuong).toBe(true);
   });
 });

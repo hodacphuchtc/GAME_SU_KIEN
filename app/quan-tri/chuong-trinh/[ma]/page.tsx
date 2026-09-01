@@ -7,10 +7,17 @@ import { DIFFICULTIES, type DifficultyId } from "@/config/game";
 import { T } from "@/config/locale";
 import { formatNumber } from "@/lib/bo-dem";
 import { timTheoMa } from "@/lib/chuong-trinh/kho";
+import { nhanCoSo } from "@/lib/co-so/nhan";
+import { timCoSo } from "@/lib/co-so/kho";
+import { SO_LAN_CHOI } from "@/config/to-chuc";
 import { lichSu, soGiaiHomNay } from "@/lib/luot/kho-luot";
 import { NutIn } from "@/components/nut-in";
-import { OTichLuot } from "@/components/o-tich-luot";
+import { OTichVan } from "@/components/o-tich-van";
 import { NutBatTat } from "@/components/nut-bat-tat";
+import { KhoQua } from "@/components/kho-qua";
+import { danhSachQua } from "@/lib/qua/kho-qua";
+import { mucCanhBaoKho } from "@/lib/qua/canh-bao";
+import { DaiCanhBaoKho } from "@/components/dai-canh-bao-kho";
 
 export const dynamic = "force-dynamic";
 
@@ -53,26 +60,40 @@ export default async function TrangChiTiet({
   const duongDanChoi = `${goc}/choi/${ct.ma}`;
   const anhQr = await QRCode.toDataURL(duongDanChoi, { width: 720, margin: 1 });
 
+  const coSo = ct.coSoId === null ? null : timCoSo(ct.coSoId);
+  const kho = danhSachQua(ct.id);
+  const canhBao = mucCanhBaoKho(kho);
   const cacLuot = lichSu(ct.id);
   const giaiHomNay = soGiaiHomNay(ct.id);
   const dangChay = ct.trangThai === "dang_chay";
 
   return (
     <div className="mx-auto max-w-5xl">
+      <DaiCanhBaoKho
+        canhBao={canhBao}
+        nhanCoSo={coSo ? nhanCoSo(coSo) : ct.tenTrungTam}
+      />
+
       <div className="khong-in flex flex-wrap items-start justify-between gap-4">
         <div>
           <Link href="/quan-tri" className="text-sm text-tim hover:underline">
             ← {T.createBack}
           </Link>
+          {/* Tiêu đề dùng nhãn cơ sở SỐNG (đổi địa chỉ là thấy đổi ngay ở đây),
+              còn khối in ra giấy bên dưới giữ BẢN CHỤP tên lúc tạo. Hai chỗ cố ý
+              khác nhau: màn quản trị nói "cơ sở này bây giờ là gì", tờ giấy đã in
+              nói "chương trình này được mở dưới tên gì". */}
           <h1 className="mt-1 text-2xl font-black text-muc sm:text-3xl">
-            {ct.tenTrungTam}
+            {coSo ? nhanCoSo(coSo) : ct.tenTrungTam}
           </h1>
           <p className="mt-1 text-sm text-chi">
             {T.lcdRoomCode}: <span className="font-mono font-bold">{ct.ma}</span> ·{" "}
             {ct.mucDo === "custom"
               ? T.custom
               : DIFFICULTIES[ct.mucDo as DifficultyId].label}{" "}
-            · {T.prizeLabel}: {ct.tenGiaiThuong}
+            · {T.prizeLabel}: {ct.tenGiaiThuong} ·{" "}
+            {ct.cheDo === "online" ? T.createModeOnline : T.createModeCounter}
+            {ct.soLanChoi > SO_LAN_CHOI.macDinh && ` · ${T.detailTries(ct.soLanChoi)}`}
             {ct.tranGiaiMoiNgay > 0 &&
               ` · hôm nay ${giaiHomNay}/${ct.tranGiaiMoiNgay} giải`}
           </p>
@@ -90,6 +111,8 @@ export default async function TrangChiTiet({
           <NutBatTat ma={ct.ma} dangChay={dangChay} />
         </div>
       </div>
+
+      <KhoQua chuongTrinhId={ct.id} ma={ct.ma} kho={kho} />
 
       {/* Khối này là thứ DUY NHẤT được in ra giấy. */}
       <section className="mt-6 flex flex-col items-center gap-4 rounded-2xl border border-ke bg-white p-6">
@@ -120,7 +143,7 @@ export default async function TrangChiTiet({
           <h2 className="text-lg font-black text-muc">{T.detailHistory}</h2>
           {cacLuot.length > 0 && (
             <a
-              href={`/api/xuat-csv/${ct.ma}`}
+              href={`/api/xuat/chuong-trinh/${ct.ma}`}
               className="rounded-xl border border-ke px-4 py-2 text-sm font-bold text-muc"
             >
               {T.detailExport}
@@ -180,10 +203,10 @@ export default async function TrangChiTiet({
                     </td>
                     <td className="px-5 py-3">
                       {l.trung ? (
-                        <OTichLuot
-                          luotId={l.id}
+                        <OTichVan
+                          vanId={l.id}
                           ma={ct.ma}
-                          coLuot="trao-thuong"
+                          coVan="trao-thuong"
                           banDau={l.daTraoThuong}
                           nhan={T.awardToggle}
                         />
@@ -192,15 +215,15 @@ export default async function TrangChiTiet({
                       )}
                     </td>
                     <td className="px-5 py-3">
-                      {/* Chỉ lượt có danh tính mới đánh dấu được — lượt ẩn danh
+                      {/* Chỉ ván có danh tính mới đánh dấu được — ván ẩn danh
                           không có ai để mà ghi danh. */}
                       {l.hoTen === null ? (
                         <span className="text-chi">—</span>
                       ) : (
-                        <OTichLuot
-                          luotId={l.id}
+                        <OTichVan
+                          vanId={l.id}
                           ma={ct.ma}
-                          coLuot="ghi-danh"
+                          coVan="ghi-danh"
                           banDau={l.daGhiDanh}
                           nhan={T.enrollToggle}
                         />

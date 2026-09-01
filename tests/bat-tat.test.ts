@@ -4,6 +4,7 @@ import { csdl } from "@/lib/db/ket-noi";
 import { doiTrangThai, taoChuongTrinh, timTheoMa } from "@/lib/chuong-trinh/kho";
 import { giuCho } from "@/lib/phien/giu-cho";
 import { moLuot, xinCho } from "@/app/actions/choi";
+import { coSoThu } from "./ho-tro/co-so-thu";
 import { dungCsdlTam } from "./ho-tro/csdl-tam";
 
 /**
@@ -28,6 +29,7 @@ beforeEach(() => {
   don = dungCsdlTam();
   ma = taoChuongTrinh({
     tenTrungTam: "Trung tâm thử",
+    coSoId: coSoThu("Trung tâm thử"),
     soTrung: 114,
     mucDo: "vua",
     tenGiaiThuong: "Balo STEM",

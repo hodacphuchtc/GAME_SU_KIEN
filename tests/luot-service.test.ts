@@ -6,6 +6,7 @@ import { taoChuongTrinh } from "@/lib/chuong-trinh/kho";
 import { layMot } from "@/lib/db/truy-van";
 import { batDauLuot, docKetQua, dungLuot } from "@/lib/luot/luot-service";
 import { chay } from "@/lib/db/truy-van";
+import { coSoThu } from "./ho-tro/co-so-thu";
 import { dungCsdlTam } from "./ho-tro/csdl-tam";
 
 /**
@@ -31,6 +32,7 @@ beforeEach(() => {
   don = dungCsdlTam();
   ma = taoChuongTrinh({
     tenTrungTam: "Trung tâm Hoa Mai",
+    coSoId: coSoThu("Trung tâm Hoa Mai"),
     soTrung: 211,
     mucDo: "vua",
     tenGiaiThuong: "Voucher 200k",
@@ -102,13 +104,38 @@ describe("chốt một lượt chơi", () => {
     const dong = layMot<{
       thiet_bi_bam: string;
       ngay: string;
-      ma_xac_thuc: string;
+      van_id: number;
+      lan_thu: number;
       ket_thuc_luc: number;
     }>("select * from luot_choi where id = ?", luot.luotId)!;
     expect(dong.thiet_bi_bam).toBe("dien_thoai");
     expect(dong.ngay).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(dong.ma_xac_thuc).toHaveLength(4);
     expect(dong.ket_thuc_luc).toBeGreaterThan(0);
+    // Lượt phải nối được về ván — không có dây này thì lịch sử quản trị mất dòng.
+    expect(dong.van_id).toBe(luot.vanId);
+    expect(dong.lan_thu).toBe(1);
+  });
+
+  // 🔴 Từ GĐ 12.1 mã xác thực sống ở VÁN, không ở lượt: bấm ba lần trúng hai
+  // lần vẫn chỉ MỘT phiếu nhận quà, nên chỉ được có MỘT mã.
+  it("mã xác thực nằm trên VÁN chứ không trên lượt", () => {
+    const giay = timeAtCount(THAM_SO, 10_211);
+    const luot = moLuotDaChay(ma, giay);
+    dungLuot(luot.luotId, giay * 1000, "dien_thoai");
+
+    const van = layMot<{ ma_xac_thuc: string | null; trung: number; ket_thuc_luc: number | null }>(
+      "select * from van_choi where id = ?",
+      luot.vanId,
+    )!;
+    expect(van.trung).toBe(1);
+    expect(van.ma_xac_thuc).toHaveLength(4);
+    expect(van.ket_thuc_luc).toBeGreaterThan(0);
+    expect(
+      layMot<{ ma_xac_thuc: string | null }>(
+        "select ma_xac_thuc from luot_choi where id = ?",
+        luot.luotId,
+      )!.ma_xac_thuc,
+    ).toBeNull();
   });
 
   it("chương trình không tồn tại thì không mở được lượt", () => {

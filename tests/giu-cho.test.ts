@@ -4,6 +4,7 @@ import { ROOM_HOLD_SECONDS } from "@/config/game";
 import { taoChuongTrinh } from "@/lib/chuong-trinh/kho";
 import { chay } from "@/lib/db/truy-van";
 import { dangGiuCho, giaHanCho, giuCho, nhaCho } from "@/lib/phien/giu-cho";
+import { coSoThu } from "./ho-tro/co-so-thu";
 import { dungCsdlTam } from "./ho-tro/csdl-tam";
 
 let don: () => void;
@@ -13,6 +14,7 @@ beforeEach(() => {
   don = dungCsdlTam();
   ma = taoChuongTrinh({
     tenTrungTam: "Trung tâm Hoa Mai",
+    coSoId: coSoThu("Trung tâm Hoa Mai"),
     soTrung: 211,
     mucDo: "vua",
     tenGiaiThuong: "Voucher 200k",

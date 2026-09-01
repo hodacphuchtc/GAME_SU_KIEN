@@ -246,9 +246,12 @@ describe("lớp DỮ LIỆU — chỉ chạy MỘT LẦN", () => {
     expect(db.prepare("select ten from co_so").all()).toEqual([{ ten: "Cơ sở Hoa Mai" }]);
   });
 
-  it("user_version được nâng lên 1", () => {
+  // Con số này TĂNG mỗi khi thêm một bước backfill mới (v2 = GĐ 12.1 kéo cờ
+  // ghi danh từ lượt lên ván). Cố ý viết thẳng số chứ không import hằng số:
+  // import vào thì bài test tự khớp với chính nó và không canh được gì nữa.
+  it("user_version được nâng lên 2", () => {
     chayNangCap();
-    expect((db.prepare("pragma user_version").get() as { user_version: number }).user_version).toBe(1);
+    expect((db.prepare("pragma user_version").get() as { user_version: number }).user_version).toBe(2);
   });
 
   it("CSDL TRẮNG chạy trót lọt, 0 cơ sở, không ném", () => {

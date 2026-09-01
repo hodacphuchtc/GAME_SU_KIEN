@@ -18,8 +18,20 @@ export function chuanHoaSdt(tho: string): string | null {
   return rut;
 }
 
-/** Che giữa số để hiện trên màn công khai: 0912345678 → 0912***678 */
+/**
+ * Che số để hiện trên màn quản trị: `0912345678` → `09****678`.
+ *
+ * 🔴 Giữ 2 số đầu + 3 số cuối, KHÔNG phải 4 + 3 như bản v1. Đầu số di động
+ * Việt Nam dài 3 chữ số (090, 091, 097…), nên giữ 4 là để lộ trọn đầu số cộng
+ * thêm một chữ số — gần như chỉ ra ngay nhà mạng và thu hẹp mạnh không gian
+ * đoán. Giữ 2 thì người liếc qua vai chỉ biết "đây là số di động".
+ *
+ * ⚠️ Nói thẳng phạm vi của nó: đây là lớp chống NGƯỜI LIẾC QUA VAI ở quầy, KHÔNG
+ * phải chống kẻ tấn công. Số đầy đủ vẫn nằm trong HTML để nút "Hiện đầy đủ"
+ * chạy được ngay không phải gọi lại máy chủ. Ai mở được trang thì đọc được số.
+ */
 export function cheSdt(sdt: string): string {
-  if (sdt.length < 7) return sdt;
-  return `${sdt.slice(0, 4)}***${sdt.slice(-3)}`;
+  if (sdt.length < 6) return sdt;
+  const giua = Math.max(0, sdt.length - 5);
+  return `${sdt.slice(0, 2)}${"*".repeat(giua)}${sdt.slice(-3)}`;
 }

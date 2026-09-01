@@ -6,12 +6,16 @@ import { useActionState, useState } from "react";
 import {
   DIFFICULTIES,
   MUC_CHON,
+  NGUONG_CANH_BAO_TRAN,
   REACTION_JITTER_SECONDS,
+  VAN_UOC_TINH_MOI_NGAY,
   type DifficultyId,
 } from "@/config/game";
 import { T } from "@/config/locale";
+import { SO_LAN_CHOI, type CheDoChoi } from "@/config/to-chuc";
+import { nhanCoSo, type CoSo } from "@/lib/co-so/nhan";
 import { taoChuongTrinhForm, type KetQuaTaoForm } from "@/app/actions/chuong-trinh";
-import { estimateWinChance, formatNumber, formatOdds } from "@/lib/bo-dem";
+import { duBaoGiaiMoiNgay, estimateWinChance, formatNumber, formatOdds } from "@/lib/bo-dem";
 import { Led4Digits } from "@/components/led-4-so";
 
 /**
@@ -21,9 +25,16 @@ import { Led4Digits } from "@/components/led-4-so";
  * tính** đổi ngay khi nhân viên đổi mức: không có nó thì người ta treo giải mà
  * không biết mình vừa hứa cho đi bao nhiêu.
  */
-export function FormTao() {
+export function FormTao({ coSo }: { coSo: CoSo[] }) {
   const [soText, setSoText] = useState("0211");
   const [mucDo, setMucDo] = useState<DifficultyId>("vua");
+  // Chế độ giữ ở state vì ô "cơ sở của người chơi" chỉ có nghĩa khi chơi online:
+  // tại quầy thì phụ huynh đứng ngay trước mặt, không ai đi chọn cơ sở cả.
+  const [cheDo, setCheDo] = useState<CheDoChoi>("tai_quay");
+  // Hai ô này phải CÓ KIỂM SOÁT: bảng tỉ lệ và dòng dự báo phải đổi ngay lúc
+  // nhân viên gõ, chứ không phải sau khi họ đã bấm Tạo và lỡ treo giải.
+  const [soLan, setSoLan] = useState<number>(SO_LAN_CHOI.macDinh);
+  const [tranGiai, setTranGiai] = useState(5);
   const [trangThai, guiForm, dangGui] = useActionState<KetQuaTaoForm, FormData>(
     taoChuongTrinhForm,
     {},
@@ -31,7 +42,10 @@ export function FormTao() {
 
   const soTrung = Number.parseInt(soText === "" ? "0" : soText, 10);
   const thamSo = DIFFICULTIES[mucDo].settings;
-  const uocTinh = estimateWinChance(thamSo, soTrung);
+  const uocTinh = estimateWinChance(thamSo, soTrung, soLan);
+  const motLan = estimateWinChance(thamSo, soTrung, 1);
+  const duBao = duBaoGiaiMoiNgay(uocTinh.perVan, VAN_UOC_TINH_MOI_NGAY);
+  const vuotTran = tranGiai > 0 && duBao >= tranGiai * NGUONG_CANH_BAO_TRAN;
 
   return (
     <form action={guiForm} className="mx-auto max-w-3xl">
@@ -40,15 +54,61 @@ export function FormTao() {
 
       <div className="mt-6 grid gap-5 rounded-2xl border border-ke bg-white p-5 sm:p-6">
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-semibold text-muc">{T.createCenter}</span>
-          <input
-            name="tenTrungTam"
+          <span className="font-semibold text-muc">{T.createBranch}</span>
+          <select
+            name="coSoId"
             required
-            maxLength={80}
-            defaultValue="Trung tâm Sata Robo"
-            className="rounded-xl border border-ke px-4 py-3 text-base text-muc focus:border-tim focus:outline-none"
-          />
+            defaultValue={coSo[0]?.id ?? ""}
+            className="rounded-xl border border-ke bg-white px-4 py-3 text-base text-muc focus:border-tim focus:outline-none"
+          >
+            {coSo.map((cs) => (
+              <option key={cs.id} value={cs.id}>
+                {nhanCoSo(cs)}
+              </option>
+            ))}
+          </select>
         </label>
+
+        <fieldset className="flex flex-col gap-2">
+          <legend className="text-sm font-semibold text-muc">{T.createMode}</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {(
+              [
+                ["tai_quay", T.createModeCounter, T.createModeCounterNote],
+                ["online", T.createModeOnline, T.createModeOnlineNote],
+              ] as const
+            ).map(([id, nhan, ghiChu]) => (
+              <label key={id} className="cursor-pointer">
+                <input
+                  type="radio"
+                  name="cheDo"
+                  value={id}
+                  checked={cheDo === id}
+                  onChange={() => setCheDo(id)}
+                  className="peer sr-only"
+                />
+                <span className="block h-full rounded-xl border border-ke px-3 py-3 text-sm text-muc transition peer-checked:border-tim peer-checked:bg-tim-nhat">
+                  <span className="block font-bold">{nhan}</span>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-chi">{ghiChu}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        {cheDo === "online" && (
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="font-semibold text-muc">{T.createBranchSource}</span>
+            <select
+              name="nguonCoSo"
+              defaultValue="gan_san"
+              className="rounded-xl border border-ke bg-white px-4 py-3 text-base text-muc focus:border-tim focus:outline-none"
+            >
+              <option value="gan_san">{T.createBranchSourceFixed}</option>
+              <option value="phu_huynh_chon">{T.createBranchSourceAsk}</option>
+            </select>
+          </label>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
           <label className="flex flex-col gap-1.5 text-sm">
@@ -100,14 +160,52 @@ export function FormTao() {
           ) : (
             <>
               <p className="mt-1 text-3xl font-black text-tim">
-                {formatOdds(uocTinh.perRound)}{" "}
-                <span className="text-base font-medium text-chi">{T.perRound}</span>
+                {formatOdds(uocTinh.perVan)}{" "}
+                <span className="text-base font-medium text-chi">{T.createOddsPerVan}</span>
               </p>
               <p className="mt-1 text-sm text-chi">
-                {formatOdds(uocTinh.perPass)} {T.perPass} · {T.passCount}:{" "}
+                {formatOdds(uocTinh.perRound)} {T.createOddsPerPress} · {T.passCount}:{" "}
                 {uocTinh.passes} {T.times} ({T.atSecond}{" "}
                 {uocTinh.passSeconds.map((s) => s.toFixed(1)).join(", ")})
               </p>
+              {soLan > 1 && (
+                <p className="mt-1 text-sm font-semibold text-muc">
+                  {T.createTriesEffect(
+                    soLan,
+                    formatOdds(motLan.perVan),
+                    formatOdds(uocTinh.perVan),
+                  )}
+                </p>
+              )}
+
+              {/* 🔴 Con số DUY NHẤT quy ra tiền được. Tỉ lệ phần trăm thì đọc lên
+                  ai cũng gật; "khoảng 4,6 giải mỗi ngày" mới khiến người ta dừng
+                  lại nhìn cái trần mình vừa đặt. */}
+              <div
+                className={[
+                  "mt-3 rounded-xl p-3",
+                  vuotTran ? "bg-do/10" : "bg-white",
+                ].join(" ")}
+              >
+                <p className="text-xs font-bold uppercase tracking-widest text-chi">
+                  {T.createForecast}
+                </p>
+                <p
+                  className={[
+                    "mt-0.5 text-lg font-black",
+                    vuotTran ? "text-do" : "text-muc",
+                  ].join(" ")}
+                >
+                  {T.createForecastLine(duBao.toFixed(1), VAN_UOC_TINH_MOI_NGAY)}
+                </p>
+                <p className="mt-0.5 text-sm text-chi">
+                  {tranGiai > 0 ? T.createForecastCap(tranGiai) : T.createForecastNoCap}
+                </p>
+                {vuotTran && (
+                  <p className="mt-2 text-sm font-semibold text-do">{T.createForecastOver}</p>
+                )}
+              </div>
+
               <p className="mt-2 text-xs leading-relaxed text-chi">
                 {T.oddsNote} (Độ lệch phản xạ dùng để tính: {REACTION_JITTER_SECONDS} giây.)
               </p>
@@ -132,11 +230,26 @@ export function FormTao() {
               name="tranGiaiMoiNgay"
               type="number"
               min={0}
-              defaultValue={5}
+              value={tranGiai}
+              onChange={(e) => setTranGiai(Math.max(0, Number(e.target.value) || 0))}
               className="rounded-xl border border-ke px-4 py-3 text-base text-muc focus:border-tim focus:outline-none"
             />
           </label>
         </div>
+
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="font-semibold text-muc">{T.createTries}</span>
+          <input
+            name="soLanChoi"
+            type="number"
+            min={SO_LAN_CHOI.toiThieu}
+            max={SO_LAN_CHOI.toiDa}
+            value={soLan}
+            onChange={(e) => setSoLan(Number(e.target.value) || SO_LAN_CHOI.macDinh)}
+            className="rounded-xl border border-ke px-4 py-3 text-base text-muc focus:border-tim focus:outline-none"
+          />
+          <span className="text-xs leading-relaxed text-chi">{T.createTriesNote}</span>
+        </label>
 
         {trangThai.loi && (
           <p className="rounded-xl bg-do/10 p-3 text-sm font-semibold text-do">

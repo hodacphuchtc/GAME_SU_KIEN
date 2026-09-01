@@ -2,26 +2,26 @@
 
 import { useOptimistic, useTransition } from "react";
 
-import type { CoLuot } from "@/lib/luot/kho-luot";
-import { datCoLuotAction } from "@/app/actions/luot";
+import type { CoVan } from "@/lib/luot/kho-luot";
+import { datCoVanAction } from "@/app/actions/luot";
 
 /**
- * Ô tích trên từng dòng lịch sử — dùng chung cho "đã trao quà" và "đã ghi danh".
+ * Ô tích trên từng dòng lịch sử (mỗi dòng là MỘT VÁN) — dùng chung cho "đã trao quà" và "đã ghi danh".
  *
  * Dùng `useOptimistic` để ô đổi trạng thái NGAY khi bấm: nhân viên ngồi quầy
  * tích một loạt, chờ máy chủ trả lời từng ô thì họ sẽ bấm đúp và tích nhầm dòng
  * bên cạnh.
  */
-export function OTichLuot({
-  luotId,
+export function OTichVan({
+  vanId,
   ma,
-  coLuot,
+  coVan,
   banDau,
   nhan,
 }: {
-  luotId: number;
+  vanId: number;
   ma: string;
-  coLuot: CoLuot;
+  coVan: CoVan;
   banDau: boolean;
   nhan: string;
 }) {
@@ -39,7 +39,7 @@ export function OTichLuot({
           const gt = e.target.checked;
           batDau(() => {
             datTich(gt);
-            void datCoLuotAction(luotId, coLuot, gt, ma);
+            void datCoVanAction(vanId, coVan, gt, ma);
           });
         }}
         className="h-4 w-4 cursor-pointer accent-tim disabled:opacity-50"

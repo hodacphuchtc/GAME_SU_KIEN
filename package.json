@@ -11,7 +11,11 @@
     "test:watch": "vitest",
     "dev:dienthoai": "next dev -H 0.0.0.0",
     "trung-tam": "node scripts/chay-trung-tam.mjs",
-    "sao-luu": "node scripts/sao-luu.mjs"
+    "sao-luu": "node scripts/sao-luu.mjs",
+    "tao-quan-tri": "node scripts/tao-quan-tri.mjs",
+    "e2e": "node tests/e2e/chay.mjs",
+    "anh-chup": "node tests/e2e/chay-anh.mjs",
+    "kiem-may-chu": "node scripts/kiem-may-chu.mjs"
   },
   "dependencies": {
     "next": "16.3.3",

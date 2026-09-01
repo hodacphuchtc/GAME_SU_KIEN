@@ -6,6 +6,15 @@ import { timTheoMa } from "@/lib/chuong-trinh/kho";
 import { chay, layMot } from "@/lib/db/truy-van";
 import { ngayVietNam } from "@/lib/db/thoi-gian";
 import { verifyCode } from "@/lib/ma-xac-thuc";
+import {
+  conLanBam,
+  ghiLanBam,
+  moVan,
+  timVan,
+  vanDangMo,
+  type KetQuaGhiLanBam,
+  type Van,
+} from "@/lib/van/kho-van";
 
 /**
  * Vòng đời một lượt chơi.
@@ -28,32 +37,87 @@ const DUNG_SAI_MS = 3000;
 
 export interface LuotDangChay {
   luotId: number;
+  vanId: number;
+  /** Lần bấm thứ mấy trong ván (1-based) và tổng số lần được phép. */
+  lanThu: number;
+  soLanChoPhep: number;
   batDauLuc: number;
   thamSo: RoundSettings;
   soTrung: number;
 }
 
-export function batDauLuot(ma: string, nguoiChoiId: number | null): LuotDangChay | null {
+/**
+ * Mở MỘT LẦN BẤM.
+ *
+ * Ván được mở lười: lần bấm đầu tiên tạo ván, các lần sau nối vào ván đang mở.
+ * `vanIdMuonTiep` là ván mà máy khách đang giữ; nó chỉ được dùng nếu đúng
+ * chương trình, đúng người và còn lần bấm — máy khách khai gì cũng phải qua cửa
+ * này, không tin thẳng.
+ */
+export function batDauLuot(
+  ma: string,
+  nguoiChoiId: number | null,
+  vanIdMuonTiep: number | null = null,
+  /**
+   * Cơ sở ĐÃ PHÂN GIẢI ở bước nhận diện (chế độ để phụ huynh tự chọn).
+   *
+   * 🔴 Ghi vào `van_choi.co_so_id` để báo cáo "lead theo cơ sở" chạy GIỐNG NHAU
+   * ở cả hai chế độ, và để lịch sử không sai khi ai đó đổi cấu hình chương
+   * trình về sau.
+   */
+  coSoDaPhanGiai: number | null = null,
+): LuotDangChay | null {
   const ct = timTheoMa(ma);
   if (!ct || ct.trangThai !== "dang_chay") return null;
 
+  let van: Van | null = null;
+  if (vanIdMuonTiep !== null) {
+    const ung = timVan(vanIdMuonTiep);
+    if (
+      ung &&
+      ung.chuongTrinhId === ct.id &&
+      ung.nguoiChoiId === nguoiChoiId &&
+      conLanBam(ung)
+    ) {
+      van = ung;
+    }
+  }
+  // Tải lại trang giữa ván: máy khách mất vanId, nhưng ván vẫn đang mở trong
+  // CSDL. Nhặt lại theo người chơi, nếu không họ vừa mất lượt vừa bị luật
+  // "1 ván/ngày" chặn — kẹt cứng mà nhìn như app hỏng.
+  if (!van) {
+    const dangMo = vanDangMo(ct.id, nguoiChoiId);
+    if (dangMo && conLanBam(dangMo)) van = dangMo;
+  }
+  if (!van) {
+    van = moVan({
+      chuongTrinhId: ct.id,
+      nguoiChoiId,
+      coSoId: coSoDaPhanGiai ?? ct.coSoId,
+      soLanChoPhep: ct.soLanChoi,
+    });
+  }
+
   const bayGio = Date.now();
+  const lanThu = van.soLanDaDung + 1;
   chay(
-    `insert into luot_choi (chuong_trinh_id, nguoi_choi_id, ngay, bat_dau_luc)
-     values (?, ?, ?, ?)`,
+    `insert into luot_choi (chuong_trinh_id, nguoi_choi_id, ngay, bat_dau_luc, van_id, lan_thu)
+     values (?, ?, ?, ?, ?, ?)`,
     ct.id,
     nguoiChoiId,
     ngayVietNam(bayGio),
     bayGio,
+    van.id,
+    lanThu,
   );
-  const dong = layMot<{ id: number }>(
-    "select id from luot_choi where chuong_trinh_id = ? order by id desc limit 1",
-    ct.id,
-  );
+  const dong = layMot<{ id: number }>("select last_insert_rowid() as id");
   if (!dong) return null;
 
   return {
     luotId: dong.id,
+    vanId: van.id,
+    lanThu,
+    soLanChoPhep: van.soLanChoPhep,
     batDauLuc: bayGio,
     thamSo: ct.thamSo,
     soTrung: ct.soTrung,
@@ -67,11 +131,14 @@ export interface KetQuaLuot extends RoundResult {
   maXacThuc: string;
   hieuLucGiay: number;
   thietBiBam: ThietBiBam;
+  /** Trạng thái của VÁN sau lần bấm này — nguồn để màn giữa ván vẽ "Lần 2/3". */
+  van: KetQuaGhiLanBam;
 }
 
 interface DongLuot {
   id: number;
   chuong_trinh_id: number;
+  van_id: number | null;
   bat_dau_luc: number;
   ket_thuc_luc: number | null;
 }
@@ -116,7 +183,7 @@ export function dungLuot(
   const doi = chay(
     `update luot_choi
         set ket_thuc_luc = ?, so_da_dung = ?, trung = ?, khoang_lech = ?,
-            het_gio = ?, thiet_bi_bam = ?, ma_xac_thuc = ?
+            het_gio = ?, thiet_bi_bam = ?
       where id = ? and ket_thuc_luc is null`,
     ketThuc,
     ketQua.value,
@@ -124,11 +191,16 @@ export function dungLuot(
     ketQua.distance,
     hetGio ? 1 : 0,
     thietBi,
-    maXacThuc,
     luotId,
   );
   // Máy kia bấm trước — thua cuộc, không ghi đè.
   if (doi === 0) return null;
+
+  // Chốt lượt xong mới ghi vào ván: ván là nơi giữ kết quả chung cuộc, và thứ
+  // tự này khiến "ai bấm trước" vẫn do câu UPDATE ở trên phân xử.
+  const van = luot.van_id === null
+    ? null
+    : ghiLanBam(luot.van_id, luotId, ketQua.distance, ketQua.value, ketQua.win, maXacThuc);
 
   return {
     ...ketQua,
@@ -136,6 +208,17 @@ export function dungLuot(
     maXacThuc,
     hieuLucGiay: WIN_VALID_SECONDS,
     thietBiBam: thietBi,
+    van: van ?? {
+      // Lượt cũ chưa có ván (dữ liệu trước GĐ 12): coi như ván một lần, xong ngay.
+      soLanDaDung: 1,
+      lechTotNhat: ketQua.distance,
+      soTotNhat: ketQua.value,
+      conLan: 0,
+      vanXong: true,
+      trung: ketQua.win,
+      quaTangId: null,
+      tenQuaTang: null,
+    },
   };
 }
 

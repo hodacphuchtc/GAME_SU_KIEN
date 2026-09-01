@@ -153,5 +153,20 @@ export const ROOM_HOLD_SECONDS = 120;
 /** LCD hiện màn kết quả bao lâu rồi quay về mã QR chờ người tiếp theo. */
 export const LCD_RESULT_SECONDS = { win: 25, lose: 8 } as const;
 
+/**
+ * Số VÁN ước tính mỗi ngày ở một quầy — mẫu số của dự báo tiền quà.
+ *
+ * Đây là một GIẢ ĐỊNH, không phải số đo: nó có mặt để câu "khoảng N giải/ngày"
+ * nói ra được điều gì đó thay vì im lặng. Đo được lưu lượng thật ở quầy rồi thì
+ * sửa đúng một chỗ này.
+ */
+export const VAN_UOC_TINH_MOI_NGAY = 40;
+
+/**
+ * Dự báo số giải/ngày vượt quá TRẦN đã khai thì đổi màu cảnh báo.
+ * 1 = cảnh báo ngay khi dự báo chạm trần.
+ */
+export const NGUONG_CANH_BAO_TRAN = 1;
+
 /** Không nhận được tin gì từ điện thoại quá lâu thì LCD tự về màn chờ. */
 export const LCD_IDLE_TIMEOUT_SECONDS = 75;

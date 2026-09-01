@@ -1,107 +1,140 @@
-# ĐẾM SỐ — trò chơi quay số may mắn cho trung tâm
+# Game sự kiện Sata Robo
 
-Màn hình lớn ở lễ tân chiếu **mã QR** và **dãy 4 chữ số chạy tăng dần, mỗi lúc một nhanh**.
-Phụ huynh quét mã bằng điện thoại của mình, nhìn màn hình lớn rồi **bấm DỪNG** trên máy —
-trùng đúng con số đã cài thì trúng thưởng, trượt thì được mời một buổi học thử miễn phí.
+Trò chơi ở quầy lễ tân: phụ huynh bấm dừng một dãy 4 chữ số đúng lúc nó hiện đúng con số
+trúng thưởng. Ứng dụng **tự chứa mọi thứ** — `npm install` rồi `npm start` là chạy, không
+cần mở tài khoản dịch vụ nào.
 
-Ứng dụng **tự chứa mọi thứ**: giao diện, máy chủ, cơ sở dữ liệu và kênh đồng bộ thời gian
-thực nằm chung một repo. Không Supabase, không Vercel, không Redis, **không tài khoản dịch
-vụ nào**.
+---
 
-## Chạy tại trung tâm
+## Dành cho NHÂN VIÊN TRUNG TÂM
+
+### Mở máy mỗi ngày — MỘT lệnh
 
 ```bash
-npm install
 npm run trung-tam
 ```
 
-Một lệnh này dựng bản thật, chạy máy chủ và in sẵn các địa chỉ cần mở:
+Nó tự làm hết: sao lưu dữ liệu → dựng bản thật → chạy máy chủ cho **cả mạng wifi** → in ra
+sẵn địa chỉ cần mở. Lần đầu chạy nó cũng tự sinh khoá ký phiên và giữ lại, nên bạn không
+phải nhớ gì thêm.
 
-| Mở ở đâu | Địa chỉ |
-| --- | --- |
-| **Máy nối màn hình LCD** (bật toàn màn hình F11 / ⌃⌘F) | `http://<IP-máy>:3000/man-hinh/<mã>` |
-| **Máy nhân viên** (tạo chương trình, in mã QR) | `http://<IP-máy>:3000/quan-tri` |
-| **Điện thoại phụ huynh** | quét mã QR trên màn hình LCD |
+Kết thúc, màn hình in ra hai địa chỉ:
 
-Điện thoại phải **cùng wifi** với máy chạy. Lần đầu macOS hỏi *"accept incoming network
-connections"* thì bấm **Allow**, không cho thì điện thoại không vào được.
+- **Trang nhân viên** `http://192.168.x.x:3000/quan-tri` — tạo chương trình, in mã QR;
+- **Màn hình LCD** `http://192.168.x.x:3000/man-hinh/<mã>` — mở trên máy nối TV.
 
-Dữ liệu nằm ở `du-lieu/dem-so.db` — **tắt máy bật lại vẫn còn nguyên**.
-
-## Nhân viên làm gì
-
-1. Vào `/quan-tri` → **Tạo chương trình**: nhập số trúng thưởng 4 chữ số, chọn **Dễ /
-   Trung bình / Khó**, đặt **trần số giải mỗi ngày**.
-2. Trang hiện ngay **tỉ lệ trúng ước tính** — con số để quyết định treo giải gì.
-3. Bấm **In mã QR** → dán tờ đó tại quầy, hoặc mở màn hình LCD để phụ huynh quét thẳng.
-4. Khách báo trúng → so **mã xác thực** trên máy khách (đổi mỗi phút, có đồng hồ ngược 60
-   giây) để biết màn hình đang chạy thật chứ không phải ảnh chụp.
-5. Cần dừng gấp → nút **TẮT CHƯƠNG TRÌNH** màu đỏ, một bấm là xong.
-6. Đối soát hoặc chuyển sang CRM → nút **Xuất CSV**.
-
-## Ba cái van giữ cho không vỡ ngân sách
-
-- **Một lượt mỗi số điện thoại mỗi ngày.** Không có van này thì ai kiên trì bấm sẽ trúng.
-- **Trần giải mỗi ngày.** Chạm trần thì chuyển sang *chế độ chỉ vui*: vẫn chơi, vẫn ghi
-  lịch sử, nhưng màn hình nói thẳng là hết quà.
-- **Mỗi chương trình một màn hình và một người chơi** tại một thời điểm. Xong ván là nhả
-  chỗ ngay cho người xếp hàng sau.
-
-## Trò chơi được thiết kế thế nào
-
-Tốc độ tăng theo hàm mũ rồi giữ đỉnh:
-
-```
-v(t) = v0 · r^(t/T)   với t ≤ T,  r = vmax/v0
-n(t) = v0·T/ln(r) · (r^(t/T) − 1)
-hiển thị = floor(n(t)) mod 10000
-```
-
-Bốn lựa chọn đáng chú ý:
-
-1. **Điện thoại KHÔNG hiện dãy số** — chỉ là nút bấm. Một màn hình duy nhất thì không có
-   hai màn hình để mà lệch nhau, và cả sảnh cùng nhìn về một chỗ.
-2. **`vmax` mức Trung bình = 800 số/giây** — hàng nghìn và hàng trăm còn đọc được để canh,
-   hàng chục và đơn vị thì nhoè. Người chơi vì thế *tin rằng mình canh được*.
-3. **Nút DỪNG khoá đúng bằng thời gian tăng tốc** — nếu mở ngay, số cài nhỏ như `0211` bị
-   lướt qua khi máy còn chạy chậm, dễ hơn hẳn số cài lớn.
-4. **Máy nào bấm thì máy đó ĐO**, rồi gửi số mili-giây lên. Để máy chủ tính từ lúc *nhận*
-   lệnh thì độ trễ mạng bị cộng vào: phụ huynh thấy `0211`, bấm, máy trả `0219`.
-
-Một điều đã kiểm chứng bằng toán và bằng test: **tốc độ đổi CẢM GIÁC khó, còn tỉ lệ trúng
-lại do (giới hạn lượt − thời gian khoá nút) quyết định** — tốc độ tự triệt tiêu trong phép
-tính. Vì vậy ba mức khó khác nhau ở cả hai tham số, không chỉ ở tốc độ.
-
-## Cấu trúc
-
-| Thư mục | Vai trò |
-| --- | --- |
-| `config/game.ts` | Hằng số nghiệp vụ + ba mức khó. Sửa luật chơi thì sửa ở đây |
-| `config/thuong-hieu.ts` | Bộ nhận diện Sata Robo (tím 30 / cam 10 / trắng 60, Be Vietnam Pro) |
-| `config/locale.ts` | Từ điển tiếng Việt duy nhất |
-| `lib/bo-dem.ts` | Lõi bộ đếm — hàm thuần của thời gian, được test kỹ |
-| `lib/db/` | SQLite qua `node:sqlite` (có sẵn trong Node 24) |
-| `lib/dong-bo/` | Kênh SSE + canh đồng hồ giữa hai máy |
-| `lib/phien/`, `lib/luot/`, `lib/nguoi-choi/` | Giữ chỗ · vòng đời ván · nhận diện phụ huynh |
-| `app/quan-tri/` | Trang nhân viên |
-| `app/man-hinh/[ma]/`, `app/choi/[ma]/` | Màn hình LCD · màn hình điện thoại |
-| `tests/` | Vitest |
-
-## Lệnh khác
+### Lần đầu cài đặt
 
 ```bash
-npm run dev                       # chỉ máy này
-npm run dev:dienthoai             # mở cho cả mạng LAN (bản dev)
-npm test                          # bộ test
-npm run lint
-node scripts/tao-thu.mjs 0211 vua # tạo nhanh một chương trình để thử tay
+npm install
+npm run trung-tam        # để nó chạy, mở một cửa sổ Terminal khác rồi:
+npm run tao-quan-tri -- sep
 ```
 
-## Dữ liệu cá nhân
+Máy sẽ **hỏi mật khẩu**, không hiện lên màn hình. Xong thì mở trang nhân viên và đăng nhập.
 
-Ứng dụng lưu **họ tên và số điện thoại** phụ huynh để đối soát giải thưởng, kèm ô đồng ý
-nhận tư vấn tách riêng. Bảng công khai chỉ hiện tên rút gọn (*Nguyễn H.*). File
-`du-lieu/dem-so.db` **không** được đưa lên Git.
+Kiểm máy chủ đã sẵn sàng chưa (chạy được từ máy khác trong mạng):
 
-> ⚠️ Trước khi mở cho phụ huynh thật, cần hỏi luật về **khuyến mại mang tính may rủi**
-> (Nghị định 81/2018) và chốt cách xử lý khi **trẻ em dưới 16 tuổi** chơi.
+```bash
+npm run kiem-may-chu http://192.168.x.x:3000
+```
+
+> 🔴 **Đang chạy trong mạng nội bộ thì KHÔNG có HTTPS.** Chỉ dùng cho máy trong cùng wifi
+> của trung tâm — **đừng mở cổng ra Internet** ở chế độ này, vì đường truyền chưa mã hoá mà
+> đang đi qua họ tên và số điện thoại phụ huynh. Muốn chạy **online thật** (link quảng cáo,
+> người lạ mở từ 4G) thì cần tên miền + HTTPS.
+
+### Mở một chương trình mới
+
+1. Vào **TỔ CHỨC › Cơ sở**, khai các cơ sở (mã CS1, CS2… máy tự sinh).
+2. Vào **Trúng Số › Tạo chương trình**: chọn cơ sở, chọn **chế độ chơi**, đặt số trúng
+   thưởng, độ khó, phần thưởng, trần giải mỗi ngày và **số lần bấm mỗi ván**.
+3. Nhìn khối **Tỉ lệ trúng ước tính** — nó nói thẳng *"khoảng N giải mỗi ngày"*. Dải đỏ
+   nghĩa là dự báo đã vượt trần bạn vừa đặt.
+4. Vào trang chi tiết, khai **Kho quà** (xem dưới), rồi **In mã QR** dán ở quầy.
+5. Mở **Màn hình LCD** trên máy nối với TV, bật toàn màn hình, bấm **🔊 Bật tiếng** một lần
+   đầu ca làm.
+
+### Hai chế độ chơi
+
+| | **Tại quầy** | **Online** |
+| --- | --- | --- |
+| Dãy số hiện ở | Màn hình LCD | Chính điện thoại người chơi |
+| Điện thoại là | Nút bấm | Cả bảng số lẫn nút bấm |
+| Cùng lúc | **Một người** | Bao nhiêu người cũng được |
+| Dùng khi | Có khán giả ở quầy | Chạy quảng cáo |
+
+### Kho quà
+
+Khai theo **thứ tự ưu tiên**, trên xuống dưới. Hết loại trên mới sang loại dưới.
+
+> 🔴 **Luôn để một loại ở đáy kho với ô "Số lượng" ĐỂ TRỐNG** (không giới hạn) — ví dụ
+> "Buổi học thử". Không có nó thì khi hết hàng, người **trúng thật** sẽ ra về tay không.
+> Màn hình sẽ cảnh báo vàng nếu bạn quên.
+
+Ba kênh báo kho: dải màu trong trang quản trị · một chấm nhỏ cạnh mã phòng trên LCD (nhân
+viên hiểu, khách nhìn không biết là gì) · một dòng trong Nhật ký.
+
+### Khách tiềm năng
+
+Mọi phụ huynh bấm **TIẾP TỤC** đều thành một dòng khách — kể cả người bị chặn vì đã chơi
+hôm nay. Lọc theo cơ sở, trạng thái, sale, khoảng ngày; giao khách cho sale bằng ô xổ
+xuống trên từng dòng, hoặc bấm **Chia luân phiên** cho những khách chưa giao.
+
+- Ô **"Chỉ người đồng ý nhận tư vấn"** **bật sẵn**. Cái tick đó là căn cứ hợp pháp để gọi
+  điện — muốn xem hết thì phải chủ động bỏ tick.
+- Số điện thoại **che sẵn**; bấm **Hiện đầy đủ** khi cần gọi.
+- Nhãn **"Số chưa xác thực"** nghĩa là khách chơi online tự gõ số, chưa qua mã xác minh.
+- **Xuất Excel** lấy **đúng những dòng đang hiện trên màn**, không phải toàn bộ.
+
+### Sao lưu
+
+```bash
+npm run sao-luu
+```
+
+`npm run trung-tam` đã tự sao lưu mỗi lần khởi động, nhưng chạy tay trước mọi việc đụng tới
+dữ liệu thì vẫn nên. Nó giữ 14 bản gần nhất.
+
+> 🔴 **Bản sao vẫn nằm trên CÙNG cái máy này.** Máy hỏng ổ cứng hay mất trộm là mất cả bản
+> gốc lẫn mọi bản sao. Cắm một ổ cứng ngoài rồi trỏ chỗ để bản sao sang đó:
+> `export GAME_SU_KIEN_SAO_LUU=/Volumes/O-NGOAI/sao-luu-game-su-kien`
+
+Mất dữ liệu rồi thì làm theo **`docs/sop/KHOI-PHUC-CSDL.md`** — và việc đầu tiên là **DỪNG
+TAY**, đừng khởi động lại máy chủ.
+
+---
+
+## Dành cho NGƯỜI PHÁT TRIỂN
+
+| Lệnh | Việc |
+| ---- | ---- |
+| `npm run dev` | Chạy trên máy này |
+| `npm run dev:dienthoai` | Mở cho cả mạng LAN (thử bằng điện thoại thật) |
+| `npm test` | 360 bài test |
+| `npm run lint` · `npx tsc --noEmit` | Soi mã |
+| `npm run build` | Dựng bản phát hành |
+| `npm run e2e` | 13 kịch bản trình duyệt thật trên **bản build**, CSDL tạm |
+| `npm run anh-chup` | Bộ ảnh nghiệm thu bằng mắt |
+| `npm run sao-luu` | Sao lưu CSDL |
+| `npm run trung-tam` | **Mở máy tại quầy** — sao lưu + dựng + chạy cho cả mạng LAN |
+| `npm run kiem-may-chu [địa chỉ]` | Kiểm máy chủ sau khi khởi động (5 mục) |
+| `npm run tao-quan-tri -- <tên>` | Tạo / đổi mật khẩu tài khoản quản trị |
+
+Biến môi trường: `GAME_SU_KIEN_CSDL` (đường dẫn tệp CSDL) · `GAME_SU_KIEN_KHOA_PHIEN`
+(khoá ký phiên, ≥ 32 ký tự) · `GAME_SU_KIEN_HTTPS=1` (chỉ khi thật sự chạy sau HTTPS).
+
+Luật viết mã, cạm bẫy đã trả giá và bối cảnh: **`CLAUDE.md`** cùng thư mục.
+Quyết định kiến trúc: `docs/decisions/ADR-001` … `ADR-008` trong dự án IDEA.
+
+---
+
+## Điều PHẢI biết trước khi mở cho phụ huynh thật
+
+- **Chế độ online KHÔNG xác thực số điện thoại.** Giới hạn "1 ván mỗi ngày" chỉ cần gõ số
+  khác là qua được. Lead online mang nhãn *"Số chưa xác thực"* — gọi thử trước khi tính vào
+  chỉ tiêu.
+- **Câu hỏi pháp lý về khuyến mại may rủi (NĐ 81/2018) vẫn đang treo.** Code chạy được
+  không có nghĩa là được phép chạy quảng cáo.
+- **Trẻ dưới 16 tuổi:** thu số điện thoại của trẻ cần đồng ý của cha mẹ. Chưa có quy trình
+  cho việc này.

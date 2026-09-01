@@ -6,6 +6,7 @@ import { kiemGioiHan } from "@/lib/luot/gioi-han";
 import { batDauLuot, dungLuot } from "@/lib/luot/luot-service";
 import { danhDauQuanTamHocThu, nhanDien, tenRutGon } from "@/lib/nguoi-choi/nhan-dien";
 import { cheSdt, chuanHoaSdt } from "@/lib/nguoi-choi/so-dien-thoai";
+import { coSoThu } from "./ho-tro/co-so-thu";
 import { dungCsdlTam } from "./ho-tro/csdl-tam";
 
 let don: () => void;
@@ -37,7 +38,10 @@ describe("chuẩn hoá số điện thoại", () => {
   });
 
   it("che giữa số khi hiện công khai", () => {
-    expect(cheSdt("0912345678")).toBe("0912***678");
+    // ĐỔI Ở GĐ 15.3 (có chủ đích): che 2 số đầu thay vì 4. Đầu số di động
+    // dài 3 chữ số nên giữ 4 là để lộ trọn nhà mạng — xem chú thích trong
+    // `so-dien-thoai.ts`.
+    expect(cheSdt("0912345678")).toBe("09*****678");
   });
 });
 
@@ -84,9 +88,10 @@ describe("giới hạn lượt và trần giải", () => {
     return luot;
   }
 
-  it("CHẶN lượt thứ hai cùng số điện thoại trong ngày", () => {
+  it("CHẶN VÁN thứ hai cùng số điện thoại trong ngày", () => {
     const ct = taoChuongTrinh({
       tenTrungTam: "Cơ sở 1",
+      coSoId: coSoThu("Cơ sở 1"),
       soTrung: 211,
       mucDo: "vua",
       tenGiaiThuong: "Quà",
@@ -98,12 +103,13 @@ describe("giới hạn lượt và trần giải", () => {
     taoVaChoiXong(ct.ma, n.id);
     const lan2 = kiemGioiHan(ct.id, n.id, 0);
     expect(lan2.choPhep).toBe(false);
-    expect(lan2.lyDo).toContain("một lượt mỗi ngày");
+    expect(lan2.lyDo).toContain("một ván mỗi ngày");
   });
 
   it("qua NGÀY MỚI thì chơi lại được", () => {
     const ct = taoChuongTrinh({
       tenTrungTam: "Cơ sở 1",
+      coSoId: coSoThu("Cơ sở 1"),
       soTrung: 211,
       mucDo: "vua",
       tenGiaiThuong: "Quà",
@@ -111,6 +117,9 @@ describe("giới hạn lượt và trần giải", () => {
     });
     const n = nhanDien("Hoa", "0912345678", true).nguoiChoi!;
     taoVaChoiXong(ct.ma, n.id);
+    // Dời ngày của VÁN: từ GĐ 12.1 giới hạn đếm `van_choi`, dời mỗi `luot_choi`
+    // thì ván hôm nay vẫn còn đó và người chơi vẫn bị chặn.
+    chay("update van_choi set ngay = '2020-01-01' where chuong_trinh_id = ?", ct.id);
     chay("update luot_choi set ngay = '2020-01-01' where chuong_trinh_id = ?", ct.id);
     expect(kiemGioiHan(ct.id, n.id, 0).choPhep).toBe(true);
   });
@@ -118,6 +127,7 @@ describe("giới hạn lượt và trần giải", () => {
   it("mỗi chương trình đếm riêng — chơi ở cơ sở này không chặn cơ sở kia", () => {
     const a = taoChuongTrinh({
       tenTrungTam: "Cơ sở 1",
+      coSoId: coSoThu("Cơ sở 1"),
       soTrung: 211,
       mucDo: "vua",
       tenGiaiThuong: "Quà",
@@ -125,6 +135,7 @@ describe("giới hạn lượt và trần giải", () => {
     });
     const b = taoChuongTrinh({
       tenTrungTam: "Cơ sở 2",
+      coSoId: coSoThu("Cơ sở 2"),
       soTrung: 700,
       mucDo: "vua",
       tenGiaiThuong: "Quà",
@@ -139,6 +150,7 @@ describe("giới hạn lượt và trần giải", () => {
   it("CHẠM TRẦN GIẢI thì chuyển sang chế độ chỉ vui — vẫn chơi, vẫn ghi lịch sử", () => {
     const ct = taoChuongTrinh({
       tenTrungTam: "Cơ sở 1",
+      coSoId: coSoThu("Cơ sở 1"),
       soTrung: 211,
       mucDo: "vua",
       tenGiaiThuong: "Quà",
@@ -146,8 +158,10 @@ describe("giới hạn lượt và trần giải", () => {
     });
     const n = nhanDien("Hoa", "0912345678", true).nguoiChoi!;
     const luot = batDauLuot(ct.ma, n.id)!;
-    // Ép lượt này thành TRÚNG để chạm trần.
+    // Ép VÁN này thành TRÚNG để chạm trần — trần giải đếm `van_choi.trung`,
+    // vì ba lần bấm trúng hai lần vẫn chỉ tốn MỘT phần quà.
     chay("update luot_choi set ket_thuc_luc = ?, trung = 1 where id = ?", Date.now(), luot.luotId);
+    chay("update van_choi set ket_thuc_luc = ?, trung = 1 where id = ?", Date.now(), luot.vanId);
 
     const nguoiSau = nhanDien("Lan", "0987654321", true).nguoiChoi!;
     const van = kiemGioiHan(ct.id, nguoiSau.id, ct.tranGiaiMoiNgay);
@@ -158,6 +172,7 @@ describe("giới hạn lượt và trần giải", () => {
   it("trần bằng 0 nghĩa là không giới hạn", () => {
     const ct = taoChuongTrinh({
       tenTrungTam: "Cơ sở 1",
+      coSoId: coSoThu("Cơ sở 1"),
       soTrung: 211,
       mucDo: "vua",
       tenGiaiThuong: "Quà",

@@ -6,6 +6,9 @@ import { formatNumber } from "@/lib/bo-dem";
 import { danhSachChuongTrinh } from "@/lib/chuong-trinh/kho";
 import { thongKeGhiDanh } from "@/lib/luot/kho-luot";
 import { NutBatTatNho } from "@/components/nut-bat-tat-nho";
+import { mucCanhBaoKho } from "@/lib/qua/canh-bao";
+import { danhSachQua } from "@/lib/qua/kho-qua";
+import { DaiCanhBaoKho } from "@/components/dai-canh-bao-kho";
 
 // Đọc thẳng cơ sở dữ liệu ở mỗi lượt tải: nhân viên tắt chương trình lúc 9h thì
 // 9h01 danh sách phải hiện "đã kết thúc", không phải sau khi bản dựng hết hạn.
@@ -55,6 +58,13 @@ function DongRoi({ soKhach, soGhiDanh }: { soKhach: number; soGhiDanh: number })
 
 export default function TrangDanhSach() {
   const danhSach = danhSachChuongTrinh();
+  // Cảnh báo kho hiện ở CẢ danh sách lẫn trang chi tiết (Đ14): quản lý mở danh
+  // sách trước, và nếu dải chỉ nằm trong trang chi tiết thì họ phải bấm vào
+  // từng chương trình mới biết cái nào sắp hết quà.
+  const canhBao = danhSach
+    .filter((c) => c.trangThai === "dang_chay")
+    .map((c) => ({ ct: c, kho: mucCanhBaoKho(danhSachQua(c.id)) }))
+    .filter((x) => x.kho.muc !== "xanh");
   const roi = thongKeGhiDanh();
   const tongLuot = danhSach.reduce((s, c) => s + c.soLuot, 0);
   const tongGiai = danhSach.reduce((s, c) => s + c.soGiai, 0);
@@ -72,6 +82,12 @@ export default function TrangDanhSach() {
         >
           + {T.listNew}
         </Link>
+      </div>
+
+      <div className="mt-6">
+        {canhBao.map(({ ct, kho }) => (
+          <DaiCanhBaoKho key={ct.id} canhBao={kho} nhanCoSo={ct.tenTrungTam} />
+        ))}
       </div>
 
       <DongRoi soKhach={roi.soKhach} soGhiDanh={roi.soGhiDanh} />

@@ -144,8 +144,21 @@ export interface WinEstimate {
   passSeconds: number[];
   /** Xác suất bấm trúng ở MỘT lần lướt qua (0..1). */
   perPass: number;
-  /** Xác suất trúng trong CẢ lượt (0..1). */
+  /** Xác suất trúng trong CẢ lượt (0..1) — tức MỘT lần bấm. */
   perRound: number;
+  /**
+   * Xác suất trúng trong CẢ VÁN (0..1), khi ván cho bấm `soLan` lần.
+   *
+   * 🔴 Công thức là `1 − (1 − p)^N`, KHÔNG phải `N × p`.
+   *
+   * Vì sao đáng canh: mức Vừa có p ≈ 4%, ba lần bấm thành **11,5%** — gần gấp
+   * ba tiền quà. Nhân thẳng `N × p` thì ra 12%, sai số nhỏ ở đây nhưng vọt
+   * quá 100% ở mức dễ, và một tỉ lệ trên 100% thì nhân viên hết tin cả bảng.
+   * Đây là họ hàng của vết sẹo "đổi tốc độ KHÔNG đổi tỉ lệ trúng".
+   */
+  perVan: number;
+  /** Số lần bấm mỗi ván đã dùng để tính `perVan`. */
+  soLan: number;
 }
 
 /**
@@ -162,6 +175,7 @@ export interface WinEstimate {
 export function estimateWinChance(
   settings: RoundSettings,
   target: number,
+  soLan = 1,
 ): WinEstimate {
   const normalizedTarget = ((Math.round(target) % WHEEL_SIZE) + WHEEL_SIZE) % WHEEL_SIZE;
   const countAtUnlock = countAt(settings, settings.lockSeconds);
@@ -194,12 +208,29 @@ export function estimateWinChance(
         REACTION_JITTER_SECONDS),
   );
 
+  const perRound = 1 - missProbability;
+  // Kẹp `soLan` về số nguyên ≥ 1: gọi với 0 hay số thập phân thì công thức vẫn
+  // ra một con số trông hợp lý, và không ai nhận ra bảng tỉ lệ đang nói dối.
+  const lan = Math.max(1, Math.floor(soLan));
+
   return {
     passes,
     passSeconds,
     perPass,
-    perRound: 1 - missProbability,
+    perRound,
+    perVan: 1 - (1 - perRound) ** lan,
+    soLan: lan,
   };
+}
+
+/**
+ * Dự báo số phần quà phải trao mỗi ngày với cấu hình này.
+ *
+ * Con số này mới là thứ trả lời câu "tôi vừa hứa cho đi bao nhiêu" — tỉ lệ phần
+ * trăm thì đọc lên ai cũng gật mà không ai quy ra tiền được.
+ */
+export function duBaoGiaiMoiNgay(perVan: number, soVanMoiNgay: number): number {
+  return perVan * soVanMoiNgay;
 }
 
 /** "1/33" — cách viết tỉ lệ cho nhân viên dễ đọc. */

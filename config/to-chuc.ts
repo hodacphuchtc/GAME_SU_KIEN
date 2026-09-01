@@ -56,3 +56,12 @@ export const SO_LAN_CHOI = { toiThieu: 1, toiDa: 5, macDinh: 1 } as const;
  * 0,2 = còn 20%. Chọn 20% vì nó cho quản lý khoảng một ngày để xoay quà.
  */
 export const NGUONG_CANH_BAO_KHO = 0.2;
+
+/**
+ * HẠN LƯU TRỮ khách tiềm năng, tính bằng THÁNG (Nghị định 13/2023 về bảo vệ dữ
+ * liệu cá nhân: chỉ giữ trong thời gian cần thiết cho mục đích đã báo).
+ *
+ * 24 tháng = hai mùa tuyển sinh. Quá đó thì một số điện thoại xin từ trò chơi ở
+ * quầy không còn lý do gì để nằm trong máy nữa.
+ */
+export const HAN_LUU_LEAD_THANG = 24;

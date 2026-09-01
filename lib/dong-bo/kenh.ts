@@ -28,6 +28,18 @@ export type TinTrongPhong =
       maXacThuc: string;
       tenRutGon: string;
       tenGiaiThuong: string;
+      /**
+       * VÁN đã chốt hẳn chưa.
+       *
+       * 🔴 Tin này vẫn phải phát khi ván CHƯA chốt. Không phát thì màn hình lớn
+       * đứng hình giữa hai lần bấm, chạy hết giờ rồi tự về màn chờ — tức là đá
+       * người đang chơi ra khỏi ván của chính họ, mà chẳng ai hiểu vì sao.
+       */
+      vanXong: boolean;
+      lanDaDung: number;
+      soLanChoPhep: number;
+      lechTotNhat: number | null;
+      soTotNhat: number | null;
     }
   | { loai: "roi-di" }
   /**

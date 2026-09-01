@@ -1,6 +1,7 @@
 import "server-only";
 
 import { DIFFICULTIES, type DifficultyId, type RoundSettings } from "@/config/game";
+import { SO_LAN_CHOI, type CheDoChoi, type NguonCoSo } from "@/config/to-chuc";
 import { chay, layMot, layNhieu } from "@/lib/db/truy-van";
 import { sinhMa } from "@/lib/chuong-trinh/ma-chuong-trinh";
 
@@ -22,6 +23,11 @@ export interface ChuongTrinh {
   tranGiaiMoiNgay: number;
   trangThai: TrangThaiChuongTrinh;
   taoLuc: number;
+  /** Cơ sở tổ chức. NULL chỉ còn ở dữ liệu cũ chưa qua backfill. */
+  coSoId: number | null;
+  cheDo: CheDoChoi;
+  nguonCoSo: NguonCoSo;
+  soLanChoi: number;
 }
 
 export interface ChuongTrinhKemSoLieu extends ChuongTrinh {
@@ -40,6 +46,10 @@ interface DongChuongTrinh {
   tran_giai_moi_ngay: number;
   trang_thai: string;
   tao_luc: number;
+  co_so_id: number | null;
+  che_do: string;
+  nguon_co_so: string;
+  so_lan_choi: number;
   so_luot?: number;
   so_giai?: number;
 }
@@ -62,6 +72,10 @@ function doiDong(dong: DongChuongTrinh): ChuongTrinhKemSoLieu {
     tranGiaiMoiNgay: dong.tran_giai_moi_ngay,
     trangThai: dong.trang_thai as TrangThaiChuongTrinh,
     taoLuc: dong.tao_luc,
+    coSoId: dong.co_so_id,
+    cheDo: dong.che_do as CheDoChoi,
+    nguonCoSo: dong.nguon_co_so as NguonCoSo,
+    soLanChoi: dong.so_lan_choi,
     soLuot: dong.so_luot ?? 0,
     soGiai: dong.so_giai ?? 0,
   };
@@ -77,12 +91,24 @@ function maChuaDung(): string {
 }
 
 export interface DauVaoTaoChuongTrinh {
+  /**
+   * BẢN CHỤP tên cơ sở lúc tạo, không phải nguồn sự thật.
+   *
+   * 🔴 Vì sao chép chứ không join: đường chơi đọc chương trình ở chỗ nhạy cảm độ
+   * trễ, thêm một phép nối bảng ở đó là thêm việc cho mỗi lượt bấm. Và quan
+   * trọng hơn: đổi tên cơ sở vào năm sau KHÔNG được phép làm sai tên trên biên
+   * lai đã in năm ngoái.
+   */
   tenTrungTam: string;
   soTrung: number;
   mucDo: DifficultyId | "custom";
   thamSo?: RoundSettings;
   tenGiaiThuong: string;
   tranGiaiMoiNgay: number;
+  coSoId: number;
+  cheDo?: CheDoChoi;
+  nguonCoSo?: NguonCoSo;
+  soLanChoi?: number;
 }
 
 export function taoChuongTrinh(dauVao: DauVaoTaoChuongTrinh): ChuongTrinh {
@@ -91,8 +117,9 @@ export function taoChuongTrinh(dauVao: DauVaoTaoChuongTrinh): ChuongTrinh {
   chay(
     `insert into chuong_trinh
        (ma, ten_trung_tam, so_trung, muc_do, tham_so, ten_giai_thuong,
-        tran_giai_moi_ngay, trang_thai, tao_luc, sua_luc)
-     values (?, ?, ?, ?, ?, ?, ?, 'dang_chay', ?, ?)`,
+        tran_giai_moi_ngay, trang_thai, co_so_id, che_do, nguon_co_so, so_lan_choi,
+        tao_luc, sua_luc)
+     values (?, ?, ?, ?, ?, ?, ?, 'dang_chay', ?, ?, ?, ?, ?, ?)`,
     ma,
     dauVao.tenTrungTam,
     dauVao.soTrung,
@@ -100,6 +127,10 @@ export function taoChuongTrinh(dauVao: DauVaoTaoChuongTrinh): ChuongTrinh {
     dauVao.thamSo ? JSON.stringify(dauVao.thamSo) : null,
     dauVao.tenGiaiThuong,
     dauVao.tranGiaiMoiNgay,
+    dauVao.coSoId,
+    dauVao.cheDo ?? "tai_quay",
+    dauVao.nguonCoSo ?? "gan_san",
+    dauVao.soLanChoi ?? SO_LAN_CHOI.macDinh,
     luc,
     luc,
   );
