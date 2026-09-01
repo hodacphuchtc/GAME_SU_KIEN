@@ -2,7 +2,7 @@
  * Bộ nhận diện SATA ROBO — NGUỒN GIÁ TRỊ DUY NHẤT. Cấm hardcode màu ở nơi khác.
  *
  * Đây là bản CHÉP GIÁ TRỊ từ bộ nhận diện thương hiệu, không phải import code:
- * ĐẾM SỐ là ứng dụng đứng riêng, không dính gì tới hệ quản trị SataRobo.
+ * GAME SỰ KIỆN là ứng dụng đứng riêng, không dính gì tới hệ quản trị SataRobo.
  * Bộ nhận diện đổi thì sửa file này, không sửa rải rác trong component.
  */
 export const mauThuongHieu = {
@@ -18,6 +18,17 @@ export const mauThuongHieu = {
   chi: "#6B6880", // chữ phụ
   suong: "#F5F3FA", // bề mặt phụ
   ke: "#E7E3F0", // đường kẻ nhạt
+  timNhat: "#F3E8FF", // nền nhạt của khối tím
+
+  // Trạng thái — KHÔNG phải màu nhận diện, nhưng vẫn khai ở đây vì một màu
+  // sống ngoài file này là một màu không ai canh được.
+  luc: "#16A34A", // đạt, còn hàng
+  do: "#DC2626", // hỏng, cạn kho
+
+  // Bảng đèn LED: panel tối lồng trong trang trắng, chữ số màu cam thương hiệu.
+  led: "#F97316",
+  ledMo: "#2A1508", // đoạn TẮT — phải đủ tối, sáng quá thì 0000 đọc ra 8888
+  ledNen: "#140B04", // nền panel
 } as const;
 
 /**

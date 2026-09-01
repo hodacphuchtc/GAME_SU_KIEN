@@ -4,7 +4,7 @@
  * để mỗi khái niệm chỉ có đúng một cách gọi trên toàn bộ màn hình.
  */
 export const T = {
-  appName: "Bộ đếm may mắn",
+  appName: "Trúng Số",
   appDescription:
     "Bấm dừng dãy số 4 chữ số đúng lúc để trúng thưởng tại trung tâm.",
 
@@ -15,13 +15,8 @@ export const T = {
   stop: "DỪNG",
   playAgain: "CHƠI LẠI",
   tryAgain: "THỬ LẠI",
-  ready: "Sẵn sàng chưa?",
   hint: "Bấm DỪNG đúng lúc bảng số hiện đúng con số ở trên",
-  hintLocked: "Chờ bảng số tăng hết tốc, nút DỪNG sẽ sáng",
-  timeLeft: "Còn",
   seconds: "giây",
-  settingsLink: "Cài đặt",
-  rulesLink: "Thể lệ",
 
   // ---- Màn thiết lập ----
   createTitle: "Tạo chương trình đếm số",
@@ -42,7 +37,6 @@ export const T = {
   detailPrint: "In mã QR",
   detailOpenScreen: "Mở màn hình LCD",
   detailStop: "TẮT CHƯƠNG TRÌNH",
-  detailStopped: "Chương trình đã kết thúc",
   detailHistory: "Lịch sử quay số",
   detailHistoryEmpty: "Chưa có lượt chơi nào.",
   detailExport: "Xuất Excel",
@@ -60,10 +54,7 @@ export const T = {
   deviceTimeout: "Hết giờ",
 
   // ---- Khung quản trị ----
-  adminBrandA: "Sata",
-  adminBrandB: "Robo",
   adminBrandTag: "Game sự kiện",
-  adminGroup: "CHƯƠNG TRÌNH",
   adminGroupGame: "GAME SỰ KIỆN",
   adminNavTrungSo: "Trúng Số",
   adminNavVongQuay: "Vòng Quay May Mắn",
@@ -96,7 +87,6 @@ export const T = {
   // ---- Thước đo lead → ghi danh (GĐ 7.2) ----
   // Con số DUY NHẤT trả lời được câu "trò chơi này có ra tiền không". Mọi số
   // liệu khác chỉ là lượt chơi, mà lượt chơi thì không trả tiền cho ai.
-  roiTitle: "Khách để lại số → đã ghi danh",
   roiEmpty: "Tháng này chưa có khách nào để lại số điện thoại.",
   roiDong: (khach: number, ghiDanh: number, phanTram: string) =>
     `Tháng này: ${khach} khách để lại số → ${ghiDanh} đã ghi danh (${phanTram})`,
@@ -154,48 +144,17 @@ export const T = {
   verifyCode: "Mã xác thực",
   expired: "Đã hết hiệu lực — chơi lại để lấy mã mới",
 
-  // ---- Trang cài đặt ----
-  settingsTitle: "Cài đặt ván chơi",
-  settingsIntro:
-    "Dành cho nhân viên trực quầy. Chọn xong thì in mã QR dán tại quầy — phụ huynh quét là chơi được ngay, không cần cài gì.",
-  targetField: "Số trúng thưởng (4 chữ số)",
+  // ---- Độ khó + bảng tỉ lệ (form tạo chương trình) ----
+  // Trang /cai-dat đã bị xoá; những khoá còn lại ở đây phục vụ `components/form-tao.tsx`.
   difficulty: "Độ khó",
   custom: "Tuỳ chỉnh",
-  centerNameField: "Tên trung tâm",
-  prizeNameField: "Tên phần thưởng",
-  startSpeedField: "Tốc độ lúc xuất phát (số/giây)",
-  maxSpeedField: "Tốc độ tối đa (số/giây)",
-  rampField: "Thời gian tăng tốc (giây)",
-  lockField: "Khoá nút DỪNG (giây)",
-  roundLimitField: "Giới hạn một lượt (giây)",
-  countdownField: "Đếm ngược trước khi chạy (giây)",
-  oddsTitle: "Tỉ lệ trúng ước tính",
-  perRound: "mỗi lượt",
-  perPass: "mỗi lần số lướt qua",
   passCount: "Số lướt qua trong một lượt",
   times: "lần",
   atSecond: "tại giây",
-  baseUrlField: "Địa chỉ máy chủ (địa chỉ mà ĐIỆN THOẠI sẽ mở)",
-  baseUrlHint:
-    "Mặc định lấy đúng địa chỉ bạn đang mở trang này. Sửa ở đây nếu muốn mã QR trỏ tới địa chỉ khác — ví dụ địa chỉ mạng LAN của máy, hay tên miền thật sau khi đưa lên mạng.",
-  warnLocalhost:
-    "⚠️ Bạn đang mở trang này bằng localhost, nên mã QR sinh ra CHỈ máy này quét được — điện thoại của phụ huynh sẽ báo không mở được trang. Hãy sửa ô địa chỉ bên trên thành địa chỉ mạng LAN của máy (dạng http://192.168.x.x:3000), hoặc mở lại chính trang này bằng địa chỉ đó.",
-  playUrl: "Đường dẫn cho người chơi",
-  copyUrl: "Chép đường dẫn",
-  copied: "Đã chép!",
-  openTest: "Mở thử",
-  qrTitle: "Mã QR để in",
-  qrHint: "Dán mã này tại quầy kèm con số trúng thưởng của ngày.",
-  printPage: "In trang này",
-  warnUnreachable:
-    "⚠️ Với cấu hình này con số đã cài KHÔNG BAO GIỜ lướt qua trong một lượt — không ai trúng được. Hãy tăng giới hạn lượt, tăng tốc độ, hoặc chọn số nhỏ hơn.",
-  warnTooEasy:
-    "⚠️ Cấu hình này dễ trúng bất thường — chỉ nên dùng để xem thử hoặc demo, đừng treo giải thật.",
   oddsNote:
     "Ước tính dựa trên độ lệch phản xạ 0,08 giây của người thường. Tốc độ đổi CẢM GIÁC khó, còn tỉ lệ trúng chủ yếu do (giới hạn lượt − thời gian khoá nút) quyết định.",
 
   // ---- Chiếu lên màn hình LCD ----
-  lcdTitle: "Màn hình trung tâm",
   lcdScanToPlay: "QUÉT MÃ ĐỂ CHƠI",
   lcdRoomCode: "Mã phòng",
   lcdWaiting: "Đang chờ người chơi…",
@@ -203,12 +162,6 @@ export const T = {
   lcdPlaying: "ĐANG CHƠI",
   lcdOffline:
     "⚠️ Chưa nối được máy chủ trung chuyển. Màn hình vẫn hiện mã QR và phụ huynh vẫn chơi được trên điện thoại, nhưng KHÔNG chiếu song song lên đây. Kiểm tra xem đã chạy `npm run trung-tam` chưa.",
-  lcdOpenScreen: "Mở màn hình LCD",
-  lcdOpenHint:
-    "Mở trang này trên máy nối với LCD rồi bật toàn màn hình (F11 hoặc ⌃⌘F). Màn hình sẽ tự sinh mã phòng và vẽ mã QR — phụ huynh quét là ván chơi của họ hiện song song lên đây.",
-  mirrorOn: "Đang chiếu lên màn hình lớn",
-  mirrorBusy: "Màn hình lớn đang có người chơi — bạn vẫn chơi bình thường trên máy mình",
-  mirrorOff: "Không nối được màn hình lớn — bạn vẫn chơi bình thường",
 
   // ---- Tạo chương trình: cơ sở + chế độ (GĐ 11.2) ----
   createBranch: "Cơ sở tổ chức",
@@ -281,7 +234,6 @@ export const T = {
     bo: "Bỏ",
   } as Record<string, string>,
 
-  leadLocTitle: "Lọc",
   leadLocMoi: "Tất cả",
   leadLocCoSo: "Cơ sở",
   leadLocTrangThai: "Trạng thái",
@@ -290,8 +242,6 @@ export const T = {
   leadLocDongY: "Chỉ người đồng ý nhận tư vấn",
   leadLocTuNgay: "Từ ngày",
   leadLocDenNgay: "Đến ngày",
-  leadLocApDung: "Lọc",
-  leadLocXoa: "Bỏ lọc",
   leadChia: "Chia luân phiên cho sale đang bật",
   leadChiaXacNhan: "Chia đều những khách CHƯA GIAO của cơ sở này cho các sale đang làm việc? Khách đã giao tay không bị đụng tới.",
   leadChiaXong: (n: number) => `Đã chia ${n} khách cho các sale đang làm việc.`,
@@ -390,7 +340,6 @@ export const T = {
     "Chưa có tài khoản nào. Chạy lệnh sau trong thư mục ứng dụng rồi tải lại trang:",
   vaoLenhTao: "npm run tao-quan-tri -- <tên đăng nhập>",
   vaoRa: "Đăng xuất",
-  vaoXinChao: "Đang đăng nhập:",
 
   // ---- Nhận diện thương hiệu (GĐ 14.1 · 14.2) ----
   brandTagline: "Đào tạo tài năng công nghệ tương lai",

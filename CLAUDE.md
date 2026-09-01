@@ -73,11 +73,17 @@ nhất**, không phải lần cuối. Giới hạn là **1 VÁN/SĐT/ngày**, kh
   nguyên ≥ 1 ⇒ loại còn 1 cái nhảy thẳng xanh → đỏ. Ngưỡng phải là `max(1, tỉ_lệ × tổng)`.
 - **Máy chủ cũ còn sống sẽ giữ cổng và TRẢ LỜI.** `pkill -f "next start"` không khớp —
   tiến trình thật tên `next-server`. Kill theo PID; bộ chạy e2e tự dừng nếu cổng đang bận.
+- **Đổi tên sản phẩm thì grep cả tên CŨ.** GĐ 9 đổi "Đếm số" → "Trúng Số" nhưng bỏ sót
+  `T.appName` — `title` của tab trình duyệt vẫn đề "Bộ đếm may mắn" suốt từ v1. Lọt qua 360
+  test, build, 14 kịch bản e2e và cả bộ ảnh nghiệm thu: không bài kiểm nào nhìn vào cái tab.
+- **Rác không làm gãy gì cả, nên không ai thấy nó.** Trang `/cai-dat` bị xoá để lại 46 khoá
+  locale mồ côi và thư mục `out/` build tĩnh cũ. `tests/locale.test.ts` và
+  `tests/thuong-hieu.test.ts` nay canh hai chỗ đó — chú thích in hoa không canh được gì.
 
 ## Lệnh
 
 `npm run dev` (chỉ máy này) · `npm run dev:dienthoai` (mở cho cả mạng LAN) · `npm test` ·
-`npm run lint` · `npm run build` · `npm run e2e` (13 kịch bản trình duyệt thật trên bản
+`npm run lint` · `npm run build` · `npm run e2e` (14 kịch bản trình duyệt thật trên bản
 build, CSDL tạm) · `npm run anh-chup` (bộ ảnh nghiệm thu GĐ 20.1) · `npm run sao-luu`
 (**chạy TRƯỚC mọi việc đụng CSDL**) · `npm run tao-quan-tri -- <tên>` (tạo tài khoản, hỏi
 mật khẩu qua stdin) · `npm run trung-tam` (**mở máy tại quầy**: sao lưu + dựng + chạy cho

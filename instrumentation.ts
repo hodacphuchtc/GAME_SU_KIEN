@@ -9,5 +9,5 @@ export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   const { csdl, duongDanCsdl } = await import("./lib/db/ket-noi");
   csdl();
-  console.log(`› Cơ sở dữ liệu ĐẾM SỐ: ${duongDanCsdl()}`);
+  console.log(`› Cơ sở dữ liệu GAME SỰ KIỆN: ${duongDanCsdl()}`);
 }

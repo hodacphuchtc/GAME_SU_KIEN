@@ -3,9 +3,11 @@
 /*
  * Bảng màu lấy từ `config/thuong-hieu.ts` — hai nơi phải khớp nhau.
  * Tailwind cần giá trị tĩnh lúc dựng nên không import TS vào đây được; đổi màu
- * thì sửa CẢ HAI file.
+ * thì sửa CẢ HAI file. `tests/thuong-hieu.test.ts` canh hai bên khớp từng màu —
+ * trước khi có nó, sáu màu đã lệch nhau trong im lặng.
  */
 @theme {
+  --color-trang: #ffffff;
   --color-tim: #6b21a8;
   --color-tim-nhat: #f3e8ff;
   --color-cam: #f97316;
