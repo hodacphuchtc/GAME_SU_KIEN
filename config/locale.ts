@@ -144,6 +144,10 @@ export const T = {
   // ---- Kết quả ----
   congrats: "CHÚC MỪNG!",
   wonExact: "Bạn đã dừng đúng số",
+  // --- GAME CHỌN SỐ (v3) ---
+  chonSoHetSo: "Đã phát hết số của chương trình này. Mời bạn hỏi nhân viên tại quầy.",
+  chonSoDangCoNguoiChoi: "Đang có người chơi. Bạn chờ một chút rồi bấm lại nhé.",
+
   lost: "KHÔNG TRÚNG THƯỞNG",
   // Người không trúng KHÔNG nhận gì. Câu này thay cho ưu đãi cũ: nói thật, nói
   // tử tế, và không hứa điều gì mà quầy không định trao.

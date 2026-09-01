@@ -184,3 +184,56 @@ export function datCoVan(vanId: number, coVan: CoVan, bat: boolean): boolean {
 export function datGhiDanh(vanId: number, daGhiDanh: boolean): boolean {
   return datCoVan(vanId, "ghi-danh", daGhiDanh);
 }
+
+/**
+ * Tập số ĐÃ PHÁT của một chương trình CHỌN SỐ, trong đúng dải hiện hành.
+ *
+ * 🔴 Suy ra từ `luot_choi`, KHÔNG nuôi một bảng `so_da_ra` riêng. Bảng riêng là
+ * nguồn sự thật thứ hai, phải đồng bộ ở MỌI đường xoá — xoá chương trình, xoá
+ * số điện thoại theo yêu cầu riêng tư, dọn dữ liệu chơi thử — và nó chỉ lệch
+ * vào đúng ngày ai đó quên một đường. Cùng lý do `qua_tang` cố ý không lưu sẵn
+ * bộ đếm tồn kho.
+ *
+ * 🔴 Mệnh đề `between` KHÔNG phải trang trí. Thu hẹp dải từ 1→100 xuống 1→50
+ * sau khi đã phát vài số thì những số > 50 phải rơi khỏi phép đếm, nếu không
+ * "còn lại N số" nói dối ngay hôm sửa.
+ *
+ * Phạm vi là SUỐT CHƯƠNG TRÌNH, không reset theo ngày: một kệ quà đánh số dùng
+ * chung cho cả sự kiện, nên số 37 đã trao hôm qua thì hôm nay không trao lại.
+ */
+export function soDaRa(chuongTrinhId: number, tu: number, den: number): Set<number> {
+  const dong = layNhieu<{ so_da_dung: number }>(
+    `select distinct so_da_dung from luot_choi
+      where chuong_trinh_id = ? and ket_thuc_luc is not null
+        and so_da_dung between ? and ?`,
+    chuongTrinhId,
+    tu,
+    den,
+  );
+  return new Set(dong.map((d) => d.so_da_dung));
+}
+
+/**
+ * Còn ai đang giữa lượt không — thứ chặn hai người cùng bốc một số.
+ *
+ * 🔴 Vì sao cần dù chế độ tại quầy đã xếp hàng bằng cơ chế giữ chỗ:
+ * `batDauTaiCho` trên màn hình LCD gọi `moLuot(ma, null)` mà KHÔNG xin chỗ, nên
+ * nhân viên gõ phím Space vẫn mở được một lượt song song với điện thoại đang
+ * chơi. Ở Trúng Số điều đó vô hại; ở đây nó là hai phần quà cùng mang số 42.
+ *
+ * `sauLuc` loại các lượt bỏ dở từ đời nào — người chơi đóng trình duyệt giữa
+ * chừng thì lượt của họ nằm lại mãi với `ket_thuc_luc = null`.
+ */
+export function coLuotDangMo(chuongTrinhId: number, sauLuc: number): boolean {
+  // 🔴 `layMot` trả UNDEFINED khi không có dòng, không phải null. So `!== null`
+  // ở đây từng làm luật báo "đang có người chơi" ngay từ lượt đầu tiên — và
+  // chương trình khoá chặt không ai mở được ván nào.
+  return (
+    layMot(
+      `select 1 from luot_choi
+        where chuong_trinh_id = ? and ket_thuc_luc is null and bat_dau_luc > ?`,
+      chuongTrinhId,
+      sauLuc,
+    ) != null
+  );
+}

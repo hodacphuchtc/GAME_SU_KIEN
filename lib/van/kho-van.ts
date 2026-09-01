@@ -237,3 +237,55 @@ export function soVanDaChot(chuongTrinhId: number, nguoiChoiId: number): number 
     )?.so ?? 0
   );
 }
+
+/**
+ * Ghi lần bấm DUY NHẤT của một ván CHỌN SỐ, rồi chốt ván ngay.
+ *
+ * Khác `ghiLanBam` ở ba điểm, cả ba đều cố ý:
+ *
+ * - **KHÔNG bốc quà.** Quà của game này đánh số thứ tự và nằm NGOÀI hệ thống;
+ *   app chỉ phát số. Gọi `bocQuaChoVan` ở đây là bốc trên một kho rỗng.
+ * - **KHÔNG so "lần tốt nhất".** Mỗi ván đúng một lần bấm, nên không có lần nào
+ *   để mà tốt hơn. `khoang_lech` vô nghĩa khi không có số trúng.
+ * - **`trung` LUÔN = 0.** Đặt 1 là làm cột "Đã trúng" của Trúng Số đếm nhầm,
+ *   `soGiaiHomNay` nói dối, và file Excel gửi đội sale ghi "Trúng" cho một trò
+ *   không có giải.
+ *
+ * 🔴 KHÔNG sửa `ghiLanBam` để dùng chung. Hàm đó quấn ba việc trong một giao
+ * dịch (lần tốt nhất · chốt ván · bốc quà) và là nơi quyết định ai nhận quà ở
+ * trò đang chạy thật.
+ */
+export function ghiLanChonSo(
+  vanId: number,
+  luotId: number,
+  maXacThuc: string,
+): KetQuaGhiLanBam | null {
+  const van = timVan(vanId);
+  if (!van || van.ketThucLuc !== null) return null;
+
+  const doi = chay(
+    `update van_choi
+        set so_lan_da_dung = 1, luot_tot_nhat_id = ?, trung = 0,
+            ma_xac_thuc = ?, ket_thuc_luc = ?
+      where id = ? and ket_thuc_luc is null`,
+    luotId,
+    maXacThuc,
+    Date.now(),
+    vanId,
+  );
+  // Máy kia chốt trước — im lặng nhường, đúng như luật ở `luot-service`.
+  if (doi === 0) return null;
+
+  return {
+    soLanDaDung: 1,
+    // Không có "lệch" vì không có số trúng; 0 là giá trị trung tính để bảng
+    // lịch sử dùng chung không phải xử lý `null`.
+    lechTotNhat: 0,
+    soTotNhat: null,
+    conLan: 0,
+    vanXong: true,
+    trung: false,
+    quaTangId: null,
+    tenQuaTang: null,
+  };
+}

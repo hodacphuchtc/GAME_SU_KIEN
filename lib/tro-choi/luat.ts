@@ -3,6 +3,7 @@ import "server-only";
 import type { TroChoi } from "@/config/to-chuc";
 import type { ChuongTrinh } from "@/lib/chuong-trinh/kho";
 import type { KetQuaGhiLanBam } from "@/lib/van/kho-van";
+import { luatChonSo } from "@/lib/tro-choi/luat-chon-so";
 import { luatTrungSo } from "@/lib/tro-choi/luat-trung-so";
 
 /**
@@ -69,6 +70,7 @@ export interface LuatChoi {
  */
 const BANG: Partial<Record<TroChoi, LuatChoi>> = {
   trung_so: luatTrungSo,
+  chon_so: luatChonSo,
 };
 
 export function luatCua(troChoi: TroChoi): LuatChoi {
