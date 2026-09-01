@@ -29,6 +29,16 @@ function BieuTuongTrungSo({ className = "" }: { className?: string }) {
   );
 }
 
+function BieuTuongChonSo({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
+      <rect x="2.5" y="5" width="19" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
+      <rect x="9" y="8.5" width="6" height="7" rx="1.2" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M6 12h1.5M16.5 12H18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function BieuTuongVongQuay({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
@@ -107,8 +117,14 @@ function ThanhBen({ dong, laQuanTri }: { dong?: () => void; laQuanTri: boolean }
   const laNhanVien = duongDan.startsWith("/quan-tri/nhan-vien");
   const laKhach = duongDan.startsWith("/quan-tri/khach");
   const laNhatKy = duongDan.startsWith("/quan-tri/nhat-ky");
+  const laChonSo = duongDan.startsWith("/quan-tri/chon-so");
   const dangMo =
-    duongDan.startsWith("/quan-tri") && !laCoSo && !laNhanVien && !laKhach && !laNhatKy;
+    duongDan.startsWith("/quan-tri") &&
+    !laCoSo &&
+    !laNhanVien &&
+    !laKhach &&
+    !laNhatKy &&
+    !laChonSo;
 
   return (
     <div className="flex h-full flex-col border-r border-ke bg-white">
@@ -135,6 +151,22 @@ function ThanhBen({ dong, laQuanTri }: { dong?: () => void; laQuanTri: boolean }
           )}
           <BieuTuongTrungSo className="h-5 w-5 shrink-0" />
           {T.adminNavTrungSo}
+        </Link>
+
+        <Link
+          href="/quan-tri/chon-so"
+          onClick={dong}
+          aria-current={laChonSo ? "page" : undefined}
+          className={[
+            "relative mt-1 flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition",
+            laChonSo ? "bg-tim-nhat text-tim" : "text-muc hover:bg-suong hover:text-tim",
+          ].join(" ")}
+        >
+          {laChonSo && (
+            <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-tim" aria-hidden="true" />
+          )}
+          <BieuTuongChonSo className="h-5 w-5 shrink-0" />
+          {T.chonSoNav}
         </Link>
 
         {/* Game chưa làm: hiện để thấy lộ trình, nhưng KHÔNG bấm được — bấm vào

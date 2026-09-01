@@ -12,7 +12,11 @@ import {
 import { chay, layMot, layNhieu } from "@/lib/db/truy-van";
 import { sinhMa } from "@/lib/chuong-trinh/ma-chuong-trinh";
 import type { PhamVi } from "@/lib/bao-ve/quyen";
-import type { ThietLapChuongTrinh } from "@/lib/chuong-trinh/kiem-hop-le";
+import {
+  kiemThietLapChonSo,
+  type ThietLapChonSo,
+  type ThietLapChuongTrinh,
+} from "@/lib/chuong-trinh/kiem-hop-le";
 
 /**
  * Kho đọc–ghi chương trình. MỌI câu lệnh SQL của bảng `chuong_trinh` nằm ở đây,
@@ -414,6 +418,35 @@ export function doiTrangThai(ma: string, trangThai: TrangThaiChuongTrinh): boole
       trangThai,
       Date.now(),
       ma,
+    ) > 0
+  );
+}
+
+/**
+ * Sửa thiết lập của một chương trình CHỌN SỐ đang sống.
+ *
+ * 🔴 Cùng ba thứ cố ý KHÔNG có mặt như bên Trúng Số: `ma` (mã QR đã in ra giấy
+ * dán ở quầy), `coSoId` và `cheDo`. Thêm `troChoi` — đổi game là một chương
+ * trình khác hẳn, không phải một bản sửa.
+ *
+ * Ván đã chơi KHÔNG bị đụng tới. Thu hẹp dải sau khi đã phát vài số ngoài dải
+ * mới là hợp lệ; những số đó rơi khỏi phép đếm "còn lại", còn phần quà đã trao
+ * thì vẫn là sự thật của ngày hôm đó.
+ */
+export function suaChonSo(id: number, d: ThietLapChonSo): boolean {
+  const loi = kiemThietLapChonSo(d);
+  if (loi !== null) throw new Error(loi);
+  return (
+    chay(
+      `update chuong_trinh
+          set dai_tu = ?, dai_den = ?, loai_tru_da_ra = ?, ten_giai_thuong = ?, sua_luc = ?
+        where id = ? and tro_choi = 'chon_so'`,
+      d.daiTu,
+      d.daiDen,
+      d.loaiTruDaRa ? 1 : 0,
+      d.tenGiaiThuong.trim(),
+      Date.now(),
+      id,
     ) > 0
   );
 }

@@ -145,6 +145,39 @@ export const T = {
   congrats: "CHÚC MỪNG!",
   wonExact: "Bạn đã dừng đúng số",
   // --- GAME CHỌN SỐ (v3) ---
+  // --- GAME CHỌN SỐ: quản trị ---
+  chonSoNav: "Chọn Số",
+  chonSoTitle: "Chương trình Chọn Số",
+  chonSoSubtitle:
+    "Phụ huynh bấm một lần, nhận một con số. Số đó ứng với phần quà đã đánh số bày sẵn ở quầy.",
+  chonSoCreateTitle: "Tạo chương trình Chọn Số",
+  chonSoCreateSubtitle: "Khai dải số và cách xử lý số đã phát. Không có kho quà trong máy.",
+  chonSoEmpty: "Chưa có chương trình Chọn Số nào. Bấm Tạo để mở đợt đầu tiên.",
+  chonSoTaoNut: "Tạo chương trình Chọn Số",
+  chonSoDot: "Tên đợt phát quà",
+  chonSoDotGoiY: "Ví dụ: Quà Tết 2026 — số 1 đến 100",
+  chonSoDai: "Dải số",
+  chonSoDaiTu: "Từ số",
+  chonSoDaiDen: "Đến số",
+  chonSoSoLuong: (n: number) => `Dải này có ${n} số — phục vụ được ${n} lượt.`,
+  chonSoNhipQuay: (giay: string) => `Một vòng chạy hết khoảng ${giay} giây.`,
+  chonSoLoaiTru: "Mỗi số chỉ ra một lần",
+  chonSoLoaiTruMo:
+    "Bật khi mỗi số ứng với MỘT phần quà. Số đã có người lấy sẽ biến mất khỏi vòng chạy, và hết số thì chương trình tự dừng.",
+  chonSoLoaiTruTat:
+    "Tắt khi mỗi số ứng với một LOẠI quà có nhiều món. Hai người ra trùng số là chuyện bình thường.",
+  co: "Có",
+  khong: "Không",
+  chonSoConLai: "Còn lại",
+  chonSoConLaiKhongApDung: "—",
+  chonSoConLaiSo: (con: number, tong: number) => `${con}/${tong} số`,
+  chonSoHetSachSo: "Đã phát hết số",
+  chonSoErrDaiNguyen: "Hai đầu dải số phải là số nguyên.",
+  chonSoErrDaiBien: (min: number, max: number) =>
+    `Dải số phải nằm trong khoảng ${min} đến ${max} — bảng LED chỉ có 4 chữ số.`,
+  chonSoErrDaiNguoc: "Số đầu dải phải nhỏ hơn hoặc bằng số cuối dải.",
+  chonSoErrDaiNgan: (n: number) =>
+    `Dải phải có ít nhất ${n} số, nếu không nút DỪNG chẳng để làm gì.`,
   chonSoHetSo: "Đã phát hết số của chương trình này. Mời bạn hỏi nhân viên tại quầy.",
   chonSoDangCoNguoiChoi: "Đang có người chơi. Bạn chờ một chút rồi bấm lại nhé.",
 

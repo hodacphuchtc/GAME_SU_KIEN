@@ -23,6 +23,8 @@ export const HANH_DONG = {
   xoaCoSo: "xoa_co_so",
   anCoSo: "an_co_so",
   suaChuongTrinh: "sua_chuong_trinh",
+  taoChonSo: "tao_chon_so",
+  suaChonSo: "sua_chon_so",
 } as const;
 
 export type HanhDong = (typeof HANH_DONG)[keyof typeof HANH_DONG];
