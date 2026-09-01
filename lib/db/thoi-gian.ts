@@ -17,3 +17,11 @@ export function ngayVietNam(luc: number | Date = Date.now()): string {
     day: "2-digit",
   }).format(d);
 }
+
+/**
+ * Tháng theo giờ Việt Nam, dạng YYYY-MM. Dùng cho thước đo lead → ghi danh.
+ * Cùng lý do với `ngayVietNam`: máy chủ đặt múi khác thì "tháng này" nhảy sớm.
+ */
+export function thangVietNam(luc: number | Date = Date.now()): string {
+  return ngayVietNam(luc).slice(0, 7);
+}

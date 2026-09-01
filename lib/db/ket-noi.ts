@@ -10,6 +10,7 @@ import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 import { LUOC_DO } from "./luoc-do";
+import { nangCap } from "./nang-cap";
 
 const KHOA = Symbol.for("dem-so.csdl");
 
@@ -22,6 +23,8 @@ export function duongDanCsdl(): string {
 export function moCsdl(duongDan = duongDanCsdl()): DatabaseSync {
   const db = new DatabaseSync(duongDan);
   db.exec(LUOC_DO);
+  // Lược đồ dựng hình dạng lý tưởng cho CSDL trắng; nâng cấp kéo CSDL cũ về đó.
+  nangCap(db);
   return db;
 }
 

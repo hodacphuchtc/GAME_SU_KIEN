@@ -4,6 +4,7 @@ import { DIFFICULTIES, type DifficultyId } from "@/config/game";
 import { T } from "@/config/locale";
 import { formatNumber } from "@/lib/bo-dem";
 import { danhSachChuongTrinh } from "@/lib/chuong-trinh/kho";
+import { thongKeGhiDanh } from "@/lib/luot/kho-luot";
 
 // Đọc thẳng cơ sở dữ liệu ở mỗi lượt tải: nhân viên tắt chương trình lúc 9h thì
 // 9h01 danh sách phải hiện "đã kết thúc", không phải sau khi bản dựng hết hạn.
@@ -31,8 +32,29 @@ function NhanTrangThai({ dangChay }: { dangChay: boolean }) {
   );
 }
 
+/**
+ * Dòng ROI: thứ DUY NHẤT trên trang này trả lời được câu "có ra tiền không".
+ * Ba thẻ số liệu bên dưới chỉ đếm lượt chơi — đẹp mắt mà không quyết được gì.
+ */
+function DongRoi({ soKhach, soGhiDanh }: { soKhach: number; soGhiDanh: number }) {
+  if (soKhach === 0) {
+    return (
+      <p className="mt-4 rounded-2xl border border-dashed border-ke bg-white/60 px-5 py-4 text-sm text-chi">
+        {T.roiEmpty}
+      </p>
+    );
+  }
+  const phanTram = `${Math.round((soGhiDanh / soKhach) * 100)}%`;
+  return (
+    <p className="mt-4 rounded-2xl border border-tim/20 bg-tim-nhat px-5 py-4 text-sm font-semibold text-tim">
+      {T.roiDong(soKhach, soGhiDanh, phanTram)}
+    </p>
+  );
+}
+
 export default function TrangDanhSach() {
   const danhSach = danhSachChuongTrinh();
+  const roi = thongKeGhiDanh();
   const tongLuot = danhSach.reduce((s, c) => s + c.soLuot, 0);
   const tongGiai = danhSach.reduce((s, c) => s + c.soGiai, 0);
 
@@ -50,6 +72,8 @@ export default function TrangDanhSach() {
           + {T.listNew}
         </Link>
       </div>
+
+      <DongRoi soKhach={roi.soKhach} soGhiDanh={roi.soGhiDanh} />
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <TheSoLieu so={String(danhSach.length)} nhan={T.totalPrograms} />

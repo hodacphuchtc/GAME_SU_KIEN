@@ -89,6 +89,16 @@ export const T = {
   totalPlays: "Tổng lượt chơi",
   totalWins: "Tổng giải đã trúng",
 
+  // ---- Thước đo lead → ghi danh (GĐ 7.2) ----
+  // Con số DUY NHẤT trả lời được câu "trò chơi này có ra tiền không". Mọi số
+  // liệu khác chỉ là lượt chơi, mà lượt chơi thì không trả tiền cho ai.
+  roiTitle: "Khách để lại số → đã ghi danh",
+  roiEmpty: "Tháng này chưa có khách nào để lại số điện thoại.",
+  roiDong: (khach: number, ghiDanh: number, phanTram: string) =>
+    `Tháng này: ${khach} khách để lại số → ${ghiDanh} đã ghi danh (${phanTram})`,
+  colEnrolled: "Đã ghi danh",
+  enrollToggle: "Đánh dấu khách này đã ghi danh học",
+
   // ---- Màn điện thoại ----
   phoneConnecting: "Đang kết nối với màn hình…",
   phoneBusy: "Màn hình lớn đang có người chơi. Chờ một chút rồi quét lại nhé!",

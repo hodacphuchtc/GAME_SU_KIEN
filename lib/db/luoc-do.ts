@@ -56,7 +56,10 @@ CREATE TABLE IF NOT EXISTS luot_choi (
   thiet_bi_bam    TEXT,
   ma_xac_thuc     TEXT,
   da_trao_thuong  INTEGER NOT NULL DEFAULT 0,
-  trao_luc        INTEGER
+  trao_luc        INTEGER,
+  -- Thước đo DUY NHẤT đáng nhìn: khách để lại số đã thành học viên chưa.
+  da_ghi_danh     INTEGER NOT NULL DEFAULT 0,
+  ghi_danh_luc    INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS luot_theo_chuong_trinh ON luot_choi (chuong_trinh_id, id DESC);
