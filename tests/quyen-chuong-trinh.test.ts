@@ -2,9 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { phamViCua, type NguoiDung } from "@/lib/bao-ve/quyen";
 import {
+  danhSachChonSo,
   danhSachChuongTrinh,
   taoChuongTrinh,
   timTheoMa,
+  timTheoMaBatKeTroChoi,
+  timTheoMaChonSo,
   timTheoMaCongKhai,
 } from "@/lib/chuong-trinh/kho";
 import { taoCoSo } from "@/lib/co-so/kho";
@@ -110,5 +113,90 @@ describe("mở thẳng bằng mã chương trình", () => {
   it("mã không tồn tại trả null ở cả hai đường", () => {
     expect(timTheoMa("ZZZZ", phamViCua(TOAN_QUYEN))).toBeNull();
     expect(timTheoMaCongKhai("ZZZZ")).toBeNull();
+  });
+});
+
+/**
+ * HAI GAME TRÊN CÙNG MỘT BẢNG (C.1 · v3).
+ *
+ * 🔴 Vì sao có bài test này: `chuong_trinh` giờ chứa cả Trúng Số lẫn Chọn Số,
+ * phân biệt bằng cột `tro_choi`. Quên mệnh đề lọc ở một câu truy vấn nào đó thì
+ * màn quản trị của game này hiện chương trình của game kia — và nút Sửa sẽ ghi
+ * những cột mà game kia không bao giờ đọc.
+ *
+ * Hướng lệch nguy hiểm hơn nằm ở phía ngược lại: gõ nhầm hằng trong mệnh đề lọc
+ * là danh sách chương trình TRÚNG SỐ đang chạy thật biến mất khỏi màn hình quản
+ * trị của quầy, mà không một dòng lỗi nào.
+ */
+describe("hai game không thấy nhau", () => {
+  function chonSoThu(ten: string, coSoId: number | null): string {
+    return taoChuongTrinh({
+      tenTrungTam: ten,
+      soTrung: 0,
+      mucDo: "vua",
+      tenGiaiThuong: "Quà Tết 2026",
+      tranGiaiMoiNgay: 0,
+      coSoId,
+      troChoi: "chon_so",
+      daiTu: 1,
+      daiDen: 100,
+      loaiTruDaRa: true,
+    }).ma;
+  }
+
+  it("🔴 danh sách của mỗi game chỉ chứa chương trình của chính nó", () => {
+    const maCs = chonSoThu("Hải Châu", cs1);
+    const pv = phamViCua(TOAN_QUYEN);
+
+    const dsTrungSo = danhSachChuongTrinh(pv).map((c) => c.ma);
+    expect(dsTrungSo).toContain(maCs1);
+    expect(dsTrungSo).not.toContain(maCs);
+
+    const dsChonSo = danhSachChonSo(pv).map((c) => c.ma);
+    expect(dsChonSo).toContain(maCs);
+    expect(dsChonSo).not.toContain(maCs1);
+  });
+
+  it("🔴 cửa quản trị của game này KHÔNG mở được chương trình của game kia", () => {
+    const maCs = chonSoThu("Hải Châu", cs1);
+    const pv = phamViCua(TOAN_QUYEN);
+    expect(timTheoMa(maCs, pv)).toBeNull();
+    expect(timTheoMaChonSo(maCs1, pv)).toBeNull();
+    expect(timTheoMaChonSo(maCs, pv)?.ma).toBe(maCs);
+  });
+
+  it("đường CÔNG KHAI phục vụ CẢ HAI game — phụ huynh quét mã nào cũng chơi được", () => {
+    const maCs = chonSoThu("Hải Châu", cs1);
+    expect(timTheoMaCongKhai(maCs)?.ma).toBe(maCs);
+    expect(timTheoMaCongKhai(maCs1)?.ma).toBe(maCs1);
+  });
+
+  it("chọn số đọc lại đúng dải số và công tắc loại trừ đã khai", () => {
+    const maCs = chonSoThu("Hải Châu", cs1);
+    const ct = timTheoMaChonSo(maCs, phamViCua(TOAN_QUYEN))!;
+    expect(ct.troChoi).toBe("chon_so");
+    expect(ct.daiTu).toBe(1);
+    expect(ct.daiDen).toBe(100);
+    expect(ct.loaiTruDaRa).toBe(true);
+  });
+
+  it("chương trình trúng số cũ vẫn mang thân phận trúng số và dải mặc định", () => {
+    const ct = timTheoMa(maCs1, phamViCua(TOAN_QUYEN))!;
+    expect(ct.troChoi).toBe("trung_so");
+    expect(ct.loaiTruDaRa).toBe(false);
+  });
+
+  it("🔴 sale của cơ sở khác không mở được chương trình chọn số", () => {
+    const maCs = chonSoThu("Hải Châu", cs1);
+    const saleCs2: NguoiDung = { id: 9, vaiTro: "sale", coSoId: cs2 };
+    expect(timTheoMaChonSo(maCs, phamViCua(saleCs2))).toBeNull();
+    expect(danhSachChonSo(phamViCua(saleCs2)).map((c) => c.ma)).not.toContain(maCs);
+  });
+
+  it("hai cửa tắt/ẩn làm việc với CẢ HAI game", () => {
+    const maCs = chonSoThu("Hải Châu", cs1);
+    const pv = phamViCua(TOAN_QUYEN);
+    expect(timTheoMaBatKeTroChoi(maCs, pv)?.ma).toBe(maCs);
+    expect(timTheoMaBatKeTroChoi(maCs1, pv)?.ma).toBe(maCs1);
   });
 });

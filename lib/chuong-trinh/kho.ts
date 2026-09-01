@@ -1,7 +1,14 @@
 import "server-only";
 
+import { DAI_MAC_DINH } from "@/config/chon-so";
 import { DIFFICULTIES, type DifficultyId, type RoundSettings } from "@/config/game";
-import { SO_LAN_CHOI, type CheDoChoi, type NguonCoSo } from "@/config/to-chuc";
+import {
+  SO_LAN_CHOI,
+  TRO_CHOI_MAC_DINH,
+  type CheDoChoi,
+  type NguonCoSo,
+  type TroChoi,
+} from "@/config/to-chuc";
 import { chay, layMot, layNhieu } from "@/lib/db/truy-van";
 import { sinhMa } from "@/lib/chuong-trinh/ma-chuong-trinh";
 import type { PhamVi } from "@/lib/bao-ve/quyen";
@@ -50,6 +57,13 @@ export interface ChuongTrinh {
   cheDo: CheDoChoi;
   nguonCoSo: NguonCoSo;
   soLanChoi: number;
+  /** Game nào đang chạy trên chương trình này (ADR-005). */
+  troChoi: TroChoi;
+  /** Dải số của game CHỌN SỐ, hai đầu đều BAO GỒM. Trúng Số không đọc. */
+  daiTu: number;
+  daiDen: number;
+  /** Số đã có người lấy thì biến mất khỏi vòng chạy. Chỉ CHỌN SỐ đọc. */
+  loaiTruDaRa: boolean;
 }
 
 export interface ChuongTrinhKemSoLieu extends ChuongTrinh {
@@ -79,6 +93,10 @@ interface DongChuongTrinh {
   che_do: string;
   nguon_co_so: string;
   so_lan_choi: number;
+  tro_choi: string;
+  dai_tu: number;
+  dai_den: number;
+  loai_tru_da_ra: number;
   so_luot?: number;
   so_giai?: number;
   so_van?: number;
@@ -107,6 +125,10 @@ function doiDong(dong: DongChuongTrinh): ChuongTrinhKemSoLieu {
     cheDo: dong.che_do as CheDoChoi,
     nguonCoSo: dong.nguon_co_so as NguonCoSo,
     soLanChoi: dong.so_lan_choi,
+    troChoi: dong.tro_choi as TroChoi,
+    daiTu: dong.dai_tu,
+    daiDen: dong.dai_den,
+    loaiTruDaRa: dong.loai_tru_da_ra === 1,
     soLuot: dong.so_luot ?? 0,
     soGiai: dong.so_giai ?? 0,
     soVan: dong.so_van ?? 0,
@@ -143,6 +165,11 @@ export interface DauVaoTaoChuongTrinh {
   cheDo?: CheDoChoi;
   nguonCoSo?: NguonCoSo;
   soLanChoi?: number;
+  /** Mặc định `trung_so` — chương trình cũ và mọi nơi gọi cũ không phải đổi. */
+  troChoi?: TroChoi;
+  daiTu?: number;
+  daiDen?: number;
+  loaiTruDaRa?: boolean;
 }
 
 export function taoChuongTrinh(dauVao: DauVaoTaoChuongTrinh): ChuongTrinh {
@@ -152,8 +179,8 @@ export function taoChuongTrinh(dauVao: DauVaoTaoChuongTrinh): ChuongTrinh {
     `insert into chuong_trinh
        (ma, ten_trung_tam, so_trung, muc_do, tham_so, ten_giai_thuong,
         tran_giai_moi_ngay, trang_thai, co_so_id, che_do, nguon_co_so, so_lan_choi,
-        tao_luc, sua_luc)
-     values (?, ?, ?, ?, ?, ?, ?, 'dang_chay', ?, ?, ?, ?, ?, ?)`,
+        tro_choi, dai_tu, dai_den, loai_tru_da_ra, tao_luc, sua_luc)
+     values (?, ?, ?, ?, ?, ?, ?, 'dang_chay', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ma,
     dauVao.tenTrungTam,
     dauVao.soTrung,
@@ -165,6 +192,10 @@ export function taoChuongTrinh(dauVao: DauVaoTaoChuongTrinh): ChuongTrinh {
     dauVao.cheDo ?? "tai_quay",
     dauVao.nguonCoSo ?? "gan_san",
     dauVao.soLanChoi ?? SO_LAN_CHOI.macDinh,
+    dauVao.troChoi ?? TRO_CHOI_MAC_DINH,
+    dauVao.daiTu ?? DAI_MAC_DINH.tu,
+    dauVao.daiDen ?? DAI_MAC_DINH.den,
+    dauVao.loaiTruDaRa ? 1 : 0,
     luc,
     luc,
   );
@@ -183,8 +214,50 @@ function locPhamVi(pv: PhamVi): { menh: string; thamSo: number[] } {
   return { menh: " and c.co_so_id = ?", thamSo: [pv.coSoId] };
 }
 
+/**
+ * Mệnh đề WHERE theo GAME. Hai game dùng chung bảng `chuong_trinh` (ADR-005).
+ *
+ * 🔴 Mọi câu đọc trong khu quản trị PHẢI mang mệnh đề này. Thiếu nó thì màn quản
+ * trị của game này hiện chương trình của game kia, và nút Sửa sẽ ghi những cột
+ * mà game kia không bao giờ đọc. Hướng lệch nguy hiểm hơn nằm ở phía ngược lại:
+ * gõ nhầm hằng ở đây là danh sách chương trình ĐANG CHẠY THẬT biến mất khỏi màn
+ * hình quản trị của quầy, mà không một dòng lỗi nào.
+ *
+ * Giá trị đến từ union kiểu `TroChoi`, không từ người dùng — nội suy an toàn.
+ */
+function locTroChoi(tc: TroChoi): string {
+  return ` and c.tro_choi = '${tc}'`;
+}
+
 /** Đọc trong khu quản trị — LUÔN lọc theo phạm vi của người đang đăng nhập. */
 export function timTheoMa(ma: string, pv: PhamVi): ChuongTrinh | null {
+  return timTheoMaCuaGame(ma, pv, "trung_so");
+}
+
+/** Bản đối ứng cho game CHỌN SỐ. Tên tách hẳn, cùng lý do với `timTheoMaCongKhai`. */
+export function timTheoMaChonSo(ma: string, pv: PhamVi): ChuongTrinh | null {
+  return timTheoMaCuaGame(ma, pv, "chon_so");
+}
+
+function timTheoMaCuaGame(ma: string, pv: PhamVi, tc: TroChoi): ChuongTrinh | null {
+  const { menh, thamSo } = locPhamVi(pv);
+  const dong = layMot<DongChuongTrinh>(
+    `select c.* from chuong_trinh c where c.ma = ?${menh}${locTroChoi(tc)}`,
+    ma,
+    ...thamSo,
+  );
+  return dong ? doiDong(dong) : null;
+}
+
+/**
+ * Đọc KHÔNG phân biệt game — chỉ dành cho hai cửa dùng chung: tắt/bật và
+ * xoá/ẩn. Chúng làm cùng một việc với mọi chương trình, nên bắt chúng biết game
+ * là bắt chúng có hai nhánh chẳng để làm gì.
+ *
+ * 🔴 Vẫn lọc theo phạm vi. Bỏ `pv` ở đây là mở cửa cho sale cơ sở này tắt
+ * chương trình của cơ sở kia.
+ */
+export function timTheoMaBatKeTroChoi(ma: string, pv: PhamVi): ChuongTrinh | null {
   const { menh, thamSo } = locPhamVi(pv);
   const dong = layMot<DongChuongTrinh>(
     `select c.* from chuong_trinh c where c.ma = ?${menh}`,
@@ -210,6 +283,19 @@ export function danhSachChuongTrinh(
   pv: PhamVi,
   hienCaDaAn = false,
 ): ChuongTrinhKemSoLieu[] {
+  return danhSachCuaGame(pv, hienCaDaAn, "trung_so");
+}
+
+/** Bản đối ứng cho game CHỌN SỐ. */
+export function danhSachChonSo(pv: PhamVi, hienCaDaAn = false): ChuongTrinhKemSoLieu[] {
+  return danhSachCuaGame(pv, hienCaDaAn, "chon_so");
+}
+
+function danhSachCuaGame(
+  pv: PhamVi,
+  hienCaDaAn: boolean,
+  tc: TroChoi,
+): ChuongTrinhKemSoLieu[] {
   const { menh, thamSo } = locPhamVi(pv);
   const locAn = hienCaDaAn ? "" : " and c.trang_thai <> 'da_an'";
   const dong = layNhieu<DongChuongTrinh>(
@@ -219,7 +305,7 @@ export function danhSachChuongTrinh(
               (select count(*) from van_choi v where v.chuong_trinh_id = c.id) as so_van,
               (select count(*) from van_choi v where v.chuong_trinh_id = c.id and v.da_trao_thuong = 1) as so_giai_da_trao
          from chuong_trinh c
-        where 1 = 1${menh}${locAn}
+        where 1 = 1${menh}${locAn}${locTroChoi(tc)}
         order by c.id desc`,
     ...thamSo,
   );
