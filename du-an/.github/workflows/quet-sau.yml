@@ -1,0 +1,53 @@
+# Quét sâu hàng tuần — hai câu hỏi không cửa nào khác trong dự án hỏi:
+#   ① Dependency đang dùng có CVE đã công bố không?
+#      (gitleaks/semgrep/pre-commit soi CODE CỦA TA, không soi thư viện của người khác.)
+#   ② TOÀN BỘ lịch sử git có khóa còn SỐNG không?
+#      (pre-commit chỉ soi phần đang stage; khóa lọt trước khi bật hook thì nó không thấy.)
+#
+# Đỏ = GitHub gửi mail cho chủ repo. CỐ Ý không tạo issue máy-sinh (dự án nhỏ, issue máy
+# chỉ thêm một hộp thư phải dọn) và không dùng SARIF/code-scanning (repo private gói free
+# không có Advanced Security).
+# CỐ Ý chạy trên CI chứ không máy dev: DB của trivy gần 1GB.
+#
+# File này nằm im cho tới khi dự án có remote GitHub — dựng remote ở /B6_trien_khai.
+
+name: Quét sâu
+
+on:
+  schedule:
+    - cron: "0 23 * * 0" # 06:00 thứ Hai giờ VN — kết quả chờ sẵn đầu tuần
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cve-dependency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy soi CVE trong dependency
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          # CVE chưa có bản vá thì đỏ cũng không làm gì được — tuần sau tự hỏi lại.
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+  khoa-song-trong-lich-su:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # toàn lịch sử
+      - name: TruffleHog xác minh khóa SỐNG trong TOÀN lịch sử
+        uses: trufflesecurity/trufflehog@6f3c981e7b77f235fd2702dd74af25fc4b72bf11 # v3.96.0
+        with:
+          # verified-only: chỉ đỏ khi khóa xác minh CÒN SỐNG (0 báo oan).
+          extra_args: --results=verified --fail

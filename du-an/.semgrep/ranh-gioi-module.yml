@@ -1,0 +1,64 @@
+# Máy canh Rule 2 của .claude/rules/module-boundaries.md:
+# "CẤM import trực tiếp code từ modules/A sang modules/B".
+#
+# Bật NGAY từ ngày khởi tạo (29/08/2026) khi dự án còn 0 dòng code — rule xanh sẵn, nên
+# không bao giờ có món nợ kỹ thuật "luật đã viết nhưng chưa ai đo". Bật sau, khi đã có
+# vài chục vi phạm, là lúc người ta tắt rule chứ không sửa code.
+#
+# Dùng pattern-regex (không qua parser AST): khuôn `import ... from "$SRC"` cho TypeScript
+# từng vỡ với Parse_error ở một số bản semgrep — regex bắt cả `import/export … from "…"`
+# LẪN dynamic `import("…")`, và không vỡ theo phiên bản parser.
+# Mỗi module một rule vì semgrep không so được "$MOD ≠ thư-mục-hiện-tại" trong một rule.
+#
+# THÊM MODULE MỚI ⇒ thêm một rule y khuôn dưới đây, cùng commit với thư mục module.
+# Chạy: semgrep --config .semgrep   (và cùng bước đó trong CI khi có workflow kiểm).
+
+rules:
+  - id: auth-khong-import-module-khac
+    languages: [generic]
+    severity: ERROR
+    message: >
+      modules/auth chỉ được import @modules/core hoặc chính nó. Cần dữ liệu module khác
+      → service của core hoặc event bus (.claude/rules/module-boundaries.md rule 2).
+    paths:
+      include: ["**/modules/auth/**/*.ts", "**/modules/auth/**/*.tsx"]
+    pattern-regex: '(from\s+|import\()\s*["'']@modules/(?!core["''/]|auth["''/])[^"'']+["'']'
+
+  - id: ideas-khong-import-module-khac
+    languages: [generic]
+    severity: ERROR
+    message: >
+      modules/ideas chỉ được import @modules/core hoặc chính nó (rule 2
+      module-boundaries.md).
+    paths:
+      include: ["**/modules/ideas/**/*.ts", "**/modules/ideas/**/*.tsx"]
+    pattern-regex: '(from\s+|import\()\s*["'']@modules/(?!core["''/]|ideas["''/])[^"'']+["'']'
+
+  - id: admin-khong-import-module-khac
+    languages: [generic]
+    severity: ERROR
+    message: >
+      modules/admin chỉ được import @modules/core hoặc chính nó (rule 2
+      module-boundaries.md).
+    paths:
+      include: ["**/modules/admin/**/*.ts", "**/modules/admin/**/*.tsx"]
+    pattern-regex: '(from\s+|import\()\s*["'']@modules/(?!core["''/]|admin["''/])[^"'']+["'']'
+
+  # Chiều ngược lại: core là NỀN, không được biết chi tiết module nghiệp vụ. Cửa DUY NHẤT
+  # core được đọc là manifest đăng ký `<mod>/module.config` — đủ để core dựng navigation,
+  # permission, entity registry mà không dính vào code nghiệp vụ.
+  # Kiểu/khai báo dùng chung phải NÂNG LÊN core, không ở nhờ module con.
+  # File *.test.ts của core được miễn: test liên-module cố ý đọc chéo để KIỂM đăng ký;
+  # mã ship thì không bao giờ.
+  # Mở thêm cửa (vd `<mod>/kpi/metric-providers`) phải sửa regex này CÓ CHỦ ĐÍCH.
+  - id: core-chi-duoc-doc-manifest
+    languages: [generic]
+    severity: ERROR
+    message: >
+      modules/core import sâu vào module nghiệp vụ — core chỉ được đọc
+      <mod>/module.config (cửa đăng ký duy nhất). Kiểu dùng chung phải NÂNG LÊN core,
+      không ở nhờ module con.
+    paths:
+      include: ["**/modules/core/**/*.ts", "**/modules/core/**/*.tsx"]
+      exclude: ["**/modules/core/**/*.test.ts"]
+    pattern-regex: '(from\s+|import\()\s*["'']@modules/(?!core["''/])(?!(auth|ideas|admin)/module\.config["''])[^"'']+["'']'

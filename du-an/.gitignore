@@ -1,0 +1,56 @@
+# Secrets — TUYỆT ĐỐI không đẩy lên Git
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+.dev.vars
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build / cache
+.next/
+out/
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+
+# Vercel
+.vercel/
+
+# Supabase (local Docker — không commit dữ liệu/khối lượng lớn)
+.supabase/
+supabase/.branches/
+supabase/.temp/
+
+# Logs & OS
+logs/
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# GAME_SU_KIEN — app/ là REPO GIT ĐỘC LẬP (github.com/hodacphuchtc/GAME_SU_KIEN),
+# DATA/ là tư liệu nguồn tải từ mạng xã hội — cả hai đều không thuộc repo IDEA.
+modules/GAME_SU_KIEN/app/
+modules/GAME_SU_KIEN/DATA/
+modules/GAME_SU_KIEN/logs/
+
+# VÒNG QUAY MAY MẮN — ứng dụng ĐỨNG RIÊNG, app/ là REPO GIT ĐỘC LẬP.
+# Không dùng chung app lẫn cơ sở dữ liệu với Trúng Số (quyết định 01/09/2026).
+modules/GAME_SU_KIEN/VONG_QUAY_MAY_MAN/app/
+
+# Cấu hình cắm máy riêng từng máy — không chia sẻ
+.claude/settings.local.json
+
+# Bản sao lưu CSDL — CHỨA DỮ LIỆU CÁ NHÂN PHỤ HUYNH, không bao giờ vào git
+sao-luu-*/

@@ -1,0 +1,54 @@
+{
+  "_ghiChu": "Manifest module GAME_SU_KIEN. 🔴 Module này chứa HAI ỨNG DỤNG, không phải một app — mỗi app là một REPO GIT ĐỘC LẬP (đã gitignore khỏi IDEA). (1) 'app/': Trúng Số + Chọn Số chung MỘT app và chung MỘT CSDL, rẽ nhánh bằng cột chuong_trinh.tro_choi; cơ sở · nhân viên · khách tiềm năng · kho quà là danh mục dùng chung, chỉ tồn tại MỘT nơi (module-boundaries rule 3) — xem ADR-005. 🔴 CẬP NHẬT 02/09/2026 (ADR-011): Vòng Quay ĐÃ GỘP vào 'app/' — cả BA game nay chung một app, một CSDL, một lần đăng nhập, rẽ bằng cột tro_choi. ADR-010 (đứng riêng) và ADR-005 (bị đảo một phần) đều hết hiệu lực theo hướng đó; ADR-005 trở lại là luật chung. Thư mục 'VONG_QUAY_MAY_MAN/app/' còn trên đĩa nhưng NGỪNG, giữ làm mốc lùi. Module đứng riêng, không import code module khác.",
+  "id": "game-su-kien",
+  "name": "GAME_SU_KIEN (game sự kiện tại quầy)",
+  "version": "0.5.0",
+  "ungDung": [
+    {
+      "id": "app-chinh",
+      "duongDan": "app/",
+      "cong": 3111,
+      "csdl": "du-lieu/game-su-kien.db",
+      "repo": "github.com/hodacphuchtc/GAME_SU_KIEN",
+      "troChoi": ["trung-so", "chon-so", "vong-quay-may-man"]
+    },
+    {
+      "id": "app-vong-quay-CU",
+      "_trangThai": "NGUNG — code da chuyen vao app/ theo ADR-011 (02/09/2026). Thu muc con tren dia lam MOC LUI, khong sua gi trong do.",
+      "duongDan": "VONG_QUAY_MAY_MAN/app/",
+      "cong": [3200, 3210],
+      "csdl": "VONG_QUAY_MAY_MAN/app/du-lieu/vong-quay.db",
+      "repo": "github.com/hodacphuchtc/VONG_QUAY_MAY_MAN",
+      "troChoi": []
+    }
+  ],
+  "troChoi": [
+    {
+      "id": "trung-so",
+      "ten": "Trúng Số",
+      "trangThai": "dang-chay",
+      "ungDung": "app/",
+      "thuMucTuLieu": "TRUNG_SO/"
+    },
+    {
+      "id": "chon-so",
+      "ten": "Chọn Số",
+      "trangThai": "dang-chay",
+      "ungDung": "app/",
+      "thuMucTuLieu": "CHON_SO/"
+    },
+    {
+      "id": "vong-quay-may-man",
+      "ten": "Vòng Quay May Mắn",
+      "trangThai": "dang-thi-cong",
+      "ungDung": "app/",
+      "thuMucTuLieu": "VONG_QUAY_MAY_MAN/"
+    }
+  ],
+  "navigation": [],
+  "permissions": [],
+  "entities": [],
+  "dependencies": [],
+  "eventsPublished": [],
+  "eventsConsumed": []
+}

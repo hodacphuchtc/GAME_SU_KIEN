@@ -1,0 +1,12 @@
+{
+  "_ghiChu": "Module manifest — hệ thống/công cụ đọc file này để biết module khai gì. Điền dần khi build; các mảng để rỗng lúc scaffold. Nếu dự án dùng TypeScript, có thể chuyển thành module.config.ts giữ nguyên các trường.",
+  "id": "ideas",
+  "name": "Ideas (nghiệp vụ ý tưởng)",
+  "version": "0.1.0",
+  "navigation": [],
+  "permissions": [],
+  "entities": [],
+  "dependencies": ["core"],
+  "eventsPublished": [],
+  "eventsConsumed": []
+}

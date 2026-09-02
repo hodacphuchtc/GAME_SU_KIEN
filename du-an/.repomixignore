@@ -1,0 +1,42 @@
+# .repomixignore — repomix đọc từ ĐĨA (không phải từ git), nên phải chặn CẢ những thứ đã
+# gitignore: file .env* và thư mục dữ liệu thật vẫn nằm trên đĩa. Thiếu file này thì một
+# lệnh nén codebase là secret + PII rời khỏi vòng kiểm soát trong một gói duy nhất.
+# Gói nén CHỈ dùng trong máy — KHÔNG gửi ra dịch vụ ngoài.
+#
+# Danh sách dưới đây là khởi điểm của IDEA (29/08/2026). Dự án đẻ thêm thư mục chứa dữ
+# liệu người thật ⇒ thêm vào đây NGAY trong commit tạo thư mục đó.
+
+# ── Secret / nhạy cảm — KHÔNG BAO GIỜ vào gói context ──
+.env*
+!.env.example
+secrets/
+*.pem
+*.key
+logs/
+*.csv
+
+# ── Dữ liệu thật / fixture (thêm đường dẫn khi dự án sinh ra chúng) ──
+database/seed-private/
+scripts/fixtures/
+tests/**/fixtures/
+
+# ── Sổ & tiến độ — to, đổi mỗi phiên, KHÔNG phải kiến trúc ──
+PLAN.md
+Plan/
+**/OVERVIEW.md
+CLAUDE.md
+
+# ── Máy sinh / build / rác ──
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+test-results/
+playwright-report/
+package-lock.json
+tsconfig.tsbuildinfo
+public/
+*.log
+.DS_Store

@@ -1,0 +1,59 @@
+# .gitleaks.toml — luật soi khóa RIÊNG của IDEA, NỐI THÊM vào bộ luật mặc định.
+# Vì sao có file này: bộ mặc định của gitleaks không biết biến bí mật TỰ ĐẶT của dự án
+# trông ra sao, và không phân biệt service_role JWT (bỏ qua RLS = lộ TOÀN BỘ DB) với
+# anon JWT. File này là danh sách "khóa nào của TA, trông ra sao".
+#
+# Miễn trừ TỪNG PHÁT HIỆN bằng fingerprint trong .gitleaksignore kèm lý do + ngày,
+# KHÔNG nới regex ở đây. File này nằm trong requiredFiles của .claude/scaffold.json —
+# xóa là check-structure đỏ.
+#
+# Nguồn tên biến: .env.example + docs/architecture/env-vars.md. Thêm biến bí mật mới
+# vào dự án ⇒ thêm tên nó vào rule "idea-bien-bi-mat-noi-bo" bên dưới trong CÙNG commit.
+
+[extend]
+useDefault = true
+
+# ── Supabase ──────────────────────────────────────────────────────────────
+[[rules]]
+id = "idea-supabase-jwt"
+description = "JWT Supabase (service_role bỏ qua RLS = lộ TOÀN BỘ dữ liệu)"
+# Bắt MỌI JWT 3 khúc; anon key nếu cố ý nằm trong tài liệu thì miễn trừ bằng fingerprint.
+regex = '''eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}'''
+keywords = ["eyJ"]
+
+[[rules]]
+id = "idea-supabase-secret-key-moi"
+description = "Supabase secret key định dạng mới"
+regex = '''sb_secret_[A-Za-z0-9_-]{20,}'''
+keywords = ["sb_secret_"]
+
+# ── Nhà cung cấp ngoài ───────────────────────────────────────────────────
+[[rules]]
+id = "idea-anthropic-key"
+description = "Anthropic API key"
+regex = '''sk-ant-[A-Za-z0-9_\-]{24,}'''
+keywords = ["sk-ant-"]
+
+# ── Bí mật TỰ ĐẶT của dự án (bộ mặc định KHÔNG thể biết) ─────────────────
+[[rules]]
+id = "idea-bien-bi-mat-noi-bo"
+description = "Gán GIÁ TRỊ thật cho biến bí mật nội bộ (đọc process.env thì không sao)"
+regex = '''(?i)(SUPABASE_SERVICE_ROLE_KEY|DATABASE_URL|R2_SECRET_ACCESS_KEY|R2_ACCESS_KEY_ID|VERCEL_TOKEN|CRON_SECRET|NEW_USER_PASSWORD)\s*[=:]\s*["']?[A-Za-z0-9+/=_\-:@.]{16,}'''
+keywords = [
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "DATABASE_URL",
+  "R2_SECRET_ACCESS_KEY",
+  "R2_ACCESS_KEY_ID",
+  "VERCEL_TOKEN",
+  "CRON_SECRET",
+  "NEW_USER_PASSWORD",
+]
+
+[allowlist]
+description = "Chỗ được nói TÊN biến chứ không phải GIÁ TRỊ"
+paths = ['''\.env\.example$''', '''package-lock\.json$''', '''docs/architecture/env-vars\.md$''']
+regexes = [
+  # Mã nguồn ĐỌC biến — không phải giá trị. Thiếu dòng này thì mọi chỗ
+  # process.env.SUPABASE_SERVICE_ROLE_KEY báo oan — hàng rào báo oan là hàng rào chết.
+  '''process\.env\.[A-Z_]+''',
+]
