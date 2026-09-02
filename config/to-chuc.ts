@@ -71,7 +71,7 @@ export const SO_LAN_CHOI = { toiThieu: 1, toiDa: 5, macDinh: 1 } as const;
  * - `chon_so`  — không trúng/thua, không kho quà; chạy một DẢI SỐ xoay vòng,
  *   mỗi người bấm một lần và nhận số của mình. Quà đánh số nằm NGOÀI hệ thống.
  */
-export const TRO_CHOI = ["trung_so", "chon_so"] as const;
+export const TRO_CHOI = ["trung_so", "chon_so", "vong_quay"] as const;
 export type TroChoi = (typeof TRO_CHOI)[number];
 export const TRO_CHOI_MAC_DINH: TroChoi = "trung_so";
 

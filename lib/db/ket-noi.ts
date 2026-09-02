@@ -6,7 +6,7 @@
  * và bỏ rơi kết nối cũ — chạy vài chục lần là hết bộ nhớ.
  */
 import { DatabaseSync } from "node:sqlite";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 import { doiTenTep } from "./doi-ten-tep";
@@ -63,4 +63,22 @@ export function dongCsdl(): void {
   const kho = globalThis as Kho;
   kho[KHOA]?.close();
   delete kho[KHOA];
+}
+
+/**
+ * 🔴 MỞ CHỈ ĐỌC — dùng cho MỌI lệnh chẩn đoán, script soi, việc chỉ xem dữ liệu.
+ *
+ * Vì sao phải có hàm riêng: `new DatabaseSync(duongDan)` vào một đường dẫn KHÔNG
+ * tồn tại là TẠO ra một tệp rỗng. Một lệnh chẩn đoán gõ nhầm đường dẫn đã đẻ ra
+ * tệp 0 byte, rồi tệp rỗng đó bị mang đặt vào chỗ CSDL thật — app vẫn khởi động,
+ * trang vẫn mở, TRẮNG TRƠN, không một dòng báo lỗi. Đã trả giá thật, xem CLAUDE.md.
+ *
+ * Hàm này NÉM thay vì tạo tệp. Đọc dữ liệu thì gọi nó, đừng gọi `moCsdl`.
+ * Hái về từ app Vòng Quay khi gộp (ADR-011).
+ */
+export function moDeDoc(duongDan = duongDanCsdl()): DatabaseSync {
+  if (duongDan !== ":memory:" && !existsSync(duongDan)) {
+    throw new Error(`Không có cơ sở dữ liệu tại ${duongDan} — mở chỉ đọc thì KHÔNG tạo tệp mới.`);
+  }
+  return new DatabaseSync(duongDan, { readOnly: true });
 }

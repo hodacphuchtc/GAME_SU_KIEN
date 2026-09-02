@@ -1,6 +1,7 @@
 "use client";
 
 import type { RoundSettings } from "@/config/game";
+import type { Cung } from "@/lib/vong-quay/chia-o";
 
 /**
  * Phía máy khách của kênh đồng bộ.
@@ -72,6 +73,36 @@ export type TinTrongPhong =
       /** Còn bao nhiêu số chưa phát. `null` khi không bật loại trừ. */
       conLai: number | null;
       giayXemKetQua: number;
+    }
+  /**
+   * GAME VÒNG QUAY (ADR-011) — hai loại tin RIÊNG, cùng lý do với Chọn Số.
+   *
+   * 🔴 Chỉ MỐC BẮT ĐẦU + GÓC DỪNG đi qua mạng, không phải từng khung hình. Ở
+   * mạng wifi trung tâm, truyền khung hình vừa nghẽn vừa lệch nhịp; cách này
+   * khiến độ trễ mạng chỉ làm lệch phần ĐANG QUAY, còn ô dừng thì khớp 100%.
+   *
+   * 🔴 Đây là file DÙNG CHUNG của cả ba game. Union kiểu chỉ ảnh hưởng lúc biên
+   * dịch, và tin mới không bao giờ tới màn hình hai game kia — chúng rơi vào
+   * `default: return` mà không gây tác dụng phụ nào.
+   */
+  | {
+      loai: "bat-dau-quay";
+      luotId: number;
+      /** Mốc theo đồng hồ MÁY CHỦ. Máy khách quy đổi bằng `lech` đã đo. */
+      batDauLuc: number;
+      gocDung: number;
+      thoiLuong: number;
+      phienBanO: number;
+      cung: Cung[];
+      tenRutGon: string;
+    }
+  | {
+      loai: "ket-qua-quay";
+      luotId: number;
+      oTen: string;
+      oMau: string;
+      maXacThuc: string;
+      tenRutGon: string;
     }
   | { loai: "roi-di" }
   /**

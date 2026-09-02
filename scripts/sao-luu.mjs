@@ -98,7 +98,10 @@ export function taoBanSaoLuu({ nguon = duongDanCsdl(), dich = thuMucSaoLuu(), lu
     );
   }
 
-  const db = new DatabaseSync(nguon);
+  // 🔴 CHỈ ĐỌC. Một script sao lưu mà tự đẻ ra CSDL rỗng thì nó chính là thứ
+  // gây mất dữ liệu. `VACUUM INTO` chạy được trên kết nối chỉ đọc vì nó ghi ra
+  // TỆP KHÁC. Hái về từ app Vòng Quay khi gộp (ADR-011).
+  const db = new DatabaseSync(nguon, { readOnly: true });
   try {
     db.exec(`VACUUM INTO ${chuoiSql(duongDan)}`);
   } finally {

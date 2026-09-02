@@ -45,3 +45,35 @@ export const chuThuongHieu = {
   soLieu: "ui-monospace, SFMono-Regular, Menlo, monospace",
   coChuToiThieuDienThoai: 14,
 } as const;
+
+/**
+ * Bảng màu SẴN cho ô quà trên vòng quay (ADR-011), theo đúng thứ tự gợi ý.
+ *
+ * Người tạo chương trình chọn TỪ BẢNG NÀY chứ không gõ mã màu tự do: mã tự do
+ * là cửa để một ô sáng chói lấn át phần còn lại, và cũng là chỗ CSS tuỳ biến lọt
+ * vào. Sáu màu đều đã có biến CSS trong `globals.css` nên không đẻ thêm màu mới.
+ *
+ * 🔴 Bảng này KHÔNG tự bảo đảm chữ đọc được: trắng trên `vang` và trên `mint`
+ * chỉ đạt 1,5:1. Màu chữ phải suy từ ĐỘ CHÓI của nền — xem `lib/vong-quay/mau-chu.ts`.
+ */
+export const MAU_O_SAN = [
+  mauThuongHieu.tim,
+  mauThuongHieu.neon,
+  mauThuongHieu.cam,
+  mauThuongHieu.vang,
+  mauThuongHieu.mint,
+  mauThuongHieu.chi,
+] as const;
+
+/** Màu ô khi chưa ai chọn gì. Cũng là mặc định của cột `o_qua.mau`. */
+export const MAU_O_MAC_DINH = mauThuongHieu.tim;
+
+/**
+ * Màu dùng cho NÉT VẼ của mặt vòng (viền cung, trục giữa, kim).
+ * Gom một chỗ để `components/vong-quay.tsx` không phải viết mã màu.
+ */
+export const MAU_NET_VONG = {
+  vien: mauThuongHieu.trang,
+  vienTruc: mauThuongHieu.ke,
+  kim: mauThuongHieu.cam,
+} as const;

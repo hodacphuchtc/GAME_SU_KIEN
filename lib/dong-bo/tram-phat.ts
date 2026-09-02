@@ -66,3 +66,14 @@ export function soNguoiNghe(phong: string): number {
 export function soPhongDangMo(): number {
   return cacPhong().size;
 }
+
+/**
+ * CHỈ DÙNG TRONG TEST — quên sạch mọi phòng.
+ *
+ * Trạm phát sống ở `globalThis` nên nó SỐNG QUA nhiều bài kiểm trong cùng tiến
+ * trình: một bài đăng ký người nghe rồi không dọn là bài sau đếm nhầm.
+ * Hái về từ app Vòng Quay khi gộp (ADR-011).
+ */
+export function donTramPhat(): void {
+  cacPhong().clear();
+}

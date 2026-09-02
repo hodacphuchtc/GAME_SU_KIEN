@@ -1,6 +1,7 @@
 import "server-only";
 
 import { DAI_MAC_DINH } from "@/config/chon-so";
+import { TI_LE_O_DAY_MAC_DINH } from "@/config/vong-quay";
 import { DIFFICULTIES, type DifficultyId, type RoundSettings } from "@/config/game";
 import {
   SO_LAN_CHOI,
@@ -68,6 +69,13 @@ export interface ChuongTrinh {
   daiDen: number;
   /** Số đã có người lấy thì biến mất khỏi vòng chạy. Chỉ CHỌN SỐ đọc. */
   loaiTruDaRa: boolean;
+  /**
+   * VÒNG QUAY (ADR-011). Phần vòng dành cho ô đáy — đây là VAN NGÂN SÁCH: nó
+   * quyết định kho quà thật cầm cự được bao nhiêu lượt. Hai game kia không đọc.
+   */
+  tiLeODay: number;
+  /** Tăng mỗi lần danh sách ô đổi; mỗi lượt quay ghim phiên bản của nó. */
+  phienBanO: number;
 }
 
 export interface ChuongTrinhKemSoLieu extends ChuongTrinh {
@@ -109,6 +117,8 @@ interface DongChuongTrinh {
   dai_tu: number;
   dai_den: number;
   loai_tru_da_ra: number;
+  ti_le_o_day: number;
+  phien_ban_o: number;
   so_luot?: number;
   so_giai?: number;
   so_van?: number;
@@ -142,6 +152,8 @@ function doiDong(dong: DongChuongTrinh): ChuongTrinhKemSoLieu {
     daiTu: dong.dai_tu,
     daiDen: dong.dai_den,
     loaiTruDaRa: dong.loai_tru_da_ra === 1,
+    tiLeODay: dong.ti_le_o_day,
+    phienBanO: dong.phien_ban_o,
     soLuot: dong.so_luot ?? 0,
     soGiai: dong.so_giai ?? 0,
     soVan: dong.so_van ?? 0,
@@ -184,6 +196,8 @@ export interface DauVaoTaoChuongTrinh {
   daiTu?: number;
   daiDen?: number;
   loaiTruDaRa?: boolean;
+  /** VÒNG QUAY. Bỏ trống thì lấy `TI_LE_O_DAY_MAC_DINH` của `config/vong-quay.ts`. */
+  tiLeODay?: number;
 }
 
 export function taoChuongTrinh(dauVao: DauVaoTaoChuongTrinh): ChuongTrinh {
@@ -193,8 +207,8 @@ export function taoChuongTrinh(dauVao: DauVaoTaoChuongTrinh): ChuongTrinh {
     `insert into chuong_trinh
        (ma, ten_trung_tam, so_trung, muc_do, tham_so, ten_giai_thuong,
         tran_giai_moi_ngay, trang_thai, co_so_id, che_do, nguon_co_so, so_lan_choi,
-        tro_choi, dai_tu, dai_den, loai_tru_da_ra, tao_luc, sua_luc)
-     values (?, ?, ?, ?, ?, ?, ?, 'dang_chay', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        tro_choi, dai_tu, dai_den, loai_tru_da_ra, ti_le_o_day, tao_luc, sua_luc)
+     values (?, ?, ?, ?, ?, ?, ?, 'dang_chay', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ma,
     dauVao.tenTrungTam,
     dauVao.soTrung,
@@ -210,6 +224,7 @@ export function taoChuongTrinh(dauVao: DauVaoTaoChuongTrinh): ChuongTrinh {
     dauVao.daiTu ?? DAI_MAC_DINH.tu,
     dauVao.daiDen ?? DAI_MAC_DINH.den,
     dauVao.loaiTruDaRa ? 1 : 0,
+    dauVao.tiLeODay ?? TI_LE_O_DAY_MAC_DINH,
     luc,
     luc,
   );
@@ -251,6 +266,15 @@ export function timTheoMa(ma: string, pv: PhamVi): ChuongTrinh | null {
 /** Bản đối ứng cho game CHỌN SỐ. Tên tách hẳn, cùng lý do với `timTheoMaCongKhai`. */
 export function timTheoMaChonSo(ma: string, pv: PhamVi): ChuongTrinh | null {
   return timTheoMaCuaGame(ma, pv, "chon_so");
+}
+
+/**
+ * Bản đối ứng cho game VÒNG QUAY (ADR-011). Tên tách hẳn, cùng lý do với hai
+ * game kia: một cái tên chung nhận game làm tham số thì sớm muộn có người gọi
+ * thiếu, và màn quản trị của game này hiện chương trình của game khác.
+ */
+export function timTheoMaVongQuay(ma: string, pv: PhamVi): ChuongTrinh | null {
+  return timTheoMaCuaGame(ma, pv, "vong_quay");
 }
 
 function timTheoMaCuaGame(ma: string, pv: PhamVi, tc: TroChoi): ChuongTrinh | null {
@@ -303,6 +327,38 @@ export function danhSachChuongTrinh(
 /** Bản đối ứng cho game CHỌN SỐ. */
 export function danhSachChonSo(pv: PhamVi, hienCaDaAn = false): ChuongTrinhKemSoLieu[] {
   return danhSachCuaGame(pv, hienCaDaAn, "chon_so");
+}
+
+/**
+ * Danh sách chương trình VÒNG QUAY (ADR-011).
+ *
+ * 🔴 Hàm RIÊNG chứ không dùng chung `danhSachCuaGame`: vòng quay ghi vào
+ * `luot_quay`, hai game kia ghi vào `luot_choi`/`van_choi`. Dùng chung câu đếm
+ * là mọi chương trình vòng quay hiện "0 lượt" vĩnh viễn — con số sai mà trông
+ * hoàn toàn bình thường, không một dòng lỗi.
+ *
+ * 🔴 Vẫn mang ĐỦ `locPhamVi` + `locTroChoi`. Thiếu cái đầu là sale cơ sở này
+ * đọc được chương trình cơ sở kia; thiếu cái sau là màn Vòng Quay hiện chương
+ * trình Trúng Số đang chạy thật ở quầy.
+ */
+export function danhSachVongQuay(pv: PhamVi, hienCaDaAn = false): ChuongTrinhKemSoLieu[] {
+  const { menh, thamSo } = locPhamVi(pv);
+  const locAn = hienCaDaAn ? "" : " and c.trang_thai <> 'da_an'";
+  const dong = layNhieu<DongChuongTrinh>(
+    `select c.*,
+            (select count(*) from luot_quay q where q.chuong_trinh_id = c.id) as so_luot,
+            (select count(*) from luot_quay q
+              where q.chuong_trinh_id = c.id and q.o_qua_id is not null) as so_giai,
+            (select count(*) from luot_quay q where q.chuong_trinh_id = c.id) as so_van,
+            (select count(*) from luot_quay q
+              where q.chuong_trinh_id = c.id and q.da_trao_thuong = 1) as so_giai_da_trao,
+            0 as so_da_ra_dem
+       from chuong_trinh c
+      where 1 = 1${menh}${locAn}${locTroChoi("vong_quay")}
+      order by c.id desc`,
+    ...thamSo,
+  );
+  return dong.map(doiDong);
 }
 
 function danhSachCuaGame(

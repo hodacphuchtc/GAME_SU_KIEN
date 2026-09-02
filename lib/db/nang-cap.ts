@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import { TEN_CO_SO_MAC_DINH, TIEN_TO_CO_SO } from "@/config/to-chuc";
+import { MAU_O_MAC_DINH } from "@/config/thuong-hieu";
 
 /**
  * NÂNG CẤP CẤU TRÚC cho một cơ sở dữ liệu ĐÃ TỒN TẠI.
@@ -51,6 +52,74 @@ export function themCot(db: DatabaseSync, bang: string, cot: string, dinhNghia: 
   db.exec(`alter table ${bang} add column ${cot} ${dinhNghia}`);
 }
 
+/**
+ * BẢNG chưa từng tồn tại ở CSDL đang chạy — thêm nguyên vẹn, KHÔNG qua ALTER.
+ *
+ * 🔴 Vì sao ở đây chứ không ở `luoc-do.ts`: `luoc-do.ts` là HÌNH DẠNG NGUYÊN
+ * THUỶ và chỉ chạy trọn vẹn cho một CSDL trắng. CSDL đang phục vụ quầy thì đã
+ * có sẵn 10 bảng; hai bảng của Vòng Quay phải đi qua đúng cửa nâng cấp này để
+ * bản đang chạy nhận được chúng mà không phải xoá đi tạo lại (ADR-011).
+ *
+ * 🔴 Chạy TRƯỚC vòng thêm cột: `COT_BO_SUNG` có thể đụng tới bảng khai ở đây,
+ * và `themCot` trên một bảng CHƯA TỒN TẠI thì im lặng bỏ qua — sai mà không báo.
+ *
+ * 🔴 CHỈ `CREATE TABLE IF NOT EXISTS`. Một câu sai cú pháp trong mảng này làm
+ * `csdl()` ném, và **cả ba game chết cùng lúc** — đây đúng là rủi ro R1 mà
+ * ADR-011 ghi là cái giá phải trả cho việc gộp.
+ */
+const BANG_BO_SUNG: readonly string[] = [
+  // MỘT Ô = MỘT LOẠI QUÀ. Vừa là kho, vừa là mặt vòng quay — tách làm hai danh
+  // sách là dựng bản sao thứ hai, và chúng chỉ lệch nhau vào đúng ngày ai đó
+  // sửa một bên.
+  //
+  // Cố ý KHÔNG dùng chung bảng `qua_tang` của Trúng Số: `qua_tang.thu_tu` nghĩa
+  // là *thứ tự bốc*, còn `o_qua.thu_tu` là *vị trí trên mặt vòng* — một cột hai
+  // nghĩa. Và `qua_tang` đếm "đã trao" từ `van_choi`, dùng chung là buộc phải
+  // sửa đúng câu SQL mà Trúng Số chạy ở MỖI lượt chơi.
+  `CREATE TABLE IF NOT EXISTS o_qua (
+     id              INTEGER PRIMARY KEY AUTOINCREMENT,
+     chuong_trinh_id INTEGER NOT NULL REFERENCES chuong_trinh(id) ON DELETE CASCADE,
+     ten             TEXT    NOT NULL,
+     thu_tu          INTEGER NOT NULL DEFAULT 0,
+     so_luong        INTEGER,
+     tran_moi_ngay   INTEGER NOT NULL DEFAULT 0,
+     gia_tri         INTEGER,
+     mau             TEXT    NOT NULL DEFAULT '${MAU_O_MAC_DINH}',
+     phien_ban       INTEGER NOT NULL DEFAULT 1,
+     tao_luc         INTEGER NOT NULL,
+     sua_luc         INTEGER NOT NULL
+   )`,
+  // MỘT LƯỢT QUAY = MỘT KẾT QUẢ = MỘT PHẦN QUÀ. Cố ý KHÔNG tách ván và lượt như
+  // Trúng Số: ở đó một ván có nhiều lần bấm nên phải tách, ở đây một lượt là một
+  // lần chạm. Vừa là đơn vị nhận giải, vừa là sổ đối soát khi phụ huynh khiếu nại.
+  //
+  // 🔴 Ba cột ẢNH CHỤP (`cung_json`, `o_ten`, `o_mau`) khai thẳng từ đầu vì bảng
+  // này chưa từng tồn tại. Thiếu chúng thì bảng lịch sử phải join sang `o_qua`
+  // HIỆN TẠI, và ngày ai đó đổi tên "Balo" thành "Balo mini" là mọi người trúng
+  // từ tháng trước bỗng được ghi là đã nhận "Balo mini" — kể cả trong file Excel
+  // đối soát với phụ huynh. Sổ đối soát phải lưu ẢNH CHỤP, không phải khoá ngoại
+  // trỏ tới thứ còn sửa được.
+  `CREATE TABLE IF NOT EXISTS luot_quay (
+     id              INTEGER PRIMARY KEY AUTOINCREMENT,
+     chuong_trinh_id INTEGER NOT NULL REFERENCES chuong_trinh(id) ON DELETE CASCADE,
+     nguoi_choi_id   INTEGER REFERENCES nguoi_choi(id),
+     o_qua_id        INTEGER REFERENCES o_qua(id),
+     ngay            TEXT    NOT NULL,
+     hat_giong       TEXT    NOT NULL,
+     goc_dung        REAL    NOT NULL,
+     phien_ban_o     INTEGER NOT NULL,
+     cung_json       TEXT,
+     o_ten           TEXT,
+     o_mau           TEXT,
+     ma_xac_thuc     TEXT,
+     thiet_bi        TEXT,
+     da_trao_thuong  INTEGER NOT NULL DEFAULT 0,
+     trao_luc        INTEGER,
+     bat_dau_luc     INTEGER NOT NULL,
+     ket_thuc_luc    INTEGER
+   )`,
+];
+
 /** Danh sách cột phải có, theo thứ tự đã thêm. Thêm mới thì nối vào CUỐI. */
 const COT_BO_SUNG: ReadonlyArray<[bang: string, cot: string, dinhNghia: string]> = [
   // GĐ 7.2 — thước đo: khách để lại số đã thành học viên chưa.
@@ -90,6 +159,15 @@ const COT_BO_SUNG: ReadonlyArray<[bang: string, cot: string, dinhNghia: string]>
   ["chuong_trinh", "dai_tu", "integer not null default 1"],
   ["chuong_trinh", "dai_den", "integer not null default 100"],
   ["chuong_trinh", "loai_tru_da_ra", "integer not null default 0"],
+  // ADR-011 — game VÒNG QUAY. Chương trình của hai game kia không bao giờ đọc
+  // hai cột này; mặc định chỉ là chỗ trống hợp lệ để khỏi phải dựng lại bảng.
+  //
+  // `ti_le_o_day` là VAN NGÂN SÁCH: phần vòng dành cho ô đáy (ô không giới hạn
+  // số lượng) quyết định kho quà thật cầm cự được bao nhiêu lượt. 0,5 = nửa vòng.
+  ["chuong_trinh", "ti_le_o_day", "real not null default 0.5"],
+  // Tăng mỗi lần danh sách ô đổi. Mỗi lượt quay ghim phiên bản của nó, nhờ vậy
+  // "dựng lại ván" vẽ ra đúng mặt vòng CỦA LÚC ĐÓ, không phải mặt vòng hôm nay.
+  ["chuong_trinh", "phien_ban_o", "integer not null default 1"],
 ];
 
 /**
@@ -99,6 +177,13 @@ const COT_BO_SUNG: ReadonlyArray<[bang: string, cot: string, dinhNghia: string]>
 const CHI_MUC_SAU_KHI_THEM_COT: readonly string[] = [
   "CREATE INDEX IF NOT EXISTS ct_theo_co_so ON chuong_trinh (co_so_id)",
   "CREATE INDEX IF NOT EXISTS luot_theo_van ON luot_choi (van_id)",
+  // ADR-011 — Vòng Quay. Tên chỉ mục mang tiền tố `quay_` để không đụng
+  // `luot_theo_van` của Trúng Số: chỉ mục dùng CHUNG một không gian tên.
+  "CREATE INDEX IF NOT EXISTS o_theo_chuong_trinh ON o_qua (chuong_trinh_id, thu_tu)",
+  "CREATE INDEX IF NOT EXISTS quay_theo_chuong_trinh ON luot_quay (chuong_trinh_id, id DESC)",
+  "CREATE INDEX IF NOT EXISTS quay_theo_ngay ON luot_quay (chuong_trinh_id, ngay)",
+  "CREATE INDEX IF NOT EXISTS quay_theo_nguoi_choi ON luot_quay (nguoi_choi_id, ngay)",
+  "CREATE INDEX IF NOT EXISTS quay_theo_o ON luot_quay (o_qua_id)",
 ];
 
 /** Phiên bản DỮ LIỆU mới nhất. Tăng khi thêm một bước backfill mới. */
@@ -219,6 +304,8 @@ function backfillV1(db: DatabaseSync): void {
 }
 
 export function nangCap(db: DatabaseSync): void {
+  // 🔴 Bảng TRƯỚC cột: `themCot` trên một bảng chưa tồn tại thì im lặng bỏ qua.
+  for (const sql of BANG_BO_SUNG) db.exec(sql);
   for (const [bang, cot, dinhNghia] of COT_BO_SUNG) themCot(db, bang, cot, dinhNghia);
   for (const sql of CHI_MUC_SAU_KHI_THEM_COT) db.exec(sql);
   backfill(db);

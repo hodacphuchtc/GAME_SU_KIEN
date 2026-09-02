@@ -223,3 +223,35 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   Mọi cột thêm sau (`co_so_id`, `che_do`, `tro_choi`, `dai_tu`…) chỉ sống trong
   `COT_BO_SUNG` của `nang-cap.ts`. Thêm cột vào cả hai file là dựng hai nguồn sự
   thật.
+
+## Vòng Quay May Mắn — bài học theo miền (gộp vào app này 02/09/2026, ADR-011)
+
+- 🔴 **Chữ TRẮNG trên ô màu sáng là chữ VÔ HÌNH.** Trắng trên vàng `#FACC15` và trên mint
+  `#5EEAD4` đều cho **1,5:1** — không đọc được ở 1 mét, chứ đừng nói màn LCD nhìn từ 3–5 m.
+  Màu chữ phải suy từ **độ chói của nền** (`lib/vong-quay/mau-chu.ts`), không phải chọn một
+  màu rồi dùng cho mọi ô. `tests/mau-chu.test.ts` canh mọi màu trong `MAU_O_SAN` ≥ 4,2:1,
+  kèm một ca đột biến để chính bài kiểm không thành đồ trang trí.
+- 🔴 **Mã QR sinh từ `window.location.origin` mang theo cả `localhost`.** Mở màn LCD bằng
+  `localhost:3111` thì QR mã hoá `localhost`; điện thoại quét vào là trỏ về **chính nó**.
+  Trang vẫn hiện QR đẹp đẽ, không một dòng cảnh báo. Nay `man-hinh-vong-quay.tsx` hiện dải
+  vàng ngay trên màn hình kèm địa chỉ IP LAN đúng (`lib/mang/dia-chi-lan.ts` lấy từ máy chủ
+  — trình duyệt không có cách nào tự biết). Chạy qua `npm run trung-tam` thì khỏi gặp.
+- 🔴 **Máy phát tin phải phát ĐÚNG LÚC, không phải đúng chỗ.** `ket-qua-quay` phát trong
+  `quayMot` (lúc mở lượt) là màn LCD hiện thẻ "Chúc mừng — phần quà là X" trong khi vòng
+  còn đang quay: cả sảnh biết kết quả trước người đang chơi, và năm giây quay thành vô
+  nghĩa. Nó phải phát trong `ketThucLuot`, lúc vòng đã dừng.
+- 🔴 **`AudioContext` bị khoá tới khi có người CHẠM vào trang — mà màn LCD thì không ai
+  chạm suốt buổi.** Nút "Bật tiếng" nhỏ ở góc không giải quyết được: nhân viên mở màn hình
+  rồi bỏ đi. Phải là lớp phủ toàn màn hình **"▶ BẮT ĐẦU CHIẾU"** không thể bỏ qua; một cú
+  chạm đó mở khoá luôn cả toàn màn hình lẫn `wakeLock`. Trên điện thoại thì cú chạm vào
+  nút QUAY chính là cử chỉ đó — nhưng phải gọi `moKhoa()` **trước** `await`, hoãn sang sau
+  là trình duyệt không còn coi đó là tương tác người dùng.
+- 🔴 **Hai màn hình phải dùng CHUNG một gốc thời gian.** LCD quy đổi từ mốc máy chủ còn
+  điện thoại lấy `performance.now()` ⇒ LCD luôn chạy trước 0,1–0,5 giây, hai vòng lệch pha
+  suốt ván. Cả hai phải đo lệch đồng hồ qua `/api/gio` và cùng quy về mốc máy chủ.
+- 🔴 **`lech = 0` khi CHƯA đo xong là một phép đo giả.** `doLechDongHo()` bất đồng bộ; tin
+  quay tới trước khi nó xong mà tin vào số 0 thì máy lệch đồng hồ 30 giây sẽ làm vòng đứng
+  im nửa phút hoặc nhảy thẳng tới đích. Giữ cờ `daDoRef` và lấy "bây giờ" làm gốc khi chưa đo.
+- **Trần giải mỗi ngày: cấp CHƯƠNG TRÌNH là cột CHẾT, cấp Ô là thật.**
+  `chuong_trinh.tran_giai_moi_ngay` không có một dòng code nào áp dụng — cố ý KHÔNG đưa lên
+  form tạo Vòng Quay. Trần thật là `o_qua.tran_moi_ngay`, được `conPhatDuoc()` áp ở mỗi lượt.

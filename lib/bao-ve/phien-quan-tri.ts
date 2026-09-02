@@ -112,3 +112,30 @@ export async function docPhien(cookie: string | undefined): Promise<NoiDungPhien
 export function daCoKhoaPhien(): boolean {
   return khoaBiMat() !== null;
 }
+
+/**
+ * Thuộc tính cookie phiên — tách thành hàm THUẦN để bài kiểm soi được.
+ *
+ * 🔴 `secure` chỉ bật khi THẬT SỰ chạy HTTPS. Máy ở quầy phục vụ cả LCD lẫn điện
+ * thoại qua `http://192.168.x.x`; bật `secure` ở đó thì trình duyệt **lặng lẽ vứt
+ * cookie** — người vận hành gõ đúng mật khẩu, trang nháy một cái rồi quay về đúng
+ * màn đăng nhập, mãi mãi, và không một dòng lỗi nào giải thích.
+ *
+ * Luật này trước đây nằm rải trong `app/actions/dang-nhap.ts` nên không có gì canh.
+ * Hái về từ app Vòng Quay khi gộp (ADR-011).
+ */
+export function thuocTinhCookie(): {
+  httpOnly: true;
+  sameSite: "lax";
+  path: "/";
+  maxAge: number;
+  secure: boolean;
+} {
+  return {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: HAN_PHIEN_GIAY,
+    secure: process.env.NODE_ENV === "production" && process.env.GAME_SU_KIEN_HTTPS === "1",
+  };
+}

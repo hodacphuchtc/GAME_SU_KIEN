@@ -9,6 +9,7 @@ import {
   HAN_PHIEN_GIAY,
   kyPhien,
   TEN_COOKIE,
+  thuocTinhCookie,
 } from "@/lib/bao-ve/phien-quan-tri";
 import { kiemDangNhap } from "@/lib/nhan-vien/kho";
 import { ghiNhatKy, HANH_DONG } from "@/lib/nhat-ky/kho";
@@ -56,15 +57,7 @@ export async function dangNhapForm(
   if (!cookie) return { loi: T.vaoThieuKhoa };
 
   const kho = await cookies();
-  kho.set(TEN_COOKIE, cookie, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: HAN_PHIEN_GIAY,
-    // Chỉ bật `secure` khi thật sự chạy HTTPS: bật ở LAN (http://192.168.x.x)
-    // thì trình duyệt lặng lẽ vứt cookie và người dùng đăng nhập mãi không vào.
-    secure: process.env.NODE_ENV === "production" && process.env.GAME_SU_KIEN_HTTPS === "1",
-  });
+  kho.set(TEN_COOKIE, cookie, thuocTinhCookie());
   redirect(tiep);
 }
 

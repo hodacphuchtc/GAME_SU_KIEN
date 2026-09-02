@@ -146,9 +146,15 @@ describe("lớp CẤU TRÚC — coCot / themCot", () => {
     ).toEqual({ tro_choi: "trung_so", dai_tu: 1, dai_den: 100, loai_tru_da_ra: 0 });
   });
 
-  it("dựng đủ 9 bảng", () => {
+  // Con số này ĐỔI khi lược đồ đẻ thêm bảng — và đó là lý do nó được viết
+  // thẳng chứ không đếm động: một bảng lạ chui vào CSDL quầy phải làm bài kiểm
+  // này ĐỎ, chứ không phải được cộng vào lặng lẽ.
+  //
+  // 9 → 11 ngày 02/09/2026 (ADR-011): gộp Vòng Quay vào app này thêm `o_qua`
+  // và `luot_quay`. Luật CŨ là "một app hai game, 9 bảng"; nay là ba game.
+  it("dựng đủ 11 bảng (9 của Trúng Số + Chọn Số, 2 của Vòng Quay)", () => {
     chayNangCap();
-    expect(dem("select count(*) as n from sqlite_master where type='table' and name not like 'sqlite_%'")).toBe(9);
+    expect(dem("select count(*) as n from sqlite_master where type='table' and name not like 'sqlite_%'")).toBe(11);
   });
 });
 
@@ -281,5 +287,105 @@ describe("lớp DỮ LIỆU — chỉ chạy MỘT LẦN", () => {
     expect(Number((db2.prepare("select count(*) as n from co_so").get() as { n: number }).n)).toBe(0);
     db2.close();
     rmSync(goc2, { recursive: true, force: true });
+  });
+});
+
+
+describe("ADR-011 — hai bảng của Vòng Quay đi qua cửa nâng cấp", () => {
+  /** Tên mọi bảng đang có, để khẳng định bằng SỰ TỒN TẠI chứ không bằng "không ném". */
+  function cacBang(): string[] {
+    return (db.prepare("select name from sqlite_master where type = 'table'").all() as { name: string }[])
+      .map((r) => r.name);
+  }
+
+  it("🔴 CSDL quầy CŨ (chưa từng có o_qua/luot_quay) nhận đủ hai bảng", () => {
+    expect(cacBang()).not.toContain("o_qua");
+    chayNangCap();
+    expect(cacBang()).toContain("o_qua");
+    expect(cacBang()).toContain("luot_quay");
+  });
+
+  it("🔴 ba cột ẢNH CHỤP có mặt ngay từ đầu — thiếu chúng là sổ đối soát nói dối", () => {
+    chayNangCap();
+    for (const cot of ["cung_json", "o_ten", "o_mau"]) {
+      expect(coCot(db, "luot_quay", cot)).toBe(true);
+    }
+  });
+
+  it("chuong_trinh nhận ti_le_o_day = 0,5 và phien_ban_o = 1", () => {
+    themChuongTrinh("AAAA", "Trung tâm A");
+    chayNangCap();
+    const ct = db.prepare("select ti_le_o_day, phien_ban_o from chuong_trinh").get() as {
+      ti_le_o_day: number;
+      phien_ban_o: number;
+    };
+    expect(ct.ti_le_o_day).toBe(0.5);
+    expect(ct.phien_ban_o).toBe(1);
+  });
+
+  it("năm chỉ mục của Vòng Quay được tạo, không đụng tên chỉ mục Trúng Số", () => {
+    chayNangCap();
+    const ten = (
+      db.prepare("select name from sqlite_master where type = 'index'").all() as { name: string }[]
+    ).map((r) => r.name);
+    for (const ix of [
+      "o_theo_chuong_trinh",
+      "quay_theo_chuong_trinh",
+      "quay_theo_ngay",
+      "quay_theo_nguoi_choi",
+      "quay_theo_o",
+    ]) {
+      expect(ten).toContain(ix);
+    }
+    expect(ten).toContain("luot_theo_van");
+  });
+
+  /**
+   * 🔴 ĐÂY LÀ BÀI KIỂM CHÍNH của rủi ro R1 (ADR-011).
+   *
+   * `nangCap()` chạy MỖI LẦN khởi động máy chủ. Nếu việc thêm bảng làm dữ liệu
+   * Trúng Số đang phục vụ quầy suy suyển dù một dòng, hoặc làm `user_version`
+   * nhảy khiến bước vá dữ liệu chạy lại, thì cả ba game hỏng cùng lúc — và không
+   * có gì báo cho tới khi phụ huynh đứng trước quầy.
+   */
+  it("🔴 chạy HAI LẦN: dữ liệu Trúng Số không suy suyển, user_version không đổi", () => {
+    themChuongTrinh("AAAA", "Trung tâm A");
+    themChuongTrinh("BBBB", "Trung tâm B");
+    chayNangCap();
+
+    const truoc = {
+      van: dem("select count(*) as n from van_choi"),
+      luot: dem("select count(*) as n from luot_choi"),
+      ct: dem("select count(*) as n from chuong_trinh"),
+      coSo: dem("select count(*) as n from co_so"),
+      qua: dem("select count(*) as n from qua_tang"),
+      pb: (db.prepare("pragma user_version").get() as { user_version: number }).user_version,
+    };
+
+    chayNangCap();
+
+    expect({
+      van: dem("select count(*) as n from van_choi"),
+      luot: dem("select count(*) as n from luot_choi"),
+      ct: dem("select count(*) as n from chuong_trinh"),
+      coSo: dem("select count(*) as n from co_so"),
+      qua: dem("select count(*) as n from qua_tang"),
+      pb: (db.prepare("pragma user_version").get() as { user_version: number }).user_version,
+    }).toEqual(truoc);
+  });
+
+  it("🔴 CSDL đã CÓ SẴN o_qua với dữ liệu: chạy lại KHÔNG xoá dòng nào", () => {
+    chayNangCap();
+    themChuongTrinh("CCCC", "Trung tâm C");
+    const id = dem("select id as n from chuong_trinh where ma = 'CCCC'");
+    db.prepare(
+      `insert into o_qua (chuong_trinh_id, ten, thu_tu, so_luong, tao_luc, sua_luc)
+       values (?, 'Balo', 0, 5, 1, 1)`,
+    ).run(id);
+    chayNangCap();
+    expect(dem("select count(*) as n from o_qua")).toBe(1);
+    expect(
+      (db.prepare("select ten from o_qua").get() as { ten: string }).ten,
+    ).toBe("Balo");
   });
 });

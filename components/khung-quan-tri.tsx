@@ -118,13 +118,20 @@ function ThanhBen({ dong, laQuanTri }: { dong?: () => void; laQuanTri: boolean }
   const laKhach = duongDan.startsWith("/quan-tri/khach");
   const laNhatKy = duongDan.startsWith("/quan-tri/nhat-ky");
   const laChonSo = duongDan.startsWith("/quan-tri/chon-so");
+  const laVongQuay = duongDan.startsWith("/quan-tri/vong-quay");
+  const laChiMucGame = duongDan.startsWith("/quan-tri/game");
+  // 🔴 `dangMo` là mục Trúng Số, và nó được suy bằng phép TRỪ. Thêm một game mà
+  // quên trừ nó ra ở đây thì mở trang game mới, thanh bên tô sáng TRÚNG SỐ —
+  // đúng lỗi đã xảy ra với trang Cơ sở, nên phép trừ này mới ra đời.
   const dangMo =
     duongDan.startsWith("/quan-tri") &&
     !laCoSo &&
     !laNhanVien &&
     !laKhach &&
     !laNhatKy &&
-    !laChonSo;
+    !laChonSo &&
+    !laVongQuay &&
+    !laChiMucGame;
 
   return (
     <div className="flex h-full flex-col border-r border-ke bg-white">
@@ -133,9 +140,17 @@ function ThanhBen({ dong, laQuanTri }: { dong?: () => void; laQuanTri: boolean }
       </div>
 
       <nav className="flex-1 px-3">
-        <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-chi">
+        <Link
+          href="/quan-tri/game"
+          onClick={dong}
+          aria-current={laChiMucGame ? "page" : undefined}
+          className={[
+            "block rounded-lg px-3 pb-2 pt-1 text-[11px] font-bold uppercase tracking-[0.14em] transition",
+            laChiMucGame ? "text-tim" : "text-chi hover:text-tim",
+          ].join(" ")}
+        >
           {T.adminGroupGame}
-        </p>
+        </Link>
 
         <Link
           href="/quan-tri"
@@ -169,18 +184,21 @@ function ThanhBen({ dong, laQuanTri }: { dong?: () => void; laQuanTri: boolean }
           {T.chonSoNav}
         </Link>
 
-        {/* Game chưa làm: hiện để thấy lộ trình, nhưng KHÔNG bấm được — bấm vào
-            một trang trống còn tệ hơn không có mục nào. */}
-        <span
-          aria-disabled="true"
-          className="mt-1 flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-chi/70"
+        <Link
+          href="/quan-tri/vong-quay"
+          onClick={dong}
+          aria-current={laVongQuay ? "page" : undefined}
+          className={[
+            "relative mt-1 flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition",
+            laVongQuay ? "bg-tim-nhat text-tim" : "text-muc hover:bg-suong hover:text-tim",
+          ].join(" ")}
         >
+          {laVongQuay && (
+            <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-tim" aria-hidden="true" />
+          )}
           <BieuTuongVongQuay className="h-5 w-5 shrink-0" />
           {T.adminNavVongQuay}
-          <span className="ml-auto rounded-full bg-chi/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
-            {T.adminSapCo}
-          </span>
-        </span>
+        </Link>
         <p className="px-3 pb-2 pt-6 text-[11px] font-bold uppercase tracking-[0.14em] text-chi">
           {T.adminGroupKhach}
         </p>
