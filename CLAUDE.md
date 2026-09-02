@@ -63,6 +63,33 @@ nhất**, không phải lần cuối. Giới hạn là **1 VÁN/SĐT/ngày**, kh
 
 ## Cạm bẫy đã trả giá
 
+- **Phép kẹp `Math.min/max` quy mọi lần "hết giờ" về ĐÚNG MỘT mốc thời gian** ⇒ mọi người
+  để hết giờ đều nhận cùng một con số. Vô hại ở trò có trúng/thua, tai hại ở trò mà con số
+  chính là phần quà.
+- **Cạm bẫy "hai lượt e2e" áp cả với HAI LỆNH LIÊN TIẾP.** Chạy `npm run e2e -- <lọc>` rồi
+  `npm run e2e` ngay sau đó làm 2/20 kịch bản báo hỏng hoàn toàn oan. Chờ cổng trống hẳn.
+- **Ảnh "gần trắng" trên nền trắng VẪN hiện ra một cái hộp.** Linh vật master không có kênh
+  alpha, nền `#FCFCFC`; suy luận "chênh 3 giá trị thì mắt không thấy" **sai** — ảnh chụp cho
+  thấy một khối xám rõ mồn một. Tách nền bằng LOANG TỪ MÉP (không xoá theo màu: robot có
+  mảng sáng gần trắng, xoá theo màu là đục thủng chính nó), giữ nguyên bản master.
+- **Next 16 đã ĐỔI TÊN `middleware.ts` thành `proxy.ts`.** Đặt sai tên thì tệp không bao
+  giờ chạy, trang quản trị mở toang, và KHÔNG có một dòng lỗi nào. Tài liệu nằm sẵn trong
+  `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/` — đọc ở đó,
+  đừng dựa vào trí nhớ.
+- **React dọn form sau mỗi lần chạy server action.** Ô không kiểm soát bị xoá trắng khi
+  form báo lỗi — phụ huynh gõ nhầm số điện thoại một lần là mất luôn họ tên vừa nhập rồi
+  bỏ cuộc. Dùng ô có kiểm soát cho mọi form người lạ phải điền tại quầy.
+- **Mở `DatabaseSync` vào một đường dẫn KHÔNG tồn tại là TẠO ra tệp rỗng.** Một lệnh chẩn
+  đoán gõ nhầm đường dẫn đẻ ra `dem-so.db` 0 byte, rồi hàm đổi tên mang đúng tệp rỗng đó
+  đặt vào chỗ CSDL thật — app vẫn khởi động, trang vẫn mở, **trắng trơn, không một dòng báo
+  lỗi**. Đã vá: chỉ đổi tên khi nguồn thật sự có bảng của mình. Bài học rộng hơn: **lệnh
+  chẩn đoán cũng ghi được vào đĩa** — đọc dữ liệu thì mở `{ readOnly: true }`.
+- **`pkill -f "next start -p 3111"` KHÔNG khớp tiến trình nào.** Tên thật là `next-server`.
+  Máy chủ cũ sống sót, giữ cổng, và trả lời curl của bài nghiệm thu ⇒ kết luận sai về code
+  mới. Kill theo PID (`ps aux | grep next-server`), và kiểm `lsof -iTCP:<cổng>` trước khi tin.
+
+<!-- ↑ dời từ CLAUDE.md gốc 02/09/2026: đây là bài học theo MIỀN, không đúng cho mọi dự án -->
+
 - **Đừng bật `trailingSlash`** — nó khiến `/api/gio` bị chuyển hướng 308, thêm một lượt
   đi–về vào đúng phép đo độ lệch đồng hồ, làm hỏng chính thứ nó đang đo.
 - **Trạm phát và kết nối CSDL phải giữ ở `globalThis`** — `next dev` nạp lại module mỗi lần
