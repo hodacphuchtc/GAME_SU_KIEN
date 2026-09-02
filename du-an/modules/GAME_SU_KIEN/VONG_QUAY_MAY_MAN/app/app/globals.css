@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/*
+ * Bảng màu lấy từ `config/thuong-hieu.ts` — HAI NƠI PHẢI KHỚP NHAU.
+ * Tailwind cần giá trị tĩnh lúc dựng nên không import TS vào đây được; đổi màu
+ * thì sửa CẢ HAI file.
+ */
+@theme {
+  /*
+   * 🔴 Bắt buộc: Tailwind map class `font-sans` sang biến này. Thiếu nó thì
+   * `layout.tsx` có nạp Be Vietnam Pro cũng vô ích — trang rơi về font hệ
+   * thống mà không một dòng lỗi nào, và dấu tiếng Việt hiển thị xấu hơn hẳn.
+   */
+  --font-sans: var(--font-chinh), ui-sans-serif, system-ui, sans-serif;
+
+  --color-tim: #6b21a8;
+  --color-tim-nhat: #f3e8ff;
+  --color-cam: #f97316;
+  --color-mint: #5eead4;
+  --color-vang: #facc15;
+  --color-neon: #a855f7;
+  --color-muc: #1e1b2e;
+  --color-chi: #6b6880;
+  --color-suong: #f5f3fa;
+  --color-ke: #e7e3f0;
+  --color-luc: #16a34a;
+  --color-do: #dc2626;
+}
+
+html,
+body {
+  background: var(--color-suong);
+  color: var(--color-muc);
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  -webkit-user-select: none;
+  user-select: none;
+  /* Vòng quay là trò bấm một nhát — chặn zoom hai-chạm cho khỏi bấm hụt. */
+  touch-action: manipulation;
+}
+
+/*
+ * Nút KHÔNG được nhấp nháy bằng `transform: scale` — nó làm xê dịch vùng chạm,
+ * người chơi bấm hụt mà không hiểu vì sao. Nhấp nháy bằng quầng sáng.
+ * Bài học đã trả giá ở app Trúng Số.
+ */

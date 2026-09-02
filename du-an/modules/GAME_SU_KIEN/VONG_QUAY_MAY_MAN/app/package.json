@@ -1,0 +1,36 @@
+{
+  "name": "vong-quay-may-man",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3200",
+    "dev:dienthoai": "next dev -H 0.0.0.0 -p 3200",
+    "build": "next build",
+    "start": "next start -p 3210",
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bang-tra": "VQ_IN_BANG=1 vitest run tests/cong-bang.test.ts --disable-console-intercept",
+    "bam-mat-khau": "node scripts/bam-mat-khau.mjs",
+    "sao-luu": "node scripts/sao-luu.mjs",
+    "e2e": "node tests/e2e/chay.mjs"
+  },
+  "dependencies": {
+    "next": "16.3.3",
+    "qrcode": "^1.5.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^24.13.3",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.3",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^4.1.11"
+  }
+}
