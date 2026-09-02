@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { taoCoSo } from "@/lib/co-so/kho";
 import { phamViCua, quanLyDuocNhanVien, suaDuocCoSo, xemDuocNhatKy } from "@/lib/bao-ve/quyen";
 import { danhSachLead, demLead, ganLead, sinhLead, timLead } from "@/lib/lead/kho";
+import { taoChuongTrinh, timTheoMaBatKeTroChoi } from "@/lib/chuong-trinh/kho";
 import { danhSachNhanVien, datTrangThaiNhanVien, themNhanVien } from "@/lib/nhan-vien/kho";
 import { nhanDien } from "@/lib/nguoi-choi/nhan-dien";
 import { dungCsdlTam } from "./ho-tro/csdl-tam";
@@ -150,5 +151,53 @@ describe("cho nghỉ chứ không xoá", () => {
     // Người đó vẫn còn trong danh sách, chỉ đổi trạng thái.
     const nv = danhSachNhanVien().find((n) => n.id === saleCs1)!;
     expect(nv.trangThai).toBe("da_nghi");
+  });
+});
+
+describe("🔴 R2 — cửa TẮT/BẬT chương trình phải lọc phạm vi", () => {
+  /**
+   * Đây là cửa DÙNG CHUNG của cả ba game, và trước bản vá nó KHÔNG đọc phiên,
+   * KHÔNG lọc phạm vi. Lớp chắn duy nhất là `proxy.ts` — mà nó chỉ hỏi "đã đăng
+   * nhập chưa", không hỏi "được đụng dữ liệu của ai". Nghĩa là một sale của Cơ sở
+   * 1 gọi được hành động tắt chương trình đang phục vụ khách của Cơ sở 2.
+   *
+   * Đúng vết sẹo đã ghi ở `CLAUDE.md`: "đã có lớp chặn ở cửa" KHÔNG có nghĩa là
+   * từng phòng đã khoá.
+   *
+   * Kiểm ở TẦNG KHO (`timTheoMaBatKeTroChoi`) vì đó là nơi phép lọc thật sự xảy
+   * ra; server action chỉ là lớp mỏng gọi xuống đây rồi `redirect`.
+   */
+  function ctCua(coSoId: number, troChoi: "trung_so" | "chon_so" | "vong_quay") {
+    return taoChuongTrinh({
+      tenTrungTam: `CT ${troChoi}`,
+      coSoId,
+      soTrung: 7,
+      mucDo: "vua",
+      tenGiaiThuong: "Quà",
+      tranGiaiMoiNgay: 0,
+      troChoi,
+    });
+  }
+
+  it("🔴 sale cơ sở A KHÔNG mở được chương trình cơ sở B — cả ba game", () => {
+    const saleCs1 = phamViCua({ id: 1, vaiTro: "sale", coSoId: cs1 });
+    for (const tc of ["trung_so", "chon_so", "vong_quay"] as const) {
+      const ct = ctCua(cs2, tc);
+      expect(timTheoMaBatKeTroChoi(ct.ma, saleCs1)).toBeNull();
+    }
+  });
+
+  it("sale mở được chương trình CỦA CHÍNH cơ sở mình, bất kể game", () => {
+    const saleCs1 = phamViCua({ id: 1, vaiTro: "sale", coSoId: cs1 });
+    for (const tc of ["trung_so", "chon_so", "vong_quay"] as const) {
+      const ct = ctCua(cs1, tc);
+      expect(timTheoMaBatKeTroChoi(ct.ma, saleCs1)?.ma).toBe(ct.ma);
+    }
+  });
+
+  it("quản trị toàn hệ thống mở được của mọi cơ sở", () => {
+    const quanTri = phamViCua({ id: 9, vaiTro: "quan_tri", coSoId: null });
+    const ct = ctCua(cs2, "vong_quay");
+    expect(timTheoMaBatKeTroChoi(ct.ma, quanTri)?.ma).toBe(ct.ma);
   });
 });

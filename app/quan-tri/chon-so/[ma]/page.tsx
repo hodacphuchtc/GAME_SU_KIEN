@@ -10,6 +10,7 @@ import { coDai, nhipCua } from "@/lib/chon-so/vong-so";
 import { soConLai } from "@/lib/tro-choi/luat-chon-so";
 import { NutBatTat } from "@/components/nut-bat-tat";
 import { NutIn } from "@/components/nut-in";
+import { NutManHinh } from "@/components/nut-man-hinh";
 import { BangLichSuChonSo } from "@/components/bang-lich-su-chon-so";
 import { FormSuaChonSo } from "@/components/form-sua-chon-so";
 import { DAI_TOI_DA } from "@/config/chon-so";
@@ -67,7 +68,11 @@ export default async function TrangChiTietChonSo({
             {ct.ma} · {ct.tenTrungTam}
           </p>
         </div>
-        <NutBatTat ma={ct.ma} dangChay={ct.trangThai === "dang_chay"} />
+        <div className="khong-in flex flex-wrap items-center gap-3">
+          <NutIn />
+          <NutManHinh ma={ct.ma} />
+          <NutBatTat ma={ct.ma} dangChay={ct.trangThai === "dang_chay"} />
+        </div>
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -88,7 +93,10 @@ export default async function TrangChiTietChonSo({
       )}
 
       <section className="mt-8 rounded-2xl border border-ke bg-white p-6 text-center">
-        <h2 className="text-lg font-black text-muc">{T.detailQr}</h2>
+        <h2 className="khong-in text-lg font-black text-muc">{T.detailQr}</h2>
+        {/* Chỉ hiện TRÊN GIẤY: tờ QR dán ở quầy phải nói rõ nó của cơ sở nào, nếu
+            không thì ba tờ của ba cơ sở trông y hệt nhau. */}
+        <p className="chi-in text-center text-2xl font-black text-muc">{ct.tenTrungTam}</p>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={anhQr}
@@ -96,9 +104,6 @@ export default async function TrangChiTietChonSo({
           className="mx-auto mt-4 h-64 w-64 rounded-2xl bg-white sm:h-72 sm:w-72"
         />
         <p className="khong-in mt-3 text-center text-xs text-chi">{T.detailQrHint}</p>
-        <div className="khong-in mt-4 flex justify-center">
-          <NutIn />
-        </div>
       </section>
 
       <FormSuaChonSo

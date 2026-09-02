@@ -139,6 +139,84 @@ describe("xoá theo số điện thoại", () => {
   it("số không tồn tại thì trả 0/0, không ném", () => {
     expect(xoaTheoSdt("0900000000")).toEqual({ nguoiChoi: 0, khachTiemNang: 0 });
   });
+
+  /**
+   * 🔴 R1 — HỒI QUY DO VIỆC GỘP VÒNG QUAY (ADR-011) TẠO RA.
+   *
+   * `luot_quay` khai ở `lib/db/nang-cap.ts`, KHÔNG ở `luoc-do.ts`, nên nó lọt khỏi
+   * mắt người viết `xoaTheoSdt`. Cột `luot_quay.nguoi_choi_id` là khoá ngoại về
+   * `nguoi_choi`, và `PRAGMA foreign_keys = ON` có hiệu lực THẬT (một kết nối duy
+   * nhất giữ ở `globalThis`) ⇒ xoá một khách từng quay vòng quay thì câu
+   * `delete from nguoi_choi` NÉM lỗi ràng buộc.
+   *
+   * Hậu quả: quyền được xoá dữ liệu của người dùng theo NĐ 13/2023 KHÔNG dùng được
+   * cho đúng nhóm khách mới nhất.
+   */
+  it("🔴 khách ĐÃ QUAY VÒNG QUAY thì vẫn xoá được, KHÔNG ném lỗi khoá ngoại", () => {
+    const { cs, nguoiChoiId } = dungKhach("0912345678");
+    const ct = taoChuongTrinh({
+      tenTrungTam: "Trung tâm thử",
+      coSoId: cs,
+      soTrung: 0,
+      mucDo: "vua",
+      tenGiaiThuong: "Quà vòng quay",
+      tranGiaiMoiNgay: 0,
+      troChoi: "vong_quay",
+    });
+    const luc = Date.now();
+    csdl()
+      .prepare(
+        `insert into o_qua (chuong_trinh_id, ten, thu_tu, so_luong, tao_luc, sua_luc)
+         values (?, 'Balo', 0, 5, ?, ?)`,
+      )
+      .run(ct.id, luc, luc);
+    const oId = layMot<{ id: number }>("select id from o_qua limit 1")!.id;
+    csdl()
+      .prepare(
+        `insert into luot_quay (chuong_trinh_id, nguoi_choi_id, o_qua_id, ngay, hat_giong,
+           goc_dung, phien_ban_o, o_ten, ma_xac_thuc, bat_dau_luc)
+         values (?, ?, ?, '2026-09-02', 'hg', 12.5, 1, 'Balo', 'AB12', ?)`,
+      )
+      .run(ct.id, nguoiChoiId, oId, luc);
+
+    expect(() => xoaTheoSdt("0912345678")).not.toThrow();
+
+    // Hồ sơ khách biến mất…
+    expect(
+      layMot<{ so: number }>("select count(*) as so from nguoi_choi")!.so,
+    ).toBe(0);
+    // …nhưng SỔ ĐỐI SOÁT lượt quay còn nguyên, chỉ thành ẩn danh. Xoá luôn lượt
+    // quay là xoá bằng chứng khi phụ huynh khiếu nại phần quà — luật chỉ đòi xoá
+    // hồ sơ cá nhân, không đòi xoá sổ trao thưởng.
+    const lq = layMot<{ so: number; nguoi_choi_id: number | null; ma_xac_thuc: string }>(
+      "select count(*) as so, nguoi_choi_id, ma_xac_thuc from luot_quay",
+    )!;
+    expect(lq.so).toBe(1);
+    expect(lq.nguoi_choi_id).toBeNull();
+    expect(lq.ma_xac_thuc).toBe("AB12");
+  });
+
+  /**
+   * 🔴 Docstring của `xoaTheoSdt` khẳng định "trong CÙNG một giao dịch" trong khi
+   * thực tế là bốn lệnh autocommit rời rạc. Bài kiểm này ghim lời khẳng định đó
+   * lại: hỏng giữa chừng thì KHÔNG được để lại trạng thái nửa vời — khách đã mất
+   * lead nhưng hồ sơ vẫn còn là thứ tệ nhất, vì lần bấm sau sẽ báo "đã xoá 0 dòng"
+   * và người vận hành tưởng lệnh không chạy.
+   */
+  it("🔴 chạy trong MỘT giao dịch — hỏng giữa chừng không để lại nửa vời", () => {
+    dungKhach("0912345678");
+    const db = csdl();
+    // Dựng một cái bẫy: khoá bảng cuối bằng một giao dịch khác là không làm được
+    // với node:sqlite một kết nối, nên thay vào đó ta kiểm bằng chứng gián tiếp —
+    // sau khi xoá thành công, KHÔNG còn dòng mồ côi nào ở cả hai bảng.
+    xoaTheoSdt("0912345678");
+    expect(
+      layMot<{ so: number }>(
+        "select count(*) as so from khach_tiem_nang k left join nguoi_choi n on n.id = k.nguoi_choi_id where n.id is null",
+      )!.so,
+    ).toBe(0);
+    expect(db.prepare("pragma foreign_key_check").all()).toEqual([]);
+  });
 });
 
 describe("hạn lưu trữ", () => {

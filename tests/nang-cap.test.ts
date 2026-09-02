@@ -152,9 +152,10 @@ describe("lớp CẤU TRÚC — coCot / themCot", () => {
   //
   // 9 → 11 ngày 02/09/2026 (ADR-011): gộp Vòng Quay vào app này thêm `o_qua`
   // và `luot_quay`. Luật CŨ là "một app hai game, 9 bảng"; nay là ba game.
-  it("dựng đủ 11 bảng (9 của Trúng Số + Chọn Số, 2 của Vòng Quay)", () => {
+  // 11 → 12 ngày 02/09/2026: thêm `nguoi_choi_thay_doi` (sổ thay đổi hồ sơ khách).
+  it("dựng đủ 12 bảng (9 của Trúng Số + Chọn Số, 2 của Vòng Quay, 1 sổ thay đổi)", () => {
     chayNangCap();
-    expect(dem("select count(*) as n from sqlite_master where type='table' and name not like 'sqlite_%'")).toBe(11);
+    expect(dem("select count(*) as n from sqlite_master where type='table' and name not like 'sqlite_%'")).toBe(12);
   });
 });
 
@@ -274,9 +275,12 @@ describe("lớp DỮ LIỆU — chỉ chạy MỘT LẦN", () => {
   // Con số này TĂNG mỗi khi thêm một bước backfill mới (v2 = GĐ 12.1 kéo cờ
   // ghi danh từ lượt lên ván). Cố ý viết thẳng số chứ không import hằng số:
   // import vào thì bài test tự khớp với chính nó và không canh được gì nữa.
-  it("user_version được nâng lên 2", () => {
+  // 2 → 3 ngày 02/09/2026: thêm backfill v3 (quy chuẩn đầu số 11 số + gộp hồ sơ
+  // trùng). Số viết THẲNG, cố ý không import `PHIEN_BAN_DU_LIEU` — import vào thì
+  // bài kiểm tự khớp với chính nó và không canh được gì.
+  it("user_version được nâng lên 3", () => {
     chayNangCap();
-    expect((db.prepare("pragma user_version").get() as { user_version: number }).user_version).toBe(2);
+    expect((db.prepare("pragma user_version").get() as { user_version: number }).user_version).toBe(3);
   });
 
   it("CSDL TRẮNG chạy trót lọt, 0 cơ sở, không ném", () => {
@@ -387,5 +391,93 @@ describe("ADR-011 — hai bảng của Vòng Quay đi qua cửa nâng cấp", ()
     expect(
       (db.prepare("select ten from o_qua").get() as { ten: string }).ten,
     ).toBe("Balo");
+  });
+});
+
+describe("🔴 v3 — quy chuẩn đầu số 11 số và GỘP hồ sơ trùng", () => {
+  /** Chèn thẳng vào `nguoi_choi` để dựng đúng thứ CSDL cũ đang có: hai hồ sơ,
+   *  hai dạng số, cùng một thuê bao. `nhanDien` bây giờ đã chặn ca này rồi. */
+  function themNguoi(sdt: string, ten: string, dongY = 0, quanTam = 0): number {
+    db.prepare(
+      `insert into nguoi_choi (so_dien_thoai, ho_ten, dong_y_tu_van, quan_tam_hoc_thu, tao_luc, sua_luc)
+       values (?, ?, ?, ?, ?, ?)`,
+    ).run(sdt, ten, dongY, quanTam, 1000, 1000);
+    return Number(dem("select last_insert_rowid() as n"));
+  }
+
+  it("🔴 hai dạng của một thuê bao gộp thành MỘT hồ sơ, giữ bản id nhỏ hơn", () => {
+    const cu = themNguoi("01629123456", "Hoa");
+    themNguoi("0329123456", "Nguyễn Thị Hoa");
+    chayNangCap();
+
+    expect(dem("select count(*) as n from nguoi_choi")).toBe(1);
+    const con = db.prepare("select id, so_dien_thoai from nguoi_choi").get() as {
+      id: number;
+      so_dien_thoai: string;
+    };
+    expect(con.id).toBe(cu);
+    expect(con.so_dien_thoai).toBe("0329123456");
+  });
+
+  it("🔴 cờ đồng ý tư vấn KHÔNG mất khi gộp — nó là căn cứ pháp lý để gọi điện", () => {
+    themNguoi("01629123456", "Hoa", 0);
+    themNguoi("0329123456", "Hoa", 1);
+    chayNangCap();
+    expect(
+      Number((db.prepare("select dong_y_tu_van as v from nguoi_choi").get() as { v: number }).v),
+    ).toBe(1);
+  });
+
+  it("🔴 đủ BỐN bảng được trỏ lại — luot_quay là bảng dễ sót nhất", () => {
+    const bo = themNguoi("01629123456", "Hoa");
+    const giu = themNguoi("0329123456", "Hoa");
+    themChuongTrinh("AAAA", "Trung tâm A");
+    chayNangCap();
+    // Sau nâng cấp, chèn dữ liệu tham chiếu tới hồ sơ ĐÃ BỊ GỘP là không còn được;
+    // nên dựng trước bằng cách chạy nâng cấp rồi kiểm không còn dòng mồ côi nào.
+    expect(db.prepare("pragma foreign_key_check").all()).toEqual([]);
+    expect(dem("select count(*) as n from nguoi_choi")).toBe(1);
+    expect(giu).toBeGreaterThan(bo);
+  });
+
+  it("đầu số 11 số KHÔNG trong bảng thì giữ nguyên, không gộp bừa", () => {
+    themNguoi("01779123456", "Người A");
+    themNguoi("0779123456", "Người B");
+    chayNangCap();
+    expect(dem("select count(*) as n from nguoi_choi")).toBe(2);
+  });
+
+  it("🔴 chạy HAI LẦN không đổi gì thêm", () => {
+    themNguoi("01629123456", "Hoa");
+    themNguoi("0329123456", "Hoa");
+    chayNangCap();
+    const truoc = {
+      nguoi: dem("select count(*) as n from nguoi_choi"),
+      pb: (db.prepare("pragma user_version").get() as { user_version: number }).user_version,
+    };
+    chayNangCap();
+    expect({
+      nguoi: dem("select count(*) as n from nguoi_choi"),
+      pb: (db.prepare("pragma user_version").get() as { user_version: number }).user_version,
+    }).toEqual(truoc);
+  });
+
+  it("CSDL không có hồ sơ nào trùng thì v3 là NO-OP (đúng dữ liệu quầy hôm nay)", () => {
+    themNguoi("0912345678", "A");
+    themNguoi("0987654321", "B");
+    chayNangCap();
+    expect(dem("select count(*) as n from nguoi_choi")).toBe(2);
+    expect(dem("select count(*) as n from nhat_ky_truy_cap where hanh_dong = 'gop_khach'")).toBe(0);
+  });
+
+  it("có gộp thì GHI NHẬT KÝ, và KHÔNG ghi số điện thoại vào đó", () => {
+    themNguoi("01629123456", "Hoa");
+    themNguoi("0329123456", "Hoa");
+    chayNangCap();
+    const nk = db
+      .prepare("select doi_tuong, so_dong from nhat_ky_truy_cap where hanh_dong = 'gop_khach'")
+      .get() as { doi_tuong: string; so_dong: number };
+    expect(nk.so_dong).toBe(1);
+    expect(nk.doi_tuong).not.toMatch(/\d{9,}/);
   });
 });

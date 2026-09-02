@@ -1,6 +1,7 @@
 import "server-only";
 
 import { chay, layMot, layNhieu } from "@/lib/db/truy-van";
+import { csdl } from "@/lib/db/ket-noi";
 import { ngayVietNam } from "@/lib/db/thoi-gian";
 
 /**
@@ -117,6 +118,13 @@ export interface KetQuaXoa {
  * `van_choi.nguoi_choi_id` chỉ là tham chiếu thường (không CASCADE): lịch sử
  * ván chơi GIỮ LẠI nhưng thành ẩn danh. Xoá luôn cả ván là xoá sổ đối soát giải
  * thưởng đã trao — hai thứ khác nhau, và luật chỉ đòi thứ nhất.
+ *
+ * 🔴 PHẢI GỠ THAM CHIẾU Ở **BỐN** BẢNG, không phải hai. `luot_quay` (game Vòng
+ * Quay, ADR-011) khai ở `lib/db/nang-cap.ts` chứ KHÔNG ở `luoc-do.ts`, nên nó
+ * lọt khỏi mắt khi đọc lược đồ. Quên nó thì câu `delete from nguoi_choi` NÉM
+ * "FOREIGN KEY constraint failed" với bất kỳ ai từng quay vòng quay — tức là
+ * quyền xoá dữ liệu theo NĐ 13/2023 hỏng đúng với nhóm khách mới nhất.
+ * Thêm bảng mới có `nguoi_choi_id` thì phải thêm một dòng vào đây.
  */
 export function xoaTheoSdt(sdt: string): KetQuaXoa {
   const nguoi = layMot<{ id: number }>(
@@ -131,10 +139,24 @@ export function xoaTheoSdt(sdt: string): KetQuaXoa {
       nguoi.id,
     )?.so ?? 0;
 
-  chay("update van_choi set nguoi_choi_id = null where nguoi_choi_id = ?", nguoi.id);
-  chay("update luot_choi set nguoi_choi_id = null where nguoi_choi_id = ?", nguoi.id);
-  chay("delete from khach_tiem_nang where nguoi_choi_id = ?", nguoi.id);
-  const soNguoi = chay("delete from nguoi_choi where id = ?", nguoi.id);
+  // 🔴 MỘT giao dịch cho cả bốn câu. Docstring trên đã hứa điều đó từ lâu trong
+  // khi thực tế là bốn lệnh autocommit rời rạc: hỏng ở câu thứ ba thì khách mất
+  // lead nhưng hồ sơ vẫn còn, và lần bấm sau báo "đã xoá 0 dòng" khiến người vận
+  // hành tưởng lệnh không chạy.
+  const db = csdl();
+  db.exec("BEGIN IMMEDIATE");
+  let soNguoi: number;
+  try {
+    chay("update van_choi set nguoi_choi_id = null where nguoi_choi_id = ?", nguoi.id);
+    chay("update luot_choi set nguoi_choi_id = null where nguoi_choi_id = ?", nguoi.id);
+    chay("update luot_quay set nguoi_choi_id = null where nguoi_choi_id = ?", nguoi.id);
+    chay("delete from khach_tiem_nang where nguoi_choi_id = ?", nguoi.id);
+    soNguoi = chay("delete from nguoi_choi where id = ?", nguoi.id);
+    db.exec("COMMIT");
+  } catch (loi) {
+    db.exec("ROLLBACK");
+    throw loi;
+  }
 
   return { nguoiChoi: soNguoi, khachTiemNang: soLead };
 }

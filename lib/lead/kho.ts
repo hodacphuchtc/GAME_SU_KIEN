@@ -1,6 +1,6 @@
 import "server-only";
 
-import { TRANG_THAI_LEAD, type TrangThaiLead } from "@/config/to-chuc";
+import { TRANG_THAI_LEAD, type TrangThaiLead, type TroChoi } from "@/config/to-chuc";
 import { chay, layMot, layNhieu } from "@/lib/db/truy-van";
 import { csdl } from "@/lib/db/ket-noi";
 import type { PhamVi } from "@/lib/bao-ve/quyen";
@@ -30,6 +30,20 @@ export interface Lead {
   taoLuc: number;
   suaLuc: number;
   chuaXacThuc: boolean;
+  /**
+   * Game của chương trình khách chơi LẦN ĐẦU. `null` khi chương trình đó đã bị xoá.
+   *
+   * 🔴 ĐÂY LÀ GAME ĐẦU TIÊN, KHÔNG PHẢI "các game đã chơi". Upsert của `sinhLead`
+   * cố ý không cập nhật `chuong_trinh_id_dau`, nên khách chơi cả ba game vẫn chỉ
+   * mang dấu vết game đầu. Nhãn trên giao diện phải nói rõ điều đó — một nhãn mơ hồ
+   * ở đây là mời người đọc kết luận sai về khách của chính mình.
+   *
+   * Muốn biết ĐỦ những game khách đã chơi thì phải tổng hợp từ `van_choi` và
+   * `luot_quay` — xem `lib/lead/lich-su-khach.ts`.
+   */
+  troChoiDau: TroChoi | null;
+  /** Tên khách TỪNG khai trước lần đổi gần nhất. `null` = chưa từng đổi. */
+  tenTungKhai: string | null;
 }
 
 interface DongLead {
@@ -47,6 +61,8 @@ interface DongLead {
   tao_luc: number;
   sua_luc: number;
   chua_xac_thuc: number;
+  tro_choi_dau: string | null;
+  ten_tung_khai: string | null;
 }
 
 function doiDong(d: DongLead): Lead {
@@ -65,6 +81,8 @@ function doiDong(d: DongLead): Lead {
     taoLuc: d.tao_luc,
     suaLuc: d.sua_luc,
     chuaXacThuc: d.chua_xac_thuc === 1,
+    troChoiDau: (d.tro_choi_dau as TroChoi | null) ?? null,
+    tenTungKhai: d.ten_tung_khai,
   };
 }
 
@@ -73,11 +91,22 @@ const CAU_CHON = `
          k.tao_luc, k.sua_luc, k.chua_xac_thuc,
          n.ho_ten, n.so_dien_thoai, n.dong_y_tu_van,
          nv.ho_ten as ten_nhan_vien,
-         cs.ten     as ten_co_so
+         cs.ten     as ten_co_so,
+         ct.tro_choi as tro_choi_dau,
+         -- Tên cũ gần nhất, để tab khách hiện một dòng tóm tắt cạnh ô ghi chú của
+         -- SALE. Truy vấn con chứ không join: mỗi khách chỉ cần MỘT dòng sổ.
+         (select t.gia_tri_cu from nguoi_choi_thay_doi t
+           where t.nguoi_choi_id = n.id and t.truong = 'ho_ten'
+           order by t.luc desc, t.id desc limit 1) as ten_tung_khai
     from khach_tiem_nang k
     join nguoi_choi n   on n.id  = k.nguoi_choi_id
     left join nhan_vien nv on nv.id = k.nhan_vien_id
-    left join co_so cs     on cs.id = k.co_so_id`;
+    left join co_so cs     on cs.id = k.co_so_id
+    -- LEFT join: chuong_trinh_id_dau là ON DELETE SET NULL, và đó là ĐIỀU KIỆN của
+    -- tính năng xoá chương trình — khách tiềm năng KHÔNG được mất theo. Dùng join
+    -- thường ở đây là làm biến mất chính những khách cũ nhất.
+    -- (CẤM ký tự backtick trong chú thích SQL: nó kết thúc sớm chuỗi mẫu này.)
+    left join chuong_trinh ct on ct.id = k.chuong_trinh_id_dau`;
 
 /**
  * Các điều kiện của phạm vi, kèm tham số.
@@ -124,6 +153,14 @@ function chanPhamVi(pv: PhamVi): { sql: string; tham: number[] } {
 export interface BoLocLead {
   coSoId?: number | null;
   chuongTrinhId?: number | null;
+  /**
+   * Lọc theo GAME của chương trình khách chơi lần ĐẦU.
+   *
+   * Khác `chuongTrinhId` (một chương trình cụ thể) — cái này gom cả ba đợt Trúng
+   * Số về một nhóm. Đội sale hỏi "khách nào đến từ vòng quay", không hỏi "khách
+   * nào đến từ chương trình LWRD".
+   */
+  troChoi?: TroChoi | null;
   trangThai?: TrangThaiLead | null;
   nhanVienId?: number | null;
   /** Chỉ lấy khách CHƯA giao cho ai. */
@@ -145,6 +182,12 @@ function themDieuKien(loc: BoLocLead): { dieu: string[]; tham: (number | string)
   if (loc.chuongTrinhId != null) {
     dieu.push("k.chuong_trinh_id_dau = ?");
     tham.push(loc.chuongTrinhId);
+  }
+  if (loc.troChoi != null) {
+    // Giá trị đến từ union kiểu TroChoi, không từ người dùng — nhưng vẫn dùng
+    // tham số ràng buộc chứ không nội suy, để không ai bắt chước sai chỗ khác.
+    dieu.push("ct.tro_choi = ?");
+    tham.push(loc.troChoi);
   }
   if (loc.trangThai != null) {
     dieu.push("k.trang_thai = ?");

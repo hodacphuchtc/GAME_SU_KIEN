@@ -14,6 +14,7 @@ import { timCoSo } from "@/lib/co-so/kho";
 import { SO_LAN_CHOI } from "@/config/to-chuc";
 import { lichSu, soGiaiHomNay } from "@/lib/luot/kho-luot";
 import { NutIn } from "@/components/nut-in";
+import { NutManHinh } from "@/components/nut-man-hinh";
 import { NutBatTat } from "@/components/nut-bat-tat";
 import { KhoQua } from "@/components/kho-qua";
 import { danhSachQua } from "@/lib/qua/kho-qua";
@@ -96,14 +97,7 @@ export default async function TrangChiTiet({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <NutIn />
-          <a
-            href={`/man-hinh/${ct.ma}`}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-xl bg-tim px-5 py-3 text-sm font-black text-white"
-          >
-            {T.detailOpenScreen}
-          </a>
+          <NutManHinh ma={ct.ma} />
           <NutBatTat ma={ct.ma} dangChay={dangChay} />
         </div>
       </div>

@@ -217,7 +217,7 @@ export async function nhanDienNguoiChoi(
   const coSo = phanGiaiCoSo(ct, coSoKhai);
   if ("loi" in coSo) return { ok: false, loi: coSo.loi };
 
-  const kq = nhanDien(hoTen, soDienThoai, dongYTuVan);
+  const kq = nhanDien(hoTen, soDienThoai, dongYTuVan, ct.id);
   if (!kq.nguoiChoi) return { ok: false, loi: kq.loi };
 
   // Số của người chơi online là số họ TỰ GÕ, chưa có mã xác minh nào (xem N.9).

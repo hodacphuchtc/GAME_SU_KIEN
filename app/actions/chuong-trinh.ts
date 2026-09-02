@@ -18,9 +18,11 @@ import {
   anChuongTrinh,
   demRangBuoc,
   doiTrangThai,
+  duongDanQuanTri,
   suaChuongTrinh,
   taoChuongTrinh,
   timTheoMa,
+  timTheoMaBatKeTroChoi,
   xoaChuongTrinh,
   type TrangThaiChuongTrinh,
 } from "@/lib/chuong-trinh/kho";
@@ -117,11 +119,26 @@ export async function datTrangThaiChuongTrinh(
   ma: string,
   trangThai: TrangThaiChuongTrinh,
 ): Promise<void> {
+  // 🔴 KIỂM QUYỀN Ở ĐÂY. Lớp chắn `proxy.ts` chỉ hỏi "đã đăng nhập chưa", KHÔNG
+  // hỏi "được đụng dữ liệu của ai" — thiếu dòng này thì sale cơ sở A tắt được
+  // chương trình đang phục vụ khách của cơ sở B, và không một dòng lỗi nào.
+  const nguoi = await nguoiDangDangNhap();
+  if (!nguoi) redirect("/quan-tri/vao");
+
+  // `timTheoMaBatKeTroChoi` được viết đúng cho cửa DÙNG CHUNG này: nó lọc phạm vi
+  // nhưng không lọc game, vì tắt/bật làm cùng một việc với cả ba game.
+  const ct = timTheoMaBatKeTroChoi(ma, phamViCua(nguoi));
+  // Không thấy = không được thấy. Trả 404 chứ không 403 — không xác nhận sự tồn
+  // tại của thứ họ không có quyền xem.
+  if (!ct) redirect("/quan-tri");
+
   doiTrangThai(ma, trangThai);
   // Gỡ người đang kẹt ở màn "Chưa chơi được" mà không bắt họ tải lại trang.
   phat(ma, { loai: "trang-thai", dangChay: trangThai === "dang_chay" });
   revalidatePath("/quan-tri");
-  redirect(`/quan-tri/chuong-trinh/${ma}`);
+  // 🔴 Đường về theo ĐÚNG GAME. Trước đây viết cứng route Trúng Số, nên tắt một
+  // chương trình Chọn Số xong là rơi vào 404.
+  redirect(duongDanQuanTri(ct.troChoi, ct.ma));
 }
 
 export interface KetQuaSua {

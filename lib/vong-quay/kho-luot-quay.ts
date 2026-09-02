@@ -1,8 +1,6 @@
 import "server-only";
 
 import { chay, layMot, layNhieu } from "@/lib/db/truy-van";
-import { cheSdt } from "@/lib/nguoi-choi/so-dien-thoai";
-import { tenRutGon } from "@/lib/nguoi-choi/nhan-dien";
 import type { Cung } from "@/lib/vong-quay/chia-o";
 
 /**
@@ -14,10 +12,23 @@ import type { Cung } from "@/lib/vong-quay/chia-o";
 export interface DongLichSu {
   id: number;
   luc: number;
-  /** Tên RÚT GỌN: "Nguyễn Thị Hoa" → "Nguyễn H." */
-  tenRutGon: string;
-  /** Số điện thoại đã CHE: `09*****678`. */
-  sdtChe: string;
+  hoTen: string | null;
+  /**
+   * Số điện thoại ĐẦY ĐỦ.
+   *
+   * 🔴 Đổi 02/09/2026: trước đây hàm này che ngay ở tầng SQL (`tenRutGon` +
+   * `sdtChe`). Hai bảng lịch sử của Trúng Số và Chọn Số thì trả thô rồi che ở
+   * trình duyệt kèm nút "Hiện đầy đủ". Hai kiểu che khác nhau trên cùng một màn
+   * quản trị là bắt nhân viên nhớ hai luật — anh Phúc đã chốt đồng bộ theo hai
+   * game kia.
+   *
+   * ⚠️ Cái GIÁ của quyết định đó, ghi thẳng: số đầy đủ nay nằm trong HTML gửi
+   * xuống trình duyệt, ai mở công cụ nhà phát triển là đọc được dù chưa bấm nút.
+   * Đây là lớp chống NGƯỜI LIẾC QUA VAI ở quầy, KHÔNG phải chống kẻ tấn công —
+   * đúng như `cheSdt` đã ghi. Hàng rào thật vẫn là `phamViCua` ở tầng SQL.
+   */
+  soDienThoai: string | null;
+  dongYTuVan: boolean;
   oTen: string | null;
   oMau: string | null;
   maXacThuc: string | null;
@@ -30,6 +41,7 @@ interface Dong {
   bat_dau_luc: number;
   ho_ten: string | null;
   so_dien_thoai: string | null;
+  dong_y_tu_van: number | null;
   o_ten: string | null;
   o_mau: string | null;
   ma_xac_thuc: string | null;
@@ -47,14 +59,14 @@ interface Dong {
  * `coalesce` sang bảng ô chỉ để cứu những dòng ghi TRƯỚC khi có cột ảnh chụp;
  * dòng mới không bao giờ rơi vào nhánh đó.
  *
- * 🔴 Trả về tên RÚT GỌN và số ĐÃ CHE, không phải dữ liệu thô. Màn hình quản trị
- * đặt ở quầy; người đi ngang liếc qua vai là đọc được cả danh bạ khách nếu ta in
- * đầy đủ. Ai thật sự cần số đầy đủ thì đi qua lớp chắn `/api/xuat`.
+ * 🔴 Trả DỮ LIỆU THÔ; việc che là của `components/bang-luot-quay.tsx` (dùng
+ * `nhanSdt` như hai bảng kia) để nút "Hiện đầy đủ" chạy được ngay, không phải gọi
+ * lại máy chủ. Xem chú thích ở `soDienThoai` về cái giá của lựa chọn này.
  */
 export function lichSuLuot(chuongTrinhId: number, gioiHan = 200): DongLichSu[] {
   const dong = layNhieu<Dong>(
     `select l.id, l.bat_dau_luc, l.ma_xac_thuc, l.da_trao_thuong, l.trao_luc,
-            n.ho_ten, n.so_dien_thoai,
+            n.ho_ten, n.so_dien_thoai, n.dong_y_tu_van,
             coalesce(l.o_ten, o.ten) as o_ten,
             coalesce(l.o_mau, o.mau) as o_mau
        from luot_quay l
@@ -70,8 +82,9 @@ export function lichSuLuot(chuongTrinhId: number, gioiHan = 200): DongLichSu[] {
   return dong.map((d) => ({
     id: d.id,
     luc: d.bat_dau_luc,
-    tenRutGon: d.ho_ten ? tenRutGon(d.ho_ten) : "—",
-    sdtChe: d.so_dien_thoai ? cheSdt(d.so_dien_thoai) : "—",
+    hoTen: d.ho_ten,
+    soDienThoai: d.so_dien_thoai,
+    dongYTuVan: d.dong_y_tu_van === 1,
     oTen: d.o_ten,
     oMau: d.o_mau,
     maXacThuc: d.ma_xac_thuc,

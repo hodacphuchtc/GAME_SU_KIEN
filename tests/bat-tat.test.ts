@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { csdl } from "@/lib/db/ket-noi";
-import { doiTrangThai, taoChuongTrinh, timTheoMaCongKhai } from "@/lib/chuong-trinh/kho";
+import {
+  doiTrangThai,
+  duongDanQuanTri,
+  taoChuongTrinh,
+  timTheoMaCongKhai,
+} from "@/lib/chuong-trinh/kho";
+import { TRO_CHOI } from "@/config/to-chuc";
 import { giuCho } from "@/lib/phien/giu-cho";
 import { moLuot, xinCho } from "@/app/actions/choi";
 import { coSoThu } from "./ho-tro/co-so-thu";
@@ -115,5 +121,35 @@ describe("gọi lặp không gây tác dụng phụ", () => {
 
   it("mã không tồn tại thì trả false, không ném", () => {
     expect(doiTrangThai("ZZZZ", "ket_thuc")).toBe(false);
+  });
+});
+
+describe("🔴 R3 — đường về sau khi tắt/bật phải theo ĐÚNG GAME", () => {
+  /**
+   * Trước bản vá, `datTrangThaiChuongTrinh` viết cứng `/quan-tri/chuong-trinh/{ma}`
+   * — route đó lọc `tro_choi = 'trung_so'`, nên tắt một chương trình Chọn Số xong
+   * là người dùng rơi vào màn 404. Vòng Quay sẽ hỏng y hệt ngay khi thêm nút.
+   *
+   * Kiểm hàm THUẦN `duongDanQuanTri` thay vì gọi server action: action gọi
+   * `redirect()` của Next, thứ ném một exception đặc biệt không kiểm gọn được.
+   */
+  it("mỗi game một đường về", () => {
+    expect(duongDanQuanTri("trung_so", "ABCD")).toBe("/quan-tri/chuong-trinh/ABCD");
+    expect(duongDanQuanTri("chon_so", "ABCD")).toBe("/quan-tri/chon-so/ABCD");
+    expect(duongDanQuanTri("vong_quay", "ABCD")).toBe("/quan-tri/vong-quay/ABCD");
+  });
+
+  it("🔴 mọi giá trị trong TRO_CHOI đều có đường về — thêm game thứ tư là bài này ĐỎ", () => {
+    // Cố ý duyệt hằng TRO_CHOI chứ không viết tay ba dòng: thêm game mới mà quên
+    // nối đường về thì nó rơi vào nhánh `default` (Trúng Số) và lặp lại đúng lỗi
+    // 404 này, im lặng.
+    for (const tc of TRO_CHOI) {
+      const d = duongDanQuanTri(tc, "ABCD");
+      expect(d.startsWith("/quan-tri/")).toBe(true);
+      expect(d.endsWith("/ABCD")).toBe(true);
+    }
+    // Ba game hiện có phải cho ra BA đường KHÁC NHAU.
+    const tapDuong = new Set(TRO_CHOI.map((tc) => duongDanQuanTri(tc, "ABCD")));
+    expect(tapDuong.size).toBe(TRO_CHOI.length);
   });
 });

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { taoChuongTrinh } from "@/lib/chuong-trinh/kho";
-import { chay, layNhieu } from "@/lib/db/truy-van";
+import { chay, layMot, layNhieu } from "@/lib/db/truy-van";
 import { kiemGioiHan } from "@/lib/luot/gioi-han";
 import { batDauLuot, dungLuot } from "@/lib/luot/luot-service";
 import { danhDauQuanTamHocThu, nhanDien, tenRutGon } from "@/lib/nguoi-choi/nhan-dien";
@@ -182,5 +182,101 @@ describe("giới hạn lượt và trần giải", () => {
     const luot = batDauLuot(ct.ma, n.id)!;
     chay("update luot_choi set ket_thuc_luc = ?, trung = 1 where id = ?", Date.now(), luot.luotId);
     expect(kiemGioiHan(ct.id, null, 0).chiVui).toBe(false);
+  });
+});
+
+describe("🔴 R4 — số 11 chữ số kiểu cũ và số 10 chữ số kiểu mới là CÙNG một người", () => {
+  /**
+   * Nguồn "khách ảo" thật duy nhất còn lại sau khi ba game dùng chung một hồ sơ.
+   * Đo trên dữ liệu quầy 02/09/2026: 14 khách, 14 số phân biệt, 0 trùng do game —
+   * nhưng `chuanHoaSdt` khi đó nhận cả hai dạng nên cửa vẫn để ngỏ.
+   */
+  it("hai dạng của cùng một thuê bao quy về CÙNG một khoá", () => {
+    expect(chuanHoaSdt("01629123456")).toBe(chuanHoaSdt("0329123456"));
+    expect(chuanHoaSdt("01209123456")).toBe(chuanHoaSdt("0709123456"));
+    expect(chuanHoaSdt("+84162 912 3456")).toBe(chuanHoaSdt("0329123456"));
+  });
+
+  it("🔴 chơi hai lần bằng hai dạng chỉ tạo MỘT hồ sơ", () => {
+    const a = nhanDien("Nguyễn Thị Hoa", "01629123456", true).nguoiChoi!;
+    const b = nhanDien("Nguyễn Thị Hoa", "0329123456", false).nguoiChoi!;
+    expect(b.id).toBe(a.id);
+    expect(
+      layMot<{ so: number }>("select count(*) as so from nguoi_choi")!.so,
+    ).toBe(1);
+  });
+
+  it("đầu số 11 số KHÔNG trong bảng vẫn là người KHÁC — không gộp bừa", () => {
+    const a = nhanDien("Người A", "01779123456", false).nguoiChoi!;
+    const b = nhanDien("Người B", "0779123456", false).nguoiChoi!;
+    expect(b.id).not.toBe(a.id);
+  });
+});
+
+describe("🔴 SỔ THAY ĐỔI HỒ SƠ — tên cũ không được biến mất không dấu vết", () => {
+  const soDong = () =>
+    layMot<{ n: number }>("select count(*) as n from nguoi_choi_thay_doi")!.n;
+
+  it("đổi tên sinh ĐÚNG MỘT dòng sổ, ghi đúng cũ → mới", () => {
+    nhanDien("Hoa", "0912345678", true);
+    nhanDien("Nguyễn Thị Hoa", "0912345678", false);
+    expect(soDong()).toBe(1);
+    const d = layMot<{ truong: string; gia_tri_cu: string; gia_tri_moi: string }>(
+      "select truong, gia_tri_cu, gia_tri_moi from nguoi_choi_thay_doi",
+    )!;
+    expect(d).toEqual({ truong: "ho_ten", gia_tri_cu: "Hoa", gia_tri_moi: "Nguyễn Thị Hoa" });
+  });
+
+  it("🔴 đổi CÁCH VIẾT HOA hoặc số khoảng trắng KHÔNG phải một lần đổi tên", () => {
+    nhanDien("Nguyễn Thị Hoa", "0912345678", false);
+    nhanDien("nguyễn thị hoa", "0912345678", false);
+    nhanDien("Nguyễn   Thị  Hoa", "0912345678", false);
+    nhanDien("  Nguyễn Thị Hoa  ", "0912345678", false);
+    expect(soDong()).toBe(0);
+  });
+
+  it("🔴 hai dạng NFC/NFD của cùng một tên KHÔNG sinh dòng nào", () => {
+    // Trên macOS, chuỗi gõ bàn phím và chuỗi chép từ nơi khác có thể là hai dãy mã
+    // khác nhau của CÙNG một chữ. Không chuẩn hoá thì sổ đẻ rác mỗi lần chơi lại.
+    const nfc = "Nguyễn Thị Hoa".normalize("NFC");
+    const nfd = "Nguyễn Thị Hoa".normalize("NFD");
+    expect(nfc).not.toBe(nfd); // hai dãy mã thật sự khác nhau
+    nhanDien(nfc, "0912345678", false);
+    nhanDien(nfd, "0912345678", false);
+    expect(soDong()).toBe(0);
+  });
+
+  it("khách MỚI hoàn toàn thì không ghi sổ — chưa có gì để mà đổi", () => {
+    nhanDien("Nguyễn Thị Hoa", "0912345678", false);
+    expect(soDong()).toBe(0);
+  });
+
+  it("sổ ghi NGUỒN: khách đổi tên khi chơi game nào", () => {
+    const ct = taoChuongTrinh({
+      tenTrungTam: "Cơ sở thử",
+      coSoId: coSoThu(),
+      soTrung: 0,
+      mucDo: "vua",
+      tenGiaiThuong: "Quà",
+      tranGiaiMoiNgay: 0,
+      troChoi: "vong_quay",
+    });
+    nhanDien("Hoa", "0912345678", false);
+    nhanDien("Nguyễn Thị Hoa", "0912345678", false, ct.id);
+    expect(
+      layMot<{ chuong_trinh_id: number }>(
+        "select chuong_trinh_id from nguoi_choi_thay_doi",
+      )!.chuong_trinh_id,
+    ).toBe(ct.id);
+  });
+
+  it("đổi tên NHIỀU LẦN thì sổ giữ đủ từng lần, mới nhất sau cùng", () => {
+    nhanDien("Hoa", "0912345678", false);
+    nhanDien("Thị Hoa", "0912345678", false);
+    nhanDien("Nguyễn Thị Hoa", "0912345678", false);
+    const ds = layNhieu<{ gia_tri_moi: string }>(
+      "select gia_tri_moi from nguoi_choi_thay_doi order by id",
+    );
+    expect(ds.map((d) => d.gia_tri_moi)).toEqual(["Thị Hoa", "Nguyễn Thị Hoa"]);
   });
 });

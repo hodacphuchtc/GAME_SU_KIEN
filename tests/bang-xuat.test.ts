@@ -67,10 +67,23 @@ describe("bảng khách tiềm năng", () => {
 
   it("ô rỗng ra kiểu trong", () => {
     themKhach("0912345678");
-    const dong = bangLead("Khách", danhSachLead(MOI_NGUOI)).dong[0];
+    const t = bangLead("Khách", danhSachLead(MOI_NGUOI));
+    const dong = t.dong[0];
+    // 🔴 Tra vị trí cột theo TÊN, không viết cứng chỉ số. Bản trước dùng dong[3] và
+    // dong[7]; thêm cột "Game đầu tiên" ngày 02/09/2026 làm lệch hết chỉ số và bài
+    // kiểm đỏ dù mã hoàn toàn đúng. Tra theo tên thì thêm cột không làm gãy gì.
+    const viTri = (ten: string) => t.tieuDe.indexOf(ten);
     // Chưa giao cho ai và chưa ghi chú gì.
-    expect(dong[3].kieu).toBe("trong");
-    expect(dong[7].kieu).toBe("trong");
+    expect(dong[viTri("Ai chăm sóc")].kieu).toBe("trong");
+    expect(dong[viTri("Ghi chú")].kieu).toBe("trong");
+  });
+
+  it("cột “Game đầu tiên” có mặt và ghi đúng game của chương trình đầu", () => {
+    themKhach("0912345678");
+    const t = bangLead("Khách", danhSachLead(MOI_NGUOI));
+    const vt = t.tieuDe.indexOf("Game đầu tiên");
+    expect(vt).toBeGreaterThanOrEqual(0);
+    expect(t.dong[0][vt].gt).toBe("Trúng Số");
   });
 
   it("🔴 cột “Đồng ý nhận tư vấn” luôn có mặt — người cầm file phải biết được gọi cho ai", () => {

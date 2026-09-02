@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { TEN_CO_SO_MAC_DINH, TIEN_TO_CO_SO } from "@/config/to-chuc";
 import { MAU_O_MAC_DINH } from "@/config/thuong-hieu";
+import { doiDauSoCu } from "@/config/dau-so";
 
 /**
  * NÂNG CẤP CẤU TRÚC cho một cơ sở dữ liệu ĐÃ TỒN TẠI.
@@ -118,6 +119,27 @@ const BANG_BO_SUNG: readonly string[] = [
      bat_dau_luc     INTEGER NOT NULL,
      ket_thuc_luc    INTEGER
    )`,
+  // SỔ THAY ĐỔI HỒ SƠ KHÁCH (ADR-011). Append-only, không bao giờ sửa dòng cũ.
+  //
+  // 🔴 Vì sao là BẢNG chứ không phải một ô ghi chú. `khach_tiem_nang.ghi_chu` là
+  // ô của SALE — họ gõ tay việc chăm khách, bị cắt cứng 500 ký tự, và code đã có
+  // sẵn một luật bảo vệ nó khỏi bị ghi đè khi khách quay lại. Máy nối thêm vào đó
+  // sẽ vừa ăn mất ghi chú của họ vừa tràn giới hạn, và cái đống nối mãi ấy thì
+  // không lọc được, không đếm được, không xuất Excel được.
+  //
+  // 🔴 Vì sao cần sổ. `nhanDien` ĐÈ THẲNG `ho_ten` mỗi lần khách khai lại; tên cũ
+  // biến mất không dấu vết. Anh Phúc chốt "bản mới thắng" — thắng thì thắng, nhưng
+  // bản bị thay vẫn phải còn chỗ mà tra khi đối soát.
+  `CREATE TABLE IF NOT EXISTS nguoi_choi_thay_doi (
+     id              INTEGER PRIMARY KEY AUTOINCREMENT,
+     nguoi_choi_id   INTEGER NOT NULL REFERENCES nguoi_choi(id) ON DELETE CASCADE,
+     truong          TEXT    NOT NULL,
+     gia_tri_cu      TEXT,
+     gia_tri_moi     TEXT,
+     chuong_trinh_id INTEGER REFERENCES chuong_trinh(id) ON DELETE SET NULL,
+     nhan_vien_id    INTEGER REFERENCES nhan_vien(id) ON DELETE SET NULL,
+     luc             INTEGER NOT NULL
+   )`,
 ];
 
 /** Danh sách cột phải có, theo thứ tự đã thêm. Thêm mới thì nối vào CUỐI. */
@@ -184,10 +206,12 @@ const CHI_MUC_SAU_KHI_THEM_COT: readonly string[] = [
   "CREATE INDEX IF NOT EXISTS quay_theo_ngay ON luot_quay (chuong_trinh_id, ngay)",
   "CREATE INDEX IF NOT EXISTS quay_theo_nguoi_choi ON luot_quay (nguoi_choi_id, ngay)",
   "CREATE INDEX IF NOT EXISTS quay_theo_o ON luot_quay (o_qua_id)",
+  // Sổ thay đổi luôn đọc theo MỘT khách, mới nhất trước.
+  "CREATE INDEX IF NOT EXISTS thay_doi_theo_nguoi ON nguoi_choi_thay_doi (nguoi_choi_id, luc DESC)",
 ];
 
 /** Phiên bản DỮ LIỆU mới nhất. Tăng khi thêm một bước backfill mới. */
-const PHIEN_BAN_DU_LIEU = 2;
+const PHIEN_BAN_DU_LIEU = 3;
 
 /** Gom tên trung tâm về một khoá so sánh được: bỏ khoảng trắng thừa, không phân biệt hoa thường. */
 function khoaChuanHoa(ten: string): string {
@@ -211,12 +235,154 @@ function backfill(db: DatabaseSync): void {
   try {
     if (pb < 1) backfillV1(db);
     if (pb < 2) backfillV2(db);
+    if (pb < 3) backfillV3(db);
     db.exec(`pragma user_version = ${PHIEN_BAN_DU_LIEU}`);
     db.exec("commit");
   } catch (loi) {
     db.exec("rollback");
     throw loi;
   }
+}
+
+/**
+ * v3 — QUY CHUẨN SỐ ĐIỆN THOẠI ĐÃ LƯU, và GỘP hồ sơ trùng (ADR-011, 02/09/2026).
+ *
+ * 🔴 Vì sao cần. Một thuê bao có hai cách viết sau đợt chuyển đầu số 2018:
+ * `01629123456` (11 số, kiểu cũ) và `0329123456` (10 số, kiểu mới). Trước bản vá,
+ * `chuanHoaSdt` nhận cả hai nên khách khai dạng nào thì máy đẻ hồ sơ theo dạng đó
+ * ⇒ MỘT người thành HAI khách. `UNIQUE(so_dien_thoai)` không đỡ được vì hai chuỗi
+ * thật sự khác nhau.
+ *
+ * 🔴 GỘP LÀ KHÔNG HOÀN TÁC ĐƯỢC — không có bảng nào lưu trạng thái trước. Đo trên
+ * dữ liệu quầy ngày 02/09/2026: **0 cặp trùng**, nên bước này hôm nay là no-op.
+ * Đó chính là lý do làm nó BÂY GIỜ: sáu tháng nữa là gộp kèm hàng nghìn lượt chơi
+ * và một cuộc đối soát quà.
+ *
+ * 🔴 PHẢI TRỎ LẠI ĐỦ **BỐN** BẢNG có `nguoi_choi_id`: `luot_choi` · `van_choi` ·
+ * `khach_tiem_nang` · `luot_quay`. Bảng cuối khai ở chính file này chứ không ở
+ * `luoc-do.ts` nên rất dễ sót — `xoaTheoSdt` đã sót nó một lần và làm quyền xoá dữ
+ * liệu theo NĐ 13/2023 ném lỗi khoá ngoại.
+ */
+function backfillV3(db: DatabaseSync): void {
+  const nguoi = db
+    .prepare("select id, so_dien_thoai from nguoi_choi order by id")
+    .all() as { id: number; so_dien_thoai: string }[];
+
+  // Bản đồ số ĐÃ QUY CHUẨN → id hồ sơ GIỮ LẠI. Giữ bản có id NHỎ NHẤT: nó là hồ sơ
+  // đăng ký trước, và `tao_luc` của nó mới là mốc "khách đến với trung tâm từ bao
+  // giờ" — thứ đội sale dùng để xếp thứ tự chăm sóc.
+  const giuLai = new Map<string, number>();
+  const canGop: { tu: number; ve: number; soMoi: string }[] = [];
+
+  for (const n of nguoi) {
+    const soMoi = doiDauSoCu(n.so_dien_thoai);
+    const daCo = giuLai.get(soMoi);
+    if (daCo === undefined) {
+      giuLai.set(soMoi, n.id);
+    } else {
+      canGop.push({ tu: n.id, ve: daCo, soMoi });
+    }
+  }
+
+  for (const { tu, ve } of canGop) gopMotHoSo(db, tu, ve);
+
+  // Quy chuẩn số của những hồ sơ GIỮ LẠI. Làm SAU khi gộp, nếu không câu update
+  // đầu tiên đã đụng `UNIQUE(so_dien_thoai)` với bản chưa gộp.
+  const doiSo = db.prepare("update nguoi_choi set so_dien_thoai = ?, sua_luc = ? where id = ?");
+  const luc = Date.now();
+  for (const [soMoi, id] of giuLai) {
+    const cu = nguoi.find((n) => n.id === id)!;
+    if (cu.so_dien_thoai !== soMoi) doiSo.run(soMoi, luc, id);
+  }
+
+  if (canGop.length > 0) {
+    // Ghi nhật ký để người vận hành biết máy đã đụng vào hồ sơ khách. `hanh_dong`
+    // là TEXT tự do nên không cần migration. KHÔNG ghi số điện thoại vào đây —
+    // nhật ký không phải chỗ để dữ liệu cá nhân rò ra lần thứ hai.
+    db.prepare(
+      `insert into nhat_ky_truy_cap (hanh_dong, doi_tuong, so_dong, luc)
+       values ('gop_khach', 'nang-cap-v3: quy chuan dau so 11 so', ?, ?)`,
+    ).run(canGop.length, luc);
+  }
+}
+
+/**
+ * Gộp hồ sơ `tu` vào hồ sơ `ve`. Chỉ dùng trong backfill — đã nằm trong giao dịch.
+ *
+ * 🔴 Phải xử `UNIQUE (co_so_id, nguoi_choi_id)` của `khach_tiem_nang` TRƯỚC khi
+ * `UPDATE`, nếu không câu lệnh NỔ ngay khi cả hai hồ sơ cùng có lead ở một cơ sở.
+ */
+function gopMotHoSo(db: DatabaseSync, tu: number, ve: number): void {
+  // (1) Lead đụng nhau ở CÙNG một cơ sở → hợp nhất thành một dòng rồi xoá bản thừa.
+  const dung = db
+    .prepare(
+      `select a.id as id_tu, b.id as id_ve, a.co_so_id
+         from khach_tiem_nang a
+         join khach_tiem_nang b on b.co_so_id = a.co_so_id and b.nguoi_choi_id = ?
+        where a.nguoi_choi_id = ?`,
+    )
+    .all(ve, tu) as { id_tu: number; id_ve: number; co_so_id: number }[];
+
+  for (const d of dung) {
+    const a = db.prepare("select * from khach_tiem_nang where id = ?").get(d.id_tu) as Record<string, unknown>;
+    const b = db.prepare("select * from khach_tiem_nang where id = ?").get(d.id_ve) as Record<string, unknown>;
+
+    // Trạng thái TIẾN XA NHẤT thắng. `bo` xếp thấp nhất: cùng một người xuất hiện
+    // lại dưới số kia nghĩa là họ đang hoạt động trở lại, giữ `bo` là chôn một đầu
+    // mối còn sống.
+    const BAC: Record<string, number> = {
+      bo: 0, moi: 1, khong_nghe_may: 2, da_lien_he: 3, hen_hoc_thu: 4, chot: 5,
+    };
+    const ttA = String(a.trang_thai ?? "moi");
+    const ttB = String(b.trang_thai ?? "moi");
+    const trangThai = (BAC[ttA] ?? 1) > (BAC[ttB] ?? 1) ? ttA : ttB;
+
+    // Ghi chú của SALE — nối cả hai, không vứt bên nào. Cắt 500 ký tự cho khớp
+    // giới hạn của `ghiChuLead`.
+    const chuA = a.ghi_chu === null || a.ghi_chu === undefined ? "" : String(a.ghi_chu);
+    const chuB = b.ghi_chu === null || b.ghi_chu === undefined ? "" : String(b.ghi_chu);
+    const ghiChu = [chuB, chuA].filter((c) => c.trim() !== "").join(" | ").slice(0, 500) || null;
+
+    // Người chăm sóc: giữ bên được GIAO TRƯỚC. Ai nhận đầu mối trước thì đó là
+    // người đã bỏ công gọi, giao lại cho người sau là cướp việc của họ.
+    const giaoA = a.giao_luc === null || a.giao_luc === undefined ? Infinity : Number(a.giao_luc);
+    const giaoB = b.giao_luc === null || b.giao_luc === undefined ? Infinity : Number(b.giao_luc);
+    const ben = giaoA < giaoB ? a : b;
+
+    db.prepare(
+      `update khach_tiem_nang
+          set trang_thai = ?, ghi_chu = ?, nhan_vien_id = ?, giao_luc = ?,
+              tao_luc = ?, sua_luc = ?, chua_xac_thuc = ?
+        where id = ?`,
+    ).run(
+      trangThai,
+      ghiChu,
+      (ben.nhan_vien_id ?? null) as number | null,
+      (ben.giao_luc ?? null) as number | null,
+      Math.min(Number(a.tao_luc), Number(b.tao_luc)),
+      Math.max(Number(a.sua_luc), Number(b.sua_luc)),
+      // Cờ "số chưa xác thực": chỉ cần MỘT bên đã xác thực là coi như đã xác thực.
+      Number(a.chua_xac_thuc ?? 0) === 1 && Number(b.chua_xac_thuc ?? 0) === 1 ? 1 : 0,
+      d.id_ve,
+    );
+    db.prepare("delete from khach_tiem_nang where id = ?").run(d.id_tu);
+  }
+
+  // (2) Trỏ lại ĐỦ BỐN bảng.
+  for (const bang of ["luot_choi", "van_choi", "luot_quay", "khach_tiem_nang"]) {
+    db.prepare(`update ${bang} set nguoi_choi_id = ? where nguoi_choi_id = ?`).run(ve, tu);
+  }
+
+  // (3) Hợp nhất cờ một chiều rồi xoá hồ sơ thừa. Hai cờ này chỉ đi LÊN — đã đồng
+  // ý tư vấn thì không vì gộp mà mất, đó là căn cứ pháp lý để gọi điện.
+  db.prepare(
+    `update nguoi_choi
+        set dong_y_tu_van = max(dong_y_tu_van, (select dong_y_tu_van from nguoi_choi where id = ?)),
+            quan_tam_hoc_thu = max(quan_tam_hoc_thu, (select quan_tam_hoc_thu from nguoi_choi where id = ?)),
+            tao_luc = min(tao_luc, (select tao_luc from nguoi_choi where id = ?))
+      where id = ?`,
+  ).run(tu, tu, tu, ve);
+  db.prepare("delete from nguoi_choi where id = ?").run(tu);
 }
 
 /**

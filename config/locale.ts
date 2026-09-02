@@ -147,6 +147,51 @@ export const T = {
   // --- GAME CHỌN SỐ: quản trị ---
   // ── VÒNG QUAY MAY MẮN (ADR-011) ──────────────────────────────────────────
   vongQuayNav: "Vòng Quay",
+  suaVongQuayTieuDe: "Sửa chương trình",
+  suaVongQuayNut: "Lưu thay đổi",
+  suaVongQuayDangLuu: "Đang lưu…",
+  suaVongQuayXong: "Đã lưu. Mặt vòng trên màn LCD đổi ngay ở lần tải kế tiếp.",
+  suaVongQuayKhongThay: "Không tìm thấy chương trình này trong phạm vi của bạn.",
+  // 🔴 Nói THẲNG vì sao chặn, và chỉ luôn đường đi tiếp. Chặn mà im lặng là cách
+  // chắc chắn để người vận hành tưởng máy hỏng.
+  suaVongQuayODaTrao: (ten: string, soDaTrao: number) =>
+    `Ô "${ten}" đã trao ${soDaTrao} phần quà — không xoá được, vì nó là chứng cứ đối soát khi phụ huynh khiếu nại. Muốn ngừng phát thì đặt SỐ LƯỢNG bằng đúng ${soDaTrao}: ô sẽ tự biến khỏi mặt vòng mà lịch sử vẫn còn nguyên.`,
+  suaVongQuayCanhBaoO: (soDaTrao: number) =>
+    `Đã trao ${soDaTrao} — không xoá được ô này.`,
+  leadGameDau: "Game đầu tiên",
+  khachChiTietTitle: "Hồ sơ khách",
+  khachQuayLai: "← Khách tiềm năng",
+  khachDaChoi: "Đã chơi",
+  khachChuaChoi: "Khách này chưa có lượt chơi nào được ghi.",
+  khachSoThayDoi: "Sổ thay đổi hồ sơ",
+  khachSoThayDoiTrong: "Hồ sơ này chưa từng đổi thông tin lần nào.",
+  khachSoThayDoiVi:
+    "Máy ghi lại mỗi lần khách khai thông tin khác với bản đang lưu. Bản MỚI được lấy làm chuẩn; bản cũ giữ ở đây để còn đối soát.",
+  khachTruongHoTen: "Họ tên",
+  khachTungKhai: (ten: string) => `Từng khai: ${ten}`,
+  khachLeadTieuDe: "Đầu mối chăm sóc",
+  khachLeadNhieuCoSo:
+    "Một người chơi ở hai cơ sở thì thành HAI đầu mối — cố ý, vì đó là hai đội sale khác nhau. Gộp lại là hai bên tranh một ô.",
+  khachQuanTam: "Quan tâm học thử",
+  khachTuNgay: "Để lại số từ",
+  khachCotGame: "Game",
+  khachCotDot: "Đợt",
+  khachCotQua: "Phần quà",
+  // Nhãn hiển thị của từng game. Kiểu Record để một game lạ (dữ liệu cũ, hoặc
+  // game thứ tư chưa khai nhãn) KHÔNG làm vỡ trang — nó rơi về mã thô.
+  tenTroChoi: {
+    trung_so: "Trúng Số",
+    chon_so: "Chọn Số",
+    vong_quay: "Vòng Quay",
+  } as Record<string, string>,
+  leadGameLoc: "Game",
+  leadGameTatCa: "Tất cả game",
+  // 🔴 Nhãn cột nói rõ ĐẦU TIÊN. `chuong_trinh_id_dau` không bao giờ được cập nhật
+  // khi khách chơi game thứ hai, nên một nhãn "Game" trần trụi là mời người đọc
+  // kết luận sai về khách của chính mình.
+  leadGameDauChuThich:
+    "Cột \"Game đầu tiên\" ghi game của chương trình khách chơi LẦN ĐẦU, không phải mọi game họ đã chơi. Bấm vào tên khách để xem đủ.",
+  leadGameTrong: "—",
 
   // ── Dựng lại ván đã quay (ADR-011) ──────────────────────────────────────
   ctCotMa: "Mã xác thực",
@@ -229,11 +274,7 @@ export const T = {
     "Vòng phải có ít nhất một ô để TRỐNG số lượng — đó là ô an ủi. Thiếu nó thì hết quà là hết trò.",
   vongQuayLuotDaQuay: "Lượt đã quay",
   vongQuayChuaCoLuot: "Chưa có ai quay lượt nào.",
-  vongQuayCotLuc: "Lúc",
-  vongQuayCotKhach: "Khách",
   vongQuayCotO: "Phần quà",
-  vongQuayCotMa: "Mã xác thực",
-  vongQuayCotTrao: "Đã trao",
   vongQuayKhoTieuDe: "Kho ô quà",
   vongQuayKhoConLai: (n: number) => `còn ${n}`,
   vongQuayKhoKhongGioiHan: "không giới hạn",

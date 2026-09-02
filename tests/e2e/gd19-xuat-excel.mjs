@@ -93,8 +93,12 @@ ok("File lọc CS2 KHÔNG chứa khách của CS1", !sheetCs2.includes("Người
 ok("🔴 SĐT giữ nguyên số 0 đầu và ở kiểu CHỮ (s=2)",
   /<c r="B\d+" s="2" t="inlineStr"><is><t xml:space="preserve">0900000003<\/t>/.test(sheetCs2));
 ok("Chữ tiếng Việt đúng dấu trong file", sheetCs2.includes("Người Tự Chọn"));
+// 🔴 KHÔNG viết cứng cột "I". Thêm một cột vào bản xuất là mọi chữ cái sau nó
+// dịch một bước, và bài kiểm đỏ trong khi mã hoàn toàn đúng — đã xảy ra ngày
+// 02/09/2026 khi thêm cột "Game đầu tiên". Tìm theo KIỂU ô thay vì theo vị trí:
+// chỉ cột thời gian mới mang style s=3 kèm số sê-ri ngày của Excel (4xxxx).
 ok("Cột thời gian ở kiểu NGÀY THÁNG (s=3), sắp xếp được như ngày chứ không như chữ",
-  /<c r="I\d+" s="3"><v>4[0-9.]+<\/v><\/c>/.test(sheetCs2));
+  /<c r="[A-Z]+\d+" s="3"><v>4[0-9.]+<\/v><\/c>/.test(sheetCs2));
 ok("Định dạng '@' có trong styles — thứ giữ số 0 đầu",
   docTep(locCs2.zip, "xl/styles.xml").includes('numFmtId="164" formatCode="@"'));
 ok("Cột “Đồng ý tư vấn” có mặt trong file", sheetCs2.includes("Đồng ý tư vấn"));

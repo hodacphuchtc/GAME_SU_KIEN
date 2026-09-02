@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 
 import { T } from "@/config/locale";
-import { TRANG_THAI_LEAD, type TrangThaiLead } from "@/config/to-chuc";
+import { TRANG_THAI_LEAD, TRO_CHOI, type TrangThaiLead } from "@/config/to-chuc";
 import type { CoSo } from "@/lib/co-so/nhan";
 import type { Lead } from "@/lib/lead/kho";
 import type { NhanVien } from "@/lib/nhan-vien/kho";
@@ -122,6 +123,7 @@ export interface BoLocHienThi {
   chiDongY: boolean;
   tuNgay: string;
   denNgay: string;
+  game: string;
 }
 
 export function BangLead({
@@ -219,6 +221,17 @@ export function BangLead({
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs font-semibold text-chi">
+          {T.leadGameLoc}
+          <select value={loc.game} onChange={(e) => dat("game", e.target.value)} className={O}>
+            <option value="">{T.leadGameTatCa}</option>
+            {TRO_CHOI.map((tc) => (
+              <option key={tc} value={tc}>
+                {T.tenTroChoi[tc] ?? tc}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-semibold text-chi">
           {T.leadLocTrangThai}
           <select value={loc.trangThai} onChange={(e) => dat("trangThai", e.target.value)} className={O}>
             <option value="">{T.leadLocMoi}</option>
@@ -261,6 +274,9 @@ export function BangLead({
       </div>
 
       <p className="mt-3 text-xs leading-relaxed text-chi">{T.leadMaskNote}</p>
+      {/* 🔴 Nói rõ cột đó là game ĐẦU TIÊN. Không nói thì người đọc kết luận sai
+          về khách của chính mình — upsert của sinhLead cố ý không cập nhật cột. */}
+      <p className="mt-1 text-xs leading-relaxed text-chi">{T.leadGameDauChuThich}</p>
 
       {danhSach.length === 0 ? (
         <p className="mt-6 rounded-2xl border border-dashed border-ke bg-white p-8 text-center text-sm text-chi">
@@ -278,6 +294,7 @@ export function BangLead({
                   <th className="px-4 py-3 font-bold">{T.leadName}</th>
                   <th className="px-4 py-3 font-bold">{T.leadPhone}</th>
                   <th className="px-4 py-3 font-bold">{T.leadBranch}</th>
+                  <th className="px-4 py-3 font-bold">{T.leadGameDau}</th>
                   <th className="px-4 py-3 font-bold">{T.leadOwner}</th>
                   <th className="px-4 py-3 font-bold">{T.leadState}</th>
                   <th className="px-4 py-3 font-bold">{T.leadGhiChu}</th>
@@ -287,7 +304,20 @@ export function BangLead({
               <tbody>
                 {danhSach.map((l) => (
                   <tr key={l.id} className="border-b border-ke/60 last:border-0">
-                    <td className="px-4 py-3 font-semibold text-muc">{l.hoTen}</td>
+                    <td className="px-4 py-3">
+                      {/* Tên là ĐƯỜNG VÀO hồ sơ đầy đủ: ba game, sổ thay đổi, các đầu mối. */}
+                      <Link
+                        href={`/quan-tri/khach/${l.nguoiChoiId}`}
+                        className="font-semibold text-muc hover:text-tim hover:underline"
+                      >
+                        {l.hoTen}
+                      </Link>
+                      {l.tenTungKhai !== null && (
+                        <span className="mt-0.5 block text-xs text-chi">
+                          ⓘ {T.khachTungKhai(l.tenTungKhai)}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 font-mono text-muc" data-sdt>
                       {hienDu ? l.soDienThoai : cheSdt(l.soDienThoai)}
                       {/* Khách online tự gõ số, chưa qua mã xác minh nào. Sale
@@ -303,6 +333,11 @@ export function BangLead({
                       )}
                     </td>
                     <td className="px-4 py-3 text-chi">{l.tenCoSo ?? "—"}</td>
+                    <td className="px-4 py-3 text-chi">
+                      {l.troChoiDau === null
+                        ? T.leadGameTrong
+                        : (T.tenTroChoi[l.troChoiDau] ?? l.troChoiDau)}
+                    </td>
                     <td className="px-4 py-3"><OGanSale lead={l} sale={sale} /></td>
                     <td className="px-4 py-3"><ODoiTrangThai lead={l} /></td>
                     <td className="px-4 py-3"><OGhiChu lead={l} /></td>

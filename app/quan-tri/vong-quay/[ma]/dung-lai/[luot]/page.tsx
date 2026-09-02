@@ -7,6 +7,7 @@ import { batBuocDangNhap } from "@/lib/bao-ve/phien-hien-tai";
 import { phamViCua } from "@/lib/bao-ve/quyen";
 import { lichSuLuot, timLuotQuay } from "@/lib/vong-quay/kho-luot-quay";
 import { chuanHoaGoc } from "@/lib/vong-quay/goc";
+import { nhanNguoiChoi } from "@/lib/luot/hien-thi";
 import { DungLaiVan } from "@/components/dung-lai-van";
 
 export const dynamic = "force-dynamic";
@@ -72,7 +73,7 @@ export default async function TrangDungLai({
         </div>
         <div>
           <dt className="text-chi">{T.dlNguoiChoi}</dt>
-          <dd className="font-semibold text-muc">{dong?.tenRutGon ?? "—"}</dd>
+          <dd className="font-semibold text-muc">{nhanNguoiChoi(dong?.hoTen ?? null)}</dd>
         </div>
         <div>
           <dt className="text-chi">{T.dlOTrung}</dt>

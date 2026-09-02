@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
-import type { TrangThaiLead } from "@/config/to-chuc";
+import { TRO_CHOI, type TrangThaiLead, type TroChoi } from "@/config/to-chuc";
 import { nguoiDangDangNhap } from "@/lib/bao-ve/phien-hien-tai";
 import { phamViCua } from "@/lib/bao-ve/quyen";
 import { danhSachCoSo } from "@/lib/co-so/kho";
@@ -39,6 +39,11 @@ export default async function TrangKhach({
   const trangThai = mot("trangThai") as TrangThaiLead | undefined;
   const nhanVienId = so(mot("sale"));
   const chuaGiao = mot("chuaGiao") === "1";
+  const gameTho = mot("game");
+  // Chỉ nhận giá trị nằm trong hằng TRO_CHOI: query string là thứ ai cũng gõ được.
+  const troChoi = (TRO_CHOI as readonly string[]).includes(gameTho ?? "")
+    ? (gameTho as TroChoi)
+    : null;
   // Tick "chỉ người đồng ý" BẬT SẴN: phải có `chiDongY=0` trên URL mới tắt.
   const chiDongY = mot("chiDongY") !== "0";
   const tuNgay = ngay(mot("tuNgay"));
@@ -52,6 +57,7 @@ export default async function TrangKhach({
     tuNgay,
     denNgay,
     chiDongY,
+    troChoi,
   });
 
   // Ghi nhật ký MỖI LẦN xem danh sách, kèm số dòng đã hiện ra. Đây là câu trả
@@ -78,6 +84,7 @@ export default async function TrangKhach({
         chiDongY,
         tuNgay: tuNgay ?? "",
         denNgay: denNgay ?? "",
+        game: troChoi ?? "",
       }}
     />
   );

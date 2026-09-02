@@ -258,6 +258,25 @@ function locTroChoi(tc: TroChoi): string {
   return ` and c.tro_choi = '${tc}'`;
 }
 
+/**
+ * Đường dẫn trang chi tiết trong khu quản trị, theo GAME.
+ *
+ * 🔴 Ba game có ba route khác nhau. Viết cứng một đường ở nơi gọi là thứ đã làm
+ * nút TẮT CHƯƠNG TRÌNH của Chọn Số ném người dùng sang màn 404 — route
+ * `/quan-tri/chuong-trinh/[ma]` lọc `tro_choi = 'trung_so'` nên không mở nổi
+ * chương trình game khác. Gom về một chỗ để thêm game thứ tư chỉ phải sửa ở đây.
+ */
+export function duongDanQuanTri(troChoi: TroChoi, ma: string): string {
+  switch (troChoi) {
+    case "chon_so":
+      return `/quan-tri/chon-so/${ma}`;
+    case "vong_quay":
+      return `/quan-tri/vong-quay/${ma}`;
+    default:
+      return `/quan-tri/chuong-trinh/${ma}`;
+  }
+}
+
 /** Đọc trong khu quản trị — LUÔN lọc theo phạm vi của người đang đăng nhập. */
 export function timTheoMa(ma: string, pv: PhamVi): ChuongTrinh | null {
   return timTheoMaCuaGame(ma, pv, "trung_so");

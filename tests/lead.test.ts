@@ -3,7 +3,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { taoChuongTrinh } from "@/lib/chuong-trinh/kho";
 import { taoCoSo } from "@/lib/co-so/kho";
 import { csdl } from "@/lib/db/ket-noi";
-import { danhSachLead, demLead, ganLead, datTrangThaiLead } from "@/lib/lead/kho";
+import { danhSachLead, demLead, ganLead, datTrangThaiLead, sinhLead } from "@/lib/lead/kho";
+import { nhanDien } from "@/lib/nguoi-choi/nhan-dien";
+import { chay } from "@/lib/db/truy-van";
+import { coSoThu } from "./ho-tro/co-so-thu";
 import { nhanDienNguoiChoi } from "@/app/actions/choi";
 import { themNhanVien } from "@/lib/nhan-vien/kho";
 import { dungCsdlTam } from "./ho-tro/csdl-tam";
@@ -178,5 +181,72 @@ describe("bộ lọc", () => {
     const sale = themNhanVien({ hoTen: "Sale A", coSoId: cs1, vaiTro: "sale" });
     ganLead(danhSachLead(MOI_NGUOI, HET)[0].id, sale, MOI_NGUOI);
     expect(danhSachLead(MOI_NGUOI, { ...HET, chuaGiao: true, nhanVienId: sale })).toHaveLength(2);
+  });
+});
+
+describe("🔴 GAME NGUỒN — cột 'Game đầu tiên' và bộ lọc theo game", () => {
+  function ctGame(coSoId: number, troChoi: "trung_so" | "chon_so" | "vong_quay") {
+    return taoChuongTrinh({
+      tenTrungTam: "Cơ sở thử",
+      coSoId,
+      soTrung: 7,
+      mucDo: "vua",
+      tenGiaiThuong: `Quà ${troChoi}`,
+      tranGiaiMoiNgay: 0,
+      troChoi,
+    });
+  }
+
+  const MOI = { coSoId: null, nhanVienId: null };
+
+  it("lead mang game của chương trình khách chơi lần đầu", () => {
+    const cs = coSoThu();
+    const ct = ctGame(cs, "vong_quay");
+    const nc = nhanDien("Nguyễn Thị Hoa", "0912345678", true).nguoiChoi!;
+    sinhLead(cs, nc.id, ct.id);
+    expect(danhSachLead(MOI)[0].troChoiDau).toBe("vong_quay");
+  });
+
+  it("🔴 khách chơi thêm game KHÁC vẫn mang game ĐẦU TIÊN", () => {
+    // `sinhLead` cố ý KHÔNG cập nhật `chuong_trinh_id_dau` khi khách quay lại.
+    // Đây là lý do nhãn cột phải ghi "Game đầu tiên", không phải "Game".
+    const cs = coSoThu();
+    const ts = ctGame(cs, "trung_so");
+    const vq = ctGame(cs, "vong_quay");
+    const nc = nhanDien("Nguyễn Thị Hoa", "0912345678", true).nguoiChoi!;
+    sinhLead(cs, nc.id, ts.id);
+    sinhLead(cs, nc.id, vq.id);
+    expect(danhSachLead(MOI)).toHaveLength(1);
+    expect(danhSachLead(MOI)[0].troChoiDau).toBe("trung_so");
+  });
+
+  it("lọc theo game trả đúng tập", () => {
+    const cs = coSoThu();
+    const a = nhanDien("Khách A", "0912345678", true).nguoiChoi!;
+    const b = nhanDien("Khách B", "0987654321", true).nguoiChoi!;
+    sinhLead(cs, a.id, ctGame(cs, "trung_so").id);
+    sinhLead(cs, b.id, ctGame(cs, "vong_quay").id);
+
+    expect(danhSachLead(MOI, { troChoi: "vong_quay" })).toHaveLength(1);
+    expect(danhSachLead(MOI, { troChoi: "vong_quay" })[0].nguoiChoiId).toBe(b.id);
+    expect(danhSachLead(MOI, { troChoi: "trung_so" })).toHaveLength(1);
+    expect(danhSachLead(MOI, { troChoi: "chon_so" })).toHaveLength(0);
+    // Không lọc thì thấy cả hai.
+    expect(danhSachLead(MOI)).toHaveLength(2);
+  });
+
+  it("🔴 chương trình bị XOÁ thì game nguồn rỗng, KHÔNG làm biến mất khách", () => {
+    // `chuong_trinh_id_dau` là ON DELETE SET NULL, và đó là ĐIỀU KIỆN của tính năng
+    // xoá chương trình. Dùng join thường thay vì LEFT join ở đây là làm biến mất
+    // chính những khách cũ nhất — im lặng.
+    const cs = coSoThu();
+    const ct = ctGame(cs, "vong_quay");
+    const nc = nhanDien("Nguyễn Thị Hoa", "0912345678", true).nguoiChoi!;
+    sinhLead(cs, nc.id, ct.id);
+    chay("delete from chuong_trinh where id = ?", ct.id);
+
+    const ds = danhSachLead(MOI);
+    expect(ds).toHaveLength(1);
+    expect(ds[0].troChoiDau).toBeNull();
   });
 });
