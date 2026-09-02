@@ -49,6 +49,14 @@ const KICH_BAN = [
   // cạn dải ba số để kiểm loại trừ và cái kết "hết sạch số".
   { ten: "gd19-chon-so", nen: "chon-so" },
   { ten: "gd20-chon-so-loai-tru", nen: "chon-so" },
+  // v2 GĐ 3.1 — nhận diện xong thì HAI MÀN cùng đổi, kiểm cho CẢ BA game.
+  { ten: "gd30-vao-choi-ba-game", nen: "ba-game" },
+  // v2 GĐ 3.2 — chơi xong thì LCD tự về màn chờ (Vòng Quay).
+  { ten: "gd31-ve-man-qr", nen: "ba-game" },
+  // v2 GĐ 4.2 — chế độ thứ ba: điện thoại vẽ dãy số song song với LCD.
+  { ten: "gd32-hai-man-cung-so", nen: "ba-game" },
+  // v2 GĐ 5.1 — màn điện thoại gọn trong MỘT khung hình, cả ba game.
+  { ten: "gd33-mot-khung-hinh", nen: "ba-game" },
 ];
 
 const thuMuc = mkdtempSync(join(tmpdir(), "gsk-e2e-"));

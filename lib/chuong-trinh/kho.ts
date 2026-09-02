@@ -1,7 +1,6 @@
 import "server-only";
 
 import { DAI_MAC_DINH } from "@/config/chon-so";
-import { TI_LE_O_DAY_MAC_DINH } from "@/config/vong-quay";
 import { DIFFICULTIES, type DifficultyId, type RoundSettings } from "@/config/game";
 import {
   SO_LAN_CHOI,
@@ -69,11 +68,6 @@ export interface ChuongTrinh {
   daiDen: number;
   /** Số đã có người lấy thì biến mất khỏi vòng chạy. Chỉ CHỌN SỐ đọc. */
   loaiTruDaRa: boolean;
-  /**
-   * VÒNG QUAY (ADR-011). Phần vòng dành cho ô đáy — đây là VAN NGÂN SÁCH: nó
-   * quyết định kho quà thật cầm cự được bao nhiêu lượt. Hai game kia không đọc.
-   */
-  tiLeODay: number;
   /** Tăng mỗi lần danh sách ô đổi; mỗi lượt quay ghim phiên bản của nó. */
   phienBanO: number;
 }
@@ -117,7 +111,6 @@ interface DongChuongTrinh {
   dai_tu: number;
   dai_den: number;
   loai_tru_da_ra: number;
-  ti_le_o_day: number;
   phien_ban_o: number;
   so_luot?: number;
   so_giai?: number;
@@ -152,7 +145,6 @@ function doiDong(dong: DongChuongTrinh): ChuongTrinhKemSoLieu {
     daiTu: dong.dai_tu,
     daiDen: dong.dai_den,
     loaiTruDaRa: dong.loai_tru_da_ra === 1,
-    tiLeODay: dong.ti_le_o_day,
     phienBanO: dong.phien_ban_o,
     soLuot: dong.so_luot ?? 0,
     soGiai: dong.so_giai ?? 0,
@@ -196,8 +188,6 @@ export interface DauVaoTaoChuongTrinh {
   daiTu?: number;
   daiDen?: number;
   loaiTruDaRa?: boolean;
-  /** VÒNG QUAY. Bỏ trống thì lấy `TI_LE_O_DAY_MAC_DINH` của `config/vong-quay.ts`. */
-  tiLeODay?: number;
 }
 
 export function taoChuongTrinh(dauVao: DauVaoTaoChuongTrinh): ChuongTrinh {
@@ -207,8 +197,8 @@ export function taoChuongTrinh(dauVao: DauVaoTaoChuongTrinh): ChuongTrinh {
     `insert into chuong_trinh
        (ma, ten_trung_tam, so_trung, muc_do, tham_so, ten_giai_thuong,
         tran_giai_moi_ngay, trang_thai, co_so_id, che_do, nguon_co_so, so_lan_choi,
-        tro_choi, dai_tu, dai_den, loai_tru_da_ra, ti_le_o_day, tao_luc, sua_luc)
-     values (?, ?, ?, ?, ?, ?, ?, 'dang_chay', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        tro_choi, dai_tu, dai_den, loai_tru_da_ra, tao_luc, sua_luc)
+     values (?, ?, ?, ?, ?, ?, ?, 'dang_chay', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ma,
     dauVao.tenTrungTam,
     dauVao.soTrung,
@@ -224,7 +214,6 @@ export function taoChuongTrinh(dauVao: DauVaoTaoChuongTrinh): ChuongTrinh {
     dauVao.daiTu ?? DAI_MAC_DINH.tu,
     dauVao.daiDen ?? DAI_MAC_DINH.den,
     dauVao.loaiTruDaRa ? 1 : 0,
-    dauVao.tiLeODay ?? TI_LE_O_DAY_MAC_DINH,
     luc,
     luc,
   );

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { T } from "@/config/locale";
+import { CHE_DO_CHOI, type CheDoChoi } from "@/config/to-chuc";
 import { nguoiDangDangNhap } from "@/lib/bao-ve/phien-hien-tai";
 import { phamViCua } from "@/lib/bao-ve/quyen";
 import { suaChonSo, taoChuongTrinh, timTheoMaChonSo } from "@/lib/chuong-trinh/kho";
@@ -48,6 +49,11 @@ export async function taoChonSoForm(
   const loi = kiemThietLapChonSo(d);
   if (loi) return { loi };
 
+  // Chế độ chơi — GĐ 4.3 sổ v2. Trước đó Chọn Số HARDCODE "tai_quay": form
+  // không có ô nào, và chương trình nào cũng chỉ hiện số trên màn LCD.
+  const cheDo = String(form.get("cheDo") ?? "tai_quay") as CheDoChoi;
+  if (!CHE_DO_CHOI.includes(cheDo)) return { loi: T.createErrMode };
+
   // Ô cơ sở bỏ trống = cố ý không gán; phụ huynh tự chọn lúc chơi (GĐ 25).
   const boTrong = String(form.get("coSoId") ?? "").trim() === "";
   const coSoId = docSo(form.get("coSoId"));
@@ -66,7 +72,7 @@ export async function taoChonSoForm(
     tranGiaiMoiNgay: 0,
     soLanChoi: 1,
     coSoId: coSo ? coSo.id : null,
-    cheDo: "tai_quay",
+    cheDo,
     nguonCoSo: coSo ? "gan_san" : "phu_huynh_chon",
     troChoi: "chon_so",
     ...d,

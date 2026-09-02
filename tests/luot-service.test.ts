@@ -92,11 +92,20 @@ describe("chốt một lượt chơi", () => {
     expect(dungLuot(luot.luotId, Number.NaN, "dien_thoai")).toBeNull();
   });
 
-  it("bấm trong lúc nút còn khoá thì bị kéo về đúng mốc mở khoá, không tính sớm hơn", () => {
+  /**
+   * 🔴 LUẬT CŨ (tới 02/09/2026): bấm trong 6 giây khoá thì kết quả bị KÉO về mốc
+   * mở khoá — `atSeconds === lockSeconds`. Nay `lockSeconds = 0` ở mọi mức thi
+   * đấu (hạng mục 2.1), nên không còn cửa sổ nào để mà kéo: bấm ở giây nào thì
+   * chấm ở đúng giây đó.
+   *
+   * Phép kẹp trong `dungLuot` vẫn còn và vẫn phải sống — nó chặn một máy khách
+   * khai số mili-giây bịa; bài kiểm ngay trên canh đúng chuyện đó.
+   */
+  it("bấm ở giây nào thì chấm ĐÚNG giây đó, không bị kéo về mốc nào cả", () => {
+    expect(THAM_SO.lockSeconds).toBe(0);
     const luot = batDauLuot(ma, null)!;
     const kq = dungLuot(luot.luotId, 500, "man_hinh")!;
-    // 500ms nằm trong thời gian khoá nút ⇒ kết quả phải tính tại mốc hết khoá.
-    expect(kq.atSeconds).toBe(THAM_SO.lockSeconds);
+    expect(kq.atSeconds).toBeCloseTo(0.5, 6);
   });
 
   it("ghi đủ vào lịch sử để còn tra soát", () => {

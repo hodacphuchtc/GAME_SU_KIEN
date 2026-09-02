@@ -60,9 +60,10 @@ export async function xinCho(
   const kq = giuCho(ma, loai, token);
   if (!kq.duoc) return { duoc: false, lyDo: "dang-ban", conBanBao: kq.conBanBao };
 
-  if (loai === "nguoi_choi") {
-    phat(ma, { loai: "nguoi-choi-vao", tenRutGon: "" });
-  }
+  // 🔴 KHÔNG phát tin đổi màn ở đây. Giữ chỗ chỉ nghĩa là "một điện thoại vừa
+  // mở trang chơi" — họ còn chưa gõ tên. Bản trước phát `nguoi-choi-vao` ngay
+  // tại đây với tên rỗng, nên màn LCD cất mã QR đi trong lúc người ta còn đang
+  // điền form. Tin đổi màn nay nằm ở `nhanDienNguoiChoi`.
   return {
     duoc: true,
     soTrung: ct.soTrung,
@@ -223,11 +224,18 @@ export async function nhanDienNguoiChoi(
   // Số của người chơi online là số họ TỰ GÕ, chưa có mã xác minh nào (xem N.9).
   sinhLead(coSo.coSoId, kq.nguoiChoi.id, ct.id, ct.cheDo === "online");
 
+  const ten = tenRutGon(kq.nguoiChoi.hoTen);
+
+  // 🔴 MỘT chỗ phát cho CẢ BA GAME. Hàm này là cửa nhận diện chung, nên đặt tin
+  // ở đây là cách duy nhất bảo đảm ba game cùng một nhịp — thêm game thứ tư
+  // cũng không phải nhớ nối lại dây này.
+  phat(ma, { loai: "vao-choi", tenRutGon: ten, troChoi: ct.troChoi });
+
   return {
     ok: true,
     nguoiChoiId: kq.nguoiChoi.id,
     coSoId: coSo.coSoId,
-    tenRutGon: tenRutGon(kq.nguoiChoi.hoTen),
+    tenRutGon: ten,
   };
 }
 

@@ -41,10 +41,17 @@ export default async function TrangChoi({
     if (dsO.length === 0) return bao(T.quayChuaCoO);
     // Vòng vẽ sẵn TRƯỚC khi bấm để phụ huynh nhìn thấy mình đang chơi cái gì.
     // Đây chỉ là mặt vòng để XEM; kết quả do máy chủ quyết lúc bấm QUAY.
-    const cungBanDau = chiaCung(dsO, ct.tiLeODay);
+    const cungBanDau = chiaCung(dsO);
     if (cungBanDau.length === 0) return bao(T.quayHetQua);
     return (
-      <ManDienThoaiVongQuay ma={ct.ma} cungBanDau={cungBanDau} coSoChon={coSoChon} />
+      <main className="mx-auto flex h-dvh w-full max-w-md flex-col overflow-hidden px-5 py-4">
+        {/* 🔴 Vòng Quay trước nay KHÔNG có khung chiều cao nào: component trả về
+            một div trần, nội dung dài bao nhiêu thì trang cao bấy nhiêu. Đây là
+            game dễ tràn nhất vì mặt vòng vốn to. */}
+        <div className="flex min-h-0 flex-1 flex-col justify-center overflow-y-auto">
+          <ManDienThoaiVongQuay ma={ct.ma} cungBanDau={cungBanDau} coSoChon={coSoChon} />
+        </div>
+      </main>
     );
   }
 
@@ -56,6 +63,7 @@ export default async function TrangChoi({
         tenDot={ct.tenGiaiThuong}
         daiTu={ct.daiTu}
         daiDen={ct.daiDen}
+        cheDo={ct.cheDo}
         coSoChon={coSoChon}
       />
     );

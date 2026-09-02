@@ -21,6 +21,7 @@ interface DongO {
   thu_tu: number;
   so_luong: number | null;
   tran_moi_ngay: number;
+  ti_le_trung: number;
   mau: string;
   da_trao: number;
   da_trao_hom_nay: number;
@@ -35,7 +36,7 @@ interface DongO {
  */
 export function danhSachO(chuongTrinhId: number, ngay = ngayVietNam()): OQua[] {
   const dong = layNhieu<DongO>(
-    `select o.id, o.ten, o.thu_tu, o.so_luong, o.tran_moi_ngay, o.mau,
+    `select o.id, o.ten, o.thu_tu, o.so_luong, o.tran_moi_ngay, o.ti_le_trung, o.mau,
             (select count(*) from luot_quay l where l.o_qua_id = o.id) as da_trao,
             (select count(*) from luot_quay l where l.o_qua_id = o.id and l.ngay = ?) as da_trao_hom_nay
        from o_qua o
@@ -53,6 +54,7 @@ export function danhSachO(chuongTrinhId: number, ngay = ngayVietNam()): OQua[] {
     daTrao: d.da_trao,
     tranMoiNgay: d.tran_moi_ngay,
     daTraoHomNay: d.da_trao_hom_nay,
+    tiLeTrung: d.ti_le_trung,
     mau: d.mau,
   }));
 }
@@ -91,6 +93,13 @@ export interface OMoi {
   /** `null` = Ô ĐÁY, không giới hạn. Vòng luôn phải có ít nhất một ô đáy. */
   soLuong: number | null;
   tranMoiNgay?: number;
+  /**
+   * Tỉ lệ trúng, phân số [0,1] (ADR-012). BẮT BUỘC, cố ý không có mặc định: một
+   * ô lọt vào kho mà không ai quyết tỉ lệ thì hoặc nó không bao giờ trúng, hoặc
+   * nó ăn mất phần của ô khác — cả hai đều là chuyện phải có người khai, không
+   * phải chuyện để tầng kho đoán hộ.
+   */
+  tiLeTrung: number;
   mau: string;
 }
 
@@ -98,14 +107,15 @@ export interface OMoi {
 export function themO(chuongTrinhId: number, o: OMoi): number {
   const luc = Date.now();
   chay(
-    `insert into o_qua (chuong_trinh_id, ten, thu_tu, so_luong, tran_moi_ngay, mau,
-                        phien_ban, tao_luc, sua_luc)
-     values (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `insert into o_qua (chuong_trinh_id, ten, thu_tu, so_luong, tran_moi_ngay,
+                        ti_le_trung, mau, phien_ban, tao_luc, sua_luc)
+     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     chuongTrinhId,
     o.ten,
     o.thuTu,
     o.soLuong,
     o.tranMoiNgay ?? 0,
+    o.tiLeTrung,
     o.mau,
     phienBanO(chuongTrinhId) + 1,
     luc,
@@ -120,12 +130,14 @@ export function themO(chuongTrinhId: number, o: OMoi): number {
 export function suaO(chuongTrinhId: number, oId: number, o: OMoi): boolean {
   const soDong = chay(
     `update o_qua
-        set ten = ?, thu_tu = ?, so_luong = ?, tran_moi_ngay = ?, mau = ?, sua_luc = ?
+        set ten = ?, thu_tu = ?, so_luong = ?, tran_moi_ngay = ?, ti_le_trung = ?,
+            mau = ?, sua_luc = ?
       where id = ? and chuong_trinh_id = ?`,
     o.ten,
     o.thuTu,
     o.soLuong,
     o.tranMoiNgay ?? 0,
+    o.tiLeTrung,
     o.mau,
     Date.now(),
     oId,

@@ -190,6 +190,18 @@ const COT_BO_SUNG: ReadonlyArray<[bang: string, cot: string, dinhNghia: string]>
   // Tăng mỗi lần danh sách ô đổi. Mỗi lượt quay ghim phiên bản của nó, nhờ vậy
   // "dựng lại ván" vẽ ra đúng mặt vòng CỦA LÚC ĐÓ, không phải mặt vòng hôm nay.
   ["chuong_trinh", "phien_ban_o", "integer not null default 1"],
+  // GĐ 1.1 (v2) — TỈ LỆ TRÚNG của từng ô quà, dạng phân số [0,1] (ADR-012).
+  //
+  // 🔴 Vì sao phải có cột này. Trước nó, "khách trúng dễ đến đâu" được SUY RA từ
+  // số lượng còn lại trong kho — máy đánh đồng "tôi có bao nhiêu cái" với "cơ hội
+  // trúng bao nhiêu". Người vận hành khai 10 và 30 với nghĩa TỒN KHO, máy đọc
+  // thành "quà sau dễ trúng gấp ba quà trước". Từ nay cung chia ĐỀU, còn cơ hội
+  // là con số khai ở đây.
+  //
+  // Mặc định 0 CỐ Ý: một ô lọt vào bằng đường ALTER mà chưa ai khai tỉ lệ thì
+  // KHÔNG BAO GIỜ trúng — thà lộ ra ngay ở màn thiết lập còn hơn âm thầm ăn mất
+  // phần của ô khác. `backfillV4` chia đều cho mọi ô đã có.
+  ["o_qua", "ti_le_trung", "real not null default 0"],
 ];
 
 /**
@@ -211,7 +223,7 @@ const CHI_MUC_SAU_KHI_THEM_COT: readonly string[] = [
 ];
 
 /** Phiên bản DỮ LIỆU mới nhất. Tăng khi thêm một bước backfill mới. */
-const PHIEN_BAN_DU_LIEU = 3;
+const PHIEN_BAN_DU_LIEU = 4;
 
 /** Gom tên trung tâm về một khoá so sánh được: bỏ khoảng trắng thừa, không phân biệt hoa thường. */
 function khoaChuanHoa(ten: string): string {
@@ -236,11 +248,56 @@ function backfill(db: DatabaseSync): void {
     if (pb < 1) backfillV1(db);
     if (pb < 2) backfillV2(db);
     if (pb < 3) backfillV3(db);
+    if (pb < 4) backfillV4(db);
     db.exec(`pragma user_version = ${PHIEN_BAN_DU_LIEU}`);
     db.exec("commit");
   } catch (loi) {
     db.exec("rollback");
     throw loi;
+  }
+}
+
+/**
+ * v4 — CHIA ĐỀU tỉ lệ trúng cho ô quà của các chương trình Vòng Quay đã có
+ * (ADR-012, 02/09/2026).
+ *
+ * 🔴 Vì sao chia ĐỀU chứ không giữ nguyên tỉ lệ cũ: KHÔNG CÓ tỉ lệ cũ nào để mà
+ * giữ. Trước bản này, cơ hội trúng là một HỆ QUẢ của tồn kho, tính lại ở mỗi
+ * lượt — chưa ai từng khai nó. Suy ngược ra một con số rồi ghi vào sổ là bịa ra
+ * một quyết định chưa ai ra. Chia đều là mệnh đề trung tính duy nhất, và màn
+ * thiết lập hiện nó ra để người vận hành sửa.
+ *
+ * 🔴 KHÔNG HOÀN TÁC ĐƯỢC — không có bảng nào lưu trạng thái trước. Làm BÂY GIỜ
+ * vì CSDL còn ít dữ liệu; sáu tháng nữa là chia lại giữa một cuộc đối soát quà.
+ *
+ * Tự nó chạy lại được nhiều lần mà không đổi kết quả (đặt lại đúng `1/n`), nhưng
+ * vẫn nằm sau van `user_version` để khỏi ghi đè con số người vận hành đã sửa tay.
+ */
+function backfillV4(db: DatabaseSync): void {
+  const ct = db
+    .prepare("select id from chuong_trinh where tro_choi = 'vong_quay' order by id")
+    .all() as { id: number }[];
+
+  const demO = db.prepare("select count(*) as n from o_qua where chuong_trinh_id = ?");
+  const chiaDeu = db.prepare(
+    "update o_qua set ti_le_trung = ?, sua_luc = ? where chuong_trinh_id = ?",
+  );
+  const luc = Date.now();
+  let soO = 0;
+
+  for (const c of ct) {
+    const n = Number((demO.get(c.id) as { n: number }).n);
+    if (n === 0) continue;
+    chiaDeu.run(1 / n, luc, c.id);
+    soO += n;
+  }
+
+  if (soO > 0) {
+    // Ghi nhật ký để người vận hành biết máy đã đụng vào cấu hình phát quà.
+    db.prepare(
+      `insert into nhat_ky_truy_cap (hanh_dong, doi_tuong, so_dong, luc)
+       values ('chia_ti_le', 'nang-cap-v4: chia deu ti le trung cho o qua', ?, ?)`,
+    ).run(soO, luc);
   }
 }
 

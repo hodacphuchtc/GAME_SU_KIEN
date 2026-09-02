@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { T } from "@/config/locale";
 import { MAU_O_SAN } from "@/config/thuong-hieu";
-import { SAN_CUNG_O_DAY, TI_LE_O_DAY_MAC_DINH, TRAN_TI_LE_O_DAY } from "@/config/vong-quay";
+import { chiaDeuTiLe, raPhanTram, tuPhanTram } from "@/lib/vong-quay/ti-le";
 import { themVongQuay } from "@/app/actions/vong-quay-chuong-trinh";
 import type { OKhai } from "@/lib/vong-quay/kiem-tra";
 import type { CoSo } from "@/lib/co-so/nhan";
@@ -20,19 +20,31 @@ import type { CoSo } from "@/lib/co-so/nhan";
  */
 
 function oMacDinh(): OKhai[] {
+  const tiLe = chiaDeuTiLe(3);
   return [
-    { ten: "", soLuong: 10, tranMoiNgay: 0, mau: MAU_O_SAN[0], thuTu: 1 },
-    { ten: "", soLuong: 30, tranMoiNgay: 0, mau: MAU_O_SAN[2], thuTu: 2 },
+    { ten: "", soLuong: 10, tranMoiNgay: 0, tiLeTrung: tiLe[0], mau: MAU_O_SAN[0], thuTu: 1 },
+    { ten: "", soLuong: 30, tranMoiNgay: 0, tiLeTrung: tiLe[1], mau: MAU_O_SAN[2], thuTu: 2 },
     // Ô cuối để TRỐNG số lượng — đó là ô an ủi bắt buộc phải có.
-    { ten: "", soLuong: null, tranMoiNgay: 0, mau: MAU_O_SAN[5], thuTu: 3 },
+    { ten: "", soLuong: null, tranMoiNgay: 0, tiLeTrung: tiLe[2], mau: MAU_O_SAN[5], thuTu: 3 },
   ];
+}
+
+/**
+ * Chia đều lại tỉ lệ cho CẢ danh sách sau khi thêm/bớt ô.
+ *
+ * 🔴 Chia lại toàn bộ chứ không chỉ ô mới: thêm ô thứ tư mà giữ nguyên ba ô cũ
+ * ở 33,33 % thì tổng thành 133 % và người vận hành lãnh một lỗi do máy gây ra.
+ * Muốn lệch thì họ tự sửa — nhưng điểm xuất phát phải luôn là một cấu hình hợp lệ.
+ */
+function chiaDeuLai<T extends { tiLeTrung: number }>(ds: T[]): T[] {
+  const tiLe = chiaDeuTiLe(ds.length);
+  return ds.map((o, i) => ({ ...o, tiLeTrung: tiLe[i] }));
 }
 
 export function FormTaoVongQuay({ coSo }: { coSo: CoSo[] }) {
   const router = useRouter();
   const [coSoId, setCoSoId] = useState<string>(String(coSo[0]?.id ?? ""));
   const [tenDot, setTenDot] = useState("");
-  const [tiLe, setTiLe] = useState(String(Math.round(TI_LE_O_DAY_MAC_DINH * 100)));
   const [dsO, setDsO] = useState<OKhai[]>(oMacDinh);
   const [loi, setLoi] = useState<string[]>([]);
   const [dangLuu, setDangLuu] = useState(false);
@@ -42,20 +54,25 @@ export function FormTaoVongQuay({ coSo }: { coSo: CoSo[] }) {
   }
 
   function themO() {
-    setDsO((cu) => [
-      ...cu,
-      {
-        ten: "",
-        soLuong: 10,
-        tranMoiNgay: 0,
-        mau: MAU_O_SAN[cu.length % MAU_O_SAN.length],
-        thuTu: cu.length + 1,
-      },
-    ]);
+    setDsO((cu) =>
+      chiaDeuLai([
+        ...cu,
+        {
+          ten: "",
+          soLuong: 10,
+          tranMoiNgay: 0,
+          tiLeTrung: 0,
+          mau: MAU_O_SAN[cu.length % MAU_O_SAN.length],
+          thuTu: cu.length + 1,
+        },
+      ]),
+    );
   }
 
   function xoaO(i: number) {
-    setDsO((cu) => cu.filter((_, j) => j !== i).map((o, j) => ({ ...o, thuTu: j + 1 })));
+    setDsO((cu) =>
+      chiaDeuLai(cu.filter((_, j) => j !== i).map((o, j) => ({ ...o, thuTu: j + 1 }))),
+    );
   }
 
   async function guiDi(e: React.FormEvent) {
@@ -65,7 +82,6 @@ export function FormTaoVongQuay({ coSo }: { coSo: CoSo[] }) {
     const kq = await themVongQuay({
       coSoId: coSoId === "" ? null : Number(coSoId),
       tenDot,
-      tiLeODay: Number(tiLe) / 100,
       dsO,
     });
     setDangLuu(false);
@@ -77,6 +93,8 @@ export function FormTaoVongQuay({ coSo }: { coSo: CoSo[] }) {
   }
 
   const coODay = dsO.some((o) => o.soLuong === null);
+  const tongTiLe = Math.round(dsO.reduce((s, o) => s + raPhanTram(o.tiLeTrung), 0) * 100) / 100;
+  const tongDung = Math.abs(tongTiLe - 100) < 0.005;
 
   return (
     <form onSubmit={guiDi} className="mx-auto max-w-3xl">
@@ -121,20 +139,6 @@ export function FormTaoVongQuay({ coSo }: { coSo: CoSo[] }) {
           />
         </label>
 
-        <label className="grid gap-1.5">
-          <span className="text-sm font-bold text-muc">{T.vongQuayTiLeODay}</span>
-          <input
-            type="number"
-            min={Math.round(SAN_CUNG_O_DAY * 100)}
-            max={Math.round(TRAN_TI_LE_O_DAY * 100)}
-            value={tiLe}
-            onChange={(e) => setTiLe(e.target.value)}
-            className="w-32 rounded-xl border border-ke px-4 py-3 text-sm"
-          />
-          <span className="text-xs text-chi">
-            {T.vongQuayTiLeGoiY(Number(tiLe) || 0)}
-          </span>
-        </label>
       </div>
 
       <h2 className="mt-8 text-lg font-black text-muc">{T.vongQuayBangO}</h2>
@@ -146,7 +150,7 @@ export function FormTaoVongQuay({ coSo }: { coSo: CoSo[] }) {
 
       <ul className="mt-3 grid gap-3">
         {dsO.map((o, i) => (
-          <li key={i} className="grid gap-3 rounded-2xl border border-ke bg-white p-4 sm:grid-cols-[1fr_7rem_7rem_6rem_auto] sm:items-end">
+          <li key={i} className="grid gap-3 rounded-2xl border border-ke bg-white p-4 sm:grid-cols-[1fr_7rem_7rem_7rem_6rem_auto] sm:items-end">
             <label className="grid gap-1">
               <span className="text-xs font-bold text-chi">{T.vongQuayOTen}</span>
               <input
@@ -168,6 +172,19 @@ export function FormTaoVongQuay({ coSo }: { coSo: CoSo[] }) {
                 className="rounded-xl border border-ke px-3 py-2.5 text-sm"
               />
               <span className="text-[11px] leading-tight text-chi">{T.vongQuayOSoLuongGoiY}</span>
+            </label>
+            <label className="grid gap-1">
+              <span className="text-xs font-bold text-chi">{T.vongQuayOTiLe}</span>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step="0.01"
+                value={String(raPhanTram(o.tiLeTrung))}
+                onChange={(e) => suaO(i, { tiLeTrung: tuPhanTram(Number(e.target.value)) })}
+                className="rounded-xl border border-ke px-3 py-2.5 text-sm"
+              />
+              <span className="text-[11px] leading-tight text-chi">{T.vongQuayOTiLeGoiY}</span>
             </label>
             <label className="grid gap-1">
               <span className="text-xs font-bold text-chi">{T.vongQuayOTran}</span>
@@ -206,6 +223,19 @@ export function FormTaoVongQuay({ coSo }: { coSo: CoSo[] }) {
           </li>
         ))}
       </ul>
+
+      <p className={`mt-3 text-sm font-bold ${tongDung ? "text-chi" : "text-do"}`}>
+        {T.vongQuayTongTiLe(tongTiLe)}{" "}
+        {!tongDung && (
+          <button
+            type="button"
+            onClick={() => setDsO((cu) => chiaDeuLai(cu))}
+            className="ml-2 rounded-lg border border-ke px-2 py-1 text-xs font-bold text-muc hover:border-tim"
+          >
+            {T.vongQuayTiLeChiaLai}
+          </button>
+        )}
+      </p>
 
       <button
         type="button"

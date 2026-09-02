@@ -135,11 +135,10 @@ export class SoundEngine {
     this.beep(320 + level * 720, 22, 0.07);
   }
 
-  /** Tiếng đếm ngược 3 – 2 – 1 rồi tiếng "chạy". */
-  countdown(isFinal: boolean): void {
-    if (isFinal) this.beep(880, 200, 0.16, "triangle");
-    else this.beep(440, 110, 0.12, "triangle");
-  }
+  // 🔴 `countdown()` ĐÃ XOÁ ngày 02/09/2026. Nó chỉ được gọi từ nhánh xử lý tin
+  // `dem-nguoc` — một tin khai trong `kenh.ts`, có nhánh xử lý ở LCD, mà KHÔNG
+  // một nơi nào phát. Giữ lại một hàm phát tiếng cho một tin không tồn tại là
+  // mời người sau tin rằng màn hình có đếm ngược.
 
   /** Tiếng báo nút DỪNG vừa mở khoá. */
   unlocked(): void {

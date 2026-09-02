@@ -1,9 +1,5 @@
-import {
-  SAN_CUNG_O_DAY,
-  SO_O_TOI_DA,
-  SO_O_TOI_THIEU,
-  TRAN_TI_LE_O_DAY,
-} from "@/config/vong-quay";
+import { SO_O_TOI_DA, SO_O_TOI_THIEU } from "@/config/vong-quay";
+import { raPhanTram, tongDung } from "@/lib/vong-quay/ti-le";
 
 /**
  * KIỂM TRA khai báo chương trình Vòng Quay — hàm THUẦN, không đụng cơ sở dữ liệu.
@@ -30,6 +26,8 @@ export interface OKhai {
   /** `null` = ô đáy, không giới hạn. */
   soLuong: number | null;
   tranMoiNgay: number;
+  /** Tỉ lệ trúng, phân số [0,1] (ADR-012). Tổng mọi ô phải đúng 1. */
+  tiLeTrung: number;
   mau: string;
   thuTu: number;
 }
@@ -39,7 +37,6 @@ export interface VongQuayKhai {
    * cơ sở thì mọi số điện thoại phụ huynh để lại rơi vào hư vô. */
   coSoId: number | null;
   tenDot: string;
-  tiLeODay: number;
   dsO: OKhai[];
 }
 
@@ -59,14 +56,6 @@ export function kiemVongQuay(k: VongQuayKhai): string[] {
   }
 
   if (!k.tenDot.trim()) loi.push("Chưa nhập tên đợt phát quà.");
-
-  if (k.tiLeODay < SAN_CUNG_O_DAY || k.tiLeODay > TRAN_TI_LE_O_DAY) {
-    loi.push(
-      `Tỉ lệ ô an ủi phải nằm trong khoảng ${Math.round(SAN_CUNG_O_DAY * 100)}%–` +
-        `${Math.round(TRAN_TI_LE_O_DAY * 100)}%. Thấp quá thì kho quà thật cạn sau một ` +
-        "buổi; cao quá thì vòng quay chỉ còn là một cái nút bấm.",
-    );
-  }
 
   if (k.dsO.length < SO_O_TOI_THIEU) {
     loi.push(
@@ -88,6 +77,26 @@ export function kiemVongQuay(k: VongQuayKhai): string[] {
       "Phải có ít nhất MỘT ô để trống số lượng (ô an ủi, không giới hạn). Thiếu " +
         "nó thì hết quà là hết trò: vòng quay rỗng ngay giữa lúc có phụ huynh " +
         "đang đứng trước màn hình.",
+    );
+  }
+
+  // 🔴 HAI LUẬT CỦA TỈ LỆ TRÚNG (ADR-012). Đặt TRƯỚC vòng lặp từng ô vì chúng
+  // nói về cả danh sách, không về một ô nào.
+  const dsTiLe = k.dsO.map((o) => o.tiLeTrung);
+
+  if (k.dsO.length > 0 && !tongDung(dsTiLe)) {
+    const tong = dsTiLe.reduce((s, t) => s + t, 0);
+    const thieu = raPhanTram(1 - tong);
+    loi.push(
+      `Tổng tỉ lệ trúng đang là ${raPhanTram(tong)}%, phải đúng 100%. ` +
+        (thieu > 0 ? `Còn thiếu ${thieu}%.` : `Đang thừa ${-thieu}%.`),
+    );
+  }
+
+  if (k.dsO.length > 0 && !k.dsO.some((o) => o.tiLeTrung > 0)) {
+    loi.push(
+      "Mọi ô đều để tỉ lệ 0%, nên vòng quay không bao giờ ra được kết quả. " +
+        "Ít nhất một ô phải có tỉ lệ lớn hơn 0.",
     );
   }
 
@@ -115,6 +124,13 @@ export function kiemVongQuay(k: VongQuayKhai): string[] {
     }
 
     if (o.tranMoiNgay < 0) loi.push(`Ô số ${stt} có trần mỗi ngày là số âm.`);
+
+    if (!(o.tiLeTrung >= 0) || o.tiLeTrung > 1) {
+      loi.push(
+        `Ô số ${stt} có tỉ lệ trúng ${raPhanTram(o.tiLeTrung)}% — phải nằm trong ` +
+          "khoảng 0% đến 100%.",
+      );
+    }
 
     if (o.soLuong !== null && o.tranMoiNgay > o.soLuong) {
       loi.push(

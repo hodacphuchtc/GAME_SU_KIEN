@@ -11,7 +11,6 @@ export const T = {
   // ---- Màn chơi ----
   targetLabel: "SỐ TRÚNG THƯỞNG",
   start: "BẮT ĐẦU",
-  speedingUp: "ĐANG TĂNG TỐC…",
   stop: "DỪNG",
   playAgain: "CHƠI LẠI",
   tryAgain: "THỬ LẠI",
@@ -207,9 +206,6 @@ export const T = {
   dlPhienBan: "Phiên bản mặt vòng",
   dlQuayLai: "← Về lịch sử",
   dlTieuDe: "Dựng lại ván quay",
-  lcdBatDauChieu: "▶ BẮT ĐẦU CHIẾU",
-  lcdBatDauChieuVi:
-    "Chạm một lần để mở khoá âm thanh và bật toàn màn hình. Trình duyệt khoá tiếng cho tới khi có người chạm vào trang — mà màn LCD thì không ai chạm suốt buổi.",
   lcdChuaCoTieng: "Chưa có tiếng — chạm màn hình một lần để mở khoá âm thanh.",
   lcdQrSaiTieuDe: "⚠️ Mã QR này điện thoại quét sẽ KHÔNG vào được",
   lcdQrSaiVi: (dung: string) =>
@@ -255,16 +251,23 @@ export const T = {
   vongQuayTaoNut: "Tạo chương trình Vòng Quay",
   vongQuayCreateTitle: "Tạo chương trình Vòng Quay",
   vongQuayCreateSubtitle:
-    "Khai danh sách ô quà và phần vòng dành cho ô an ủi. Mỗi ô là một loại quà.",
+    "Khai danh sách ô quà. Mỗi ô là một loại quà, và mọi ô chiếm phần vòng bằng nhau.",
   vongQuayDot: "Tên đợt phát quà",
   vongQuayDotGoiY: "Ví dụ: Vòng quay Trung Thu 2026",
-  vongQuayTiLeODay: "Phần vòng cho ô an ủi",
-  vongQuayTiLeGoiY: (phanTram: number) =>
-    `${phanTram}% mặt vòng dành cho ô không giới hạn. Đây là VAN NGÂN SÁCH: kéo xuống thì quà thật ra nhiều hơn và kho cạn nhanh hơn.`,
+  quayChuaKhaiTiLe:
+    "Chưa ô nào được khai tỉ lệ trúng, nên vòng quay không thể ra kết quả. " +
+    "Vào Sửa chương trình và đặt tỉ lệ cho ít nhất một ô.",
   vongQuayBangO: "Danh sách ô quà",
   vongQuayOTen: "Tên quà",
   vongQuayOSoLuong: "Số lượng",
   vongQuayOSoLuongGoiY: "Để TRỐNG = ô an ủi, không giới hạn",
+  vongQuayOTiLe: "Tỉ lệ trúng %",
+  vongQuayOTiLeGoiY: "0 = vẫn hiện trên vòng, không bao giờ trúng",
+  vongQuayTongTiLe: (phanTram: number) =>
+    `Tổng tỉ lệ trúng: ${phanTram}% ${
+      Math.abs(phanTram - 100) < 0.005 ? "✓" : "— phải đúng 100%"
+    }`,
+  vongQuayTiLeChiaLai: "Chia đều lại 100%",
   vongQuayOTran: "Trần mỗi ngày",
   vongQuayOTranGoiY: "0 = không chặn",
   vongQuayOMau: "Màu ô",
@@ -319,6 +322,7 @@ export const T = {
   chonSoManChoNhac: "Mỗi người một lần bấm. Số dừng lại là số phần quà của bạn.",
   chonSoSanSang: "Bấm BẮT ĐẦU rồi nhìn lên màn hình lớn.",
   chonSoNhinLenLcd: "Nhìn màn hình lớn — bấm DỪNG khi thấy con số bạn thích!",
+  chonSoBamKhiThich: "Bấm DỪNG khi thấy con số bạn thích — hai màn chạy cùng một dãy.",
   chonSoDuaSoChoNhanVien: "Đưa con số này cho nhân viên để nhận phần quà cùng số.",
   chonSoChucMung: "🎉 Chúc mừng!",
   chonSoDayLaSoCuaBan: "Bạn đã chọn được dãy số may mắn này.",
@@ -381,6 +385,7 @@ export const T = {
   lcdRoomCode: "Mã phòng",
   lcdWaiting: "Đang chờ người chơi…",
   lcdJoined: "Có người vừa quét mã — chuẩn bị!",
+  lcdDangChoi: (ten: string) => `Đang chơi: ${ten}`,
   lcdPlaying: "ĐANG CHƠI",
   lcdOffline:
     "⚠️ Chưa nối được máy chủ trung chuyển. Màn hình vẫn hiện mã QR và phụ huynh vẫn chơi được trên điện thoại, nhưng KHÔNG chiếu song song lên đây. Kiểm tra xem đã chạy `npm run trung-tam` chưa.",
@@ -396,6 +401,9 @@ export const T = {
   createMode: "Chế độ chơi",
   createModeCounter: "Tại quầy, có màn hình LCD",
   createModeCounterNote: "Điện thoại là nút bấm, dãy số chỉ hiện trên màn hình lớn.",
+  createModeTwoScreens: "Tại quầy, hai màn cùng hiện",
+  createModeTwoScreensNote:
+    "Dãy số chạy trên CẢ màn hình lớn lẫn điện thoại người chơi, cùng một con số. Dùng khi người chơi đứng chếch, không nhìn rõ màn lớn.",
   createModeOnline: "Online, chơi một mình",
   createModeOnlineNote: "Dãy số hiện ngay trên điện thoại người chơi — dùng cho quảng cáo.",
   createBranchSource: "Cơ sở của người chơi",
@@ -735,8 +743,8 @@ export const RULES_CHON_SO: readonly string[] = [
 
 export const RULES = [
   "Bấm BẮT ĐẦU, chờ đếm ngược 3 – 2 – 1.",
-  "Dãy 4 chữ số chạy từ 0000 và mỗi lúc một nhanh hơn.",
-  "Nút DỪNG bị khoá trong lúc bảng số đang tăng tốc — chờ nút sáng đỏ.",
+  "Dãy 4 chữ số chạy từ 0000, hết tốc ngay từ đầu.",
+  "Nút DỪNG bấm được ngay — không phải chờ.",
   "Bấm DỪNG đúng khoảnh khắc bảng số hiện đúng con số trúng thưởng.",
   "Trùng khít cả 4 chữ số mới tính trúng. Lệch một số cũng là chưa trúng.",
   "Hết giờ mà chưa bấm thì lượt đó tính là chưa trúng.",

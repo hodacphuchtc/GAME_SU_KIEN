@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { T } from "@/config/locale";
 import { MAU_O_SAN } from "@/config/thuong-hieu";
-import { SAN_CUNG_O_DAY, TRAN_TI_LE_O_DAY } from "@/config/vong-quay";
+import { chiaDeuTiLe, raPhanTram, tuPhanTram } from "@/lib/vong-quay/ti-le";
 import { suaVongQuay, type OSua } from "@/app/actions/vong-quay-chuong-trinh";
 
 /**
@@ -26,17 +26,14 @@ export interface ODangCo extends OSua {
 export function FormSuaVongQuay({
   ma,
   tenDot: tenDotBanDau,
-  tiLeODay: tiLeBanDau,
   dsO: dsOBanDau,
 }: {
   ma: string;
   tenDot: string;
-  tiLeODay: number;
   dsO: ODangCo[];
 }) {
   const [mo, setMo] = useState(false);
   const [tenDot, setTenDot] = useState(tenDotBanDau);
-  const [tiLe, setTiLe] = useState(String(Math.round(tiLeBanDau * 100)));
   const [dsO, setDsO] = useState<Array<OSua & { daTrao?: number }>>(dsOBanDau);
   const [loi, setLoi] = useState<string[]>([]);
   const [xong, setXong] = useState(false);
@@ -46,21 +43,38 @@ export function FormSuaVongQuay({
     setDsO((cu) => cu.map((o, j) => (j === i ? { ...o, ...vaSua } : o)));
   }
 
+  /**
+   * Chia đều lại tỉ lệ cho CẢ danh sách sau khi thêm/bớt ô.
+   *
+   * 🔴 Chia lại toàn bộ chứ không chỉ ô mới: thêm ô thứ tư mà giữ ba ô cũ ở
+   * 33,33 % thì tổng thành 133 % và người vận hành lãnh một lỗi do máy gây ra.
+   * Muốn lệch thì họ tự sửa — nhưng điểm xuất phát phải luôn là cấu hình hợp lệ.
+   */
+  function chiaDeuLai<T extends { tiLeTrung: number }>(ds: T[]): T[] {
+    const tiLe = chiaDeuTiLe(ds.length);
+    return ds.map((o, i) => ({ ...o, tiLeTrung: tiLe[i] }));
+  }
+
   function themO() {
-    setDsO((cu) => [
-      ...cu,
-      {
-        ten: "",
-        soLuong: 10,
-        tranMoiNgay: 0,
-        mau: MAU_O_SAN[cu.length % MAU_O_SAN.length],
-        thuTu: cu.length + 1,
-      },
-    ]);
+    setDsO((cu) =>
+      chiaDeuLai([
+        ...cu,
+        {
+          ten: "",
+          soLuong: 10,
+          tranMoiNgay: 0,
+          tiLeTrung: 0,
+          mau: MAU_O_SAN[cu.length % MAU_O_SAN.length],
+          thuTu: cu.length + 1,
+        },
+      ]),
+    );
   }
 
   function boO(i: number) {
-    setDsO((cu) => cu.filter((_, j) => j !== i).map((o, j) => ({ ...o, thuTu: j + 1 })));
+    setDsO((cu) =>
+      chiaDeuLai(cu.filter((_, j) => j !== i).map((o, j) => ({ ...o, thuTu: j + 1 }))),
+    );
   }
 
   async function gui(e: React.FormEvent) {
@@ -71,7 +85,6 @@ export function FormSuaVongQuay({
     const kq = await suaVongQuay({
       ma,
       tenDot,
-      tiLeODay: Number(tiLe) / 100,
       // Bỏ `daTrao` trước khi gửi: nó là số máy chủ tự đếm từ `luot_quay`, không
       // phải thứ máy khách được quyền khai. Nhận nó từ form là để trình duyệt tự
       // khai mình đã trao bao nhiêu — tức là không có phép kiểm nào cả.
@@ -81,6 +94,7 @@ export function FormSuaVongQuay({
         thuTu: o.thuTu,
         soLuong: o.soLuong,
         tranMoiNgay: o.tranMoiNgay,
+        tiLeTrung: o.tiLeTrung,
         mau: o.mau,
       })),
     });
@@ -91,6 +105,9 @@ export function FormSuaVongQuay({
     }
     setXong(true);
   }
+
+  const tongTiLe = Math.round(dsO.reduce((s, x) => s + raPhanTram(x.tiLeTrung), 0) * 100) / 100;
+  const tongDung = Math.abs(tongTiLe - 100) < 0.005;
 
   const o = "rounded-xl border border-ke px-3 py-2.5 text-sm";
 
@@ -130,18 +147,6 @@ export function FormSuaVongQuay({
           <span className="text-sm font-bold text-muc">{T.vongQuayDot}</span>
           <input value={tenDot} onChange={(e) => setTenDot(e.target.value)} className={o} />
         </label>
-        <label className="grid gap-1.5">
-          <span className="text-sm font-bold text-muc">{T.vongQuayTiLeODay}</span>
-          <input
-            type="number"
-            min={Math.round(SAN_CUNG_O_DAY * 100)}
-            max={Math.round(TRAN_TI_LE_O_DAY * 100)}
-            value={tiLe}
-            onChange={(e) => setTiLe(e.target.value)}
-            className={`${o} w-32`}
-          />
-          <span className="text-xs text-chi">{T.vongQuayTiLeGoiY(Number(tiLe) || 0)}</span>
-        </label>
       </div>
 
       <h3 className="mt-6 text-sm font-black text-muc">{T.vongQuayBangO}</h3>
@@ -152,7 +157,7 @@ export function FormSuaVongQuay({
           return (
             <li
               key={oq.id ?? `moi-${i}`}
-              className="grid gap-3 rounded-2xl border border-ke p-4 sm:grid-cols-[1fr_7rem_7rem_6rem_auto] sm:items-end"
+              className="grid gap-3 rounded-2xl border border-ke p-4 sm:grid-cols-[1fr_7rem_7rem_7rem_6rem_auto] sm:items-end"
             >
               <label className="grid gap-1">
                 <span className="text-xs font-bold text-chi">{T.vongQuayOTen}</span>
@@ -170,6 +175,19 @@ export function FormSuaVongQuay({
                   }
                   className={o}
                 />
+              </label>
+              <label className="grid gap-1">
+                <span className="text-xs font-bold text-chi">{T.vongQuayOTiLe}</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.01"
+                  value={String(raPhanTram(oq.tiLeTrung))}
+                  onChange={(e) => suaO(i, { tiLeTrung: tuPhanTram(Number(e.target.value)) })}
+                  className={o}
+                />
+                <span className="text-[11px] leading-tight text-chi">{T.vongQuayOTiLeGoiY}</span>
               </label>
               <label className="grid gap-1">
                 <span className="text-xs font-bold text-chi">{T.vongQuayOTran}</span>
@@ -217,6 +235,19 @@ export function FormSuaVongQuay({
           );
         })}
       </ul>
+
+      <p className={`mt-3 text-sm font-bold ${tongDung ? "text-chi" : "text-do"}`}>
+        {T.vongQuayTongTiLe(tongTiLe)}{" "}
+        {!tongDung && (
+          <button
+            type="button"
+            onClick={() => setDsO((cu) => chiaDeuLai(cu))}
+            className="ml-2 rounded-lg border border-ke px-2 py-1 text-xs font-bold text-muc hover:border-tim"
+          >
+            {T.vongQuayTiLeChiaLai}
+          </button>
+        )}
+      </p>
 
       <button
         type="button"

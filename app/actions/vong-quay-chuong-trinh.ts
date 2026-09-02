@@ -46,7 +46,6 @@ export async function themVongQuay(khai: VongQuayKhai): Promise<KetQuaTaoVongQua
       tranGiaiMoiNgay: 0,
       coSoId: khai.coSoId,
       troChoi: "vong_quay",
-      tiLeODay: khai.tiLeODay,
     });
     for (const o of khai.dsO) {
       themO(ct.id, {
@@ -54,6 +53,7 @@ export async function themVongQuay(khai: VongQuayKhai): Promise<KetQuaTaoVongQua
         thuTu: o.thuTu,
         soLuong: o.soLuong,
         tranMoiNgay: o.tranMoiNgay,
+        tiLeTrung: o.tiLeTrung,
         mau: o.mau,
       });
     }
@@ -99,7 +99,6 @@ export interface OSua extends OKhai {
 export interface SuaVongQuayKhai {
   ma: string;
   tenDot: string;
-  tiLeODay: number;
   dsO: OSua[];
 }
 
@@ -128,7 +127,6 @@ export async function suaVongQuay(khai: SuaVongQuayKhai): Promise<KetQuaSuaVongQ
   const loi = kiemVongQuay({
     coSoId: ct.coSoId,
     tenDot: khai.tenDot,
-    tiLeODay: khai.tiLeODay,
     dsO: khai.dsO,
   });
   if (loi.length > 0) return { loi };
@@ -148,10 +146,9 @@ export async function suaVongQuay(khai: SuaVongQuayKhai): Promise<KetQuaSuaVongQ
   db.exec("BEGIN IMMEDIATE");
   try {
     chay(
-      "update chuong_trinh set ten_giai_thuong = ?, ten_trung_tam = ?, ti_le_o_day = ?, sua_luc = ? where id = ?",
+      "update chuong_trinh set ten_giai_thuong = ?, ten_trung_tam = ?, sua_luc = ? where id = ?",
       khai.tenDot.trim(),
       khai.tenDot.trim(),
-      khai.tiLeODay,
       Date.now(),
       ct.id,
     );
@@ -169,6 +166,7 @@ export async function suaVongQuay(khai: SuaVongQuayKhai): Promise<KetQuaSuaVongQ
         thuTu: o.thuTu,
         soLuong: o.soLuong,
         tranMoiNgay: o.tranMoiNgay,
+        tiLeTrung: o.tiLeTrung,
         mau: o.mau,
       };
       if (o.id == null) themO(ct.id, than);

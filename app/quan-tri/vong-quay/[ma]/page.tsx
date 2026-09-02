@@ -140,13 +140,13 @@ export default async function TrangChiTietVongQuay({
       <FormSuaVongQuay
         ma={ct.ma}
         tenDot={ct.tenGiaiThuong}
-        tiLeODay={ct.tiLeODay}
         dsO={dsO.map((o) => ({
           id: o.id,
           ten: o.ten,
           thuTu: o.thuTu,
           soLuong: o.soLuong,
           tranMoiNgay: o.tranMoiNgay,
+          tiLeTrung: o.tiLeTrung,
           mau: o.mau,
           daTrao: o.daTrao,
         }))}

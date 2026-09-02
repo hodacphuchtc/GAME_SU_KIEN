@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { SAN_CUNG_O_DAY, TRAN_TI_LE_O_DAY } from "@/config/vong-quay";
 import { chiaCung, conLai, conPhatDuoc, oTaiGoc, type OQua } from "@/lib/vong-quay/chia-o";
 import { bocGoc } from "@/lib/vong-quay/goc";
 
@@ -12,7 +11,7 @@ function o(
   daTrao = 0,
   thuTu = id,
 ): OQua {
-  return { id, ten, thuTu, soLuong, daTrao, tranMoiNgay: 0, daTraoHomNay: 0, mau: "#000000" };
+  return { id, ten, thuTu, soLuong, daTrao, tranMoiNgay: 0, daTraoHomNay: 0, tiLeTrung: 0.25, mau: "#000000" };
 }
 
 const KHO_MAU: OQua[] = [
@@ -40,10 +39,13 @@ describe("conPhatDuoc / conLai", () => {
 
 describe("chiaCung()", () => {
   it("tổng cung LUÔN đúng 360°, và cung cuối chạm đúng mép", () => {
-    for (const tiLe of [0, 0.08, 0.3, 0.5, 0.9, 1]) {
-      const cung = chiaCung(KHO_MAU, tiLe);
+    // Chạy với nhiều SỐ LƯỢNG ô khác nhau — từ khi cung chia đều, số ô là biến
+    // duy nhất còn ảnh hưởng tới mặt vòng.
+    for (let soO = 2; soO <= 12; soO++) {
+      const kho = Array.from({ length: soO }, (_, i) => o(i + 1, `Ô ${i + 1}`, i === 0 ? null : 10));
+      const cung = chiaCung(kho);
       const tong = cung.reduce((s, c) => s + c.doRong, 0);
-      expect(tong, `tỉ lệ ${tiLe}`).toBeCloseTo(360, 9);
+      expect(tong, `${soO} ô`).toBeCloseTo(360, 9);
       expect(cung[cung.length - 1].den).toBe(360);
       expect(cung[0].tu).toBe(0);
     }
@@ -64,27 +66,32 @@ describe("chiaCung()", () => {
     expect(cung.reduce((s, c) => s + c.doRong, 0)).toBeCloseTo(360, 9);
   });
 
-  it("🔴 cung của quà thật TỈ LỆ ĐÚNG với số lượng còn lại", () => {
-    const cung = chiaCung(KHO_MAU, 0.5);
+  /**
+   * 🔴 LUẬT CŨ (tới 02/09/2026): *"cung của quà thật tỉ lệ đúng với số lượng còn
+   * lại"* — kho 10 : 20 : 70 cho ra cung 1 : 2 : 7, và ô đáy ăn trọn
+   * `ti_le_o_day`. Hai bài kiểm nữa canh SÀN 8 % và TRẦN 95 % của ô đáy.
+   *
+   * ĐẢO bởi ADR-012: luật đó đánh đồng TỒN KHO với XÁC SUẤT. Người vận hành khai
+   * "10 cái Balo, 30 cái Bút" với nghĩa số lượng trong kho, máy đọc thành "Bút dễ
+   * trúng gấp ba Balo". Nay cung chia ĐỀU, còn cơ hội trúng nằm ở
+   * `o_qua.ti_le_trung` và được `cham.ts` áp dụng.
+   *
+   * Ba bài kiểm cũ bị thay bằng bài này. Đừng khôi phục chúng mà chưa đọc ADR-012.
+   */
+  it("🔴 MỌI cung BẰNG NHAU, bất kể tồn kho lệch bao nhiêu", () => {
+    const cung = chiaCung(KHO_MAU);
     const rong = (ten: string) => cung.find((c) => c.ten === ten)!.doRong;
-    // Balo 10 : Bút 20 : Kẹo 70 ⇒ 1 : 2 : 7
-    expect(rong("Bút") / rong("Balo")).toBeCloseTo(2, 6);
-    expect(rong("Kẹo") / rong("Balo")).toBeCloseTo(7, 6);
-    // Ô đáy đúng nửa vòng
-    expect(rong("Sticker")).toBeCloseTo(180, 6);
+    // Kho lệch hẳn: Balo 10 · Bút 20 · Kẹo 70 · Sticker không giới hạn.
+    for (const ten of ["Balo", "Bút", "Kẹo", "Sticker"]) {
+      expect(rong(ten), ten).toBeCloseTo(90, 9);
+    }
   });
 
-  it("ô đáy không bao giờ mỏng dưới SÀN, dù khai tỉ lệ 0", () => {
-    const cung = chiaCung(KHO_MAU, 0);
-    const day = cung.find((c) => c.ten === "Sticker")!;
-    expect(day.doRong).toBeCloseTo(SAN_CUNG_O_DAY * 360, 6);
-  });
-
-  it("khai tỉ lệ 1 vẫn bị kẹp dưới TRẦN — vòng quay không thành cái nút bấm", () => {
-    const cung = chiaCung(KHO_MAU, 1);
-    const day = cung.find((c) => c.ten === "Sticker")!;
-    expect(day.doRong).toBeCloseTo(TRAN_TI_LE_O_DAY * 360, 6);
-    expect(cung).toHaveLength(4);
+  it("🔴 một ô hết hàng thì ba ô còn lại TỰ CHIA ĐỀU LẠI", () => {
+    const het = KHO_MAU.map((x) => (x.id === 1 ? { ...x, daTrao: 10 } : x));
+    const cung = chiaCung(het);
+    expect(cung).toHaveLength(3);
+    for (const c of cung) expect(c.doRong, c.ten).toBeCloseTo(120, 9);
   });
 
   it("hết sạch quà thật ⇒ đúng MỘT cung 360° của ô đáy", () => {
@@ -109,7 +116,9 @@ describe("chiaCung()", () => {
     const cung = chiaCung([o(1, "Balo", 10), o(2, "Bút", 30)]);
     expect(cung).toHaveLength(2);
     expect(cung.reduce((s, c) => s + c.doRong, 0)).toBeCloseTo(360, 9);
-    expect(cung[1].doRong / cung[0].doRong).toBeCloseTo(3, 6);
+    // 10 và 30 là TỒN KHO, không phải cơ hội — hai cung vẫn bằng nhau (ADR-012).
+    expect(cung[0].doRong).toBeCloseTo(180, 9);
+    expect(cung[1].doRong).toBeCloseTo(180, 9);
   });
 
   it("🔴 thứ tự TẤT ĐỊNH — cùng cấu hình luôn cho cùng mặt vòng", () => {

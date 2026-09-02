@@ -28,7 +28,7 @@ import { CauDinhVi, LinhVatSata, LogoSata } from "@/components/nhan-dien-sata";
  * khi có tin. Truyền từng khung hình là vừa nghẽn vừa lệch nhịp.
  */
 
-type Man = "cho" | "chay" | "ket-qua";
+type Man = "cho" | "da-vao" | "chay" | "ket-qua";
 
 export interface ManHinhChonSoProps {
   ma: string;
@@ -79,12 +79,22 @@ export function ManHinhChonSo({
   const [daNoi, setDaNoi] = useState(false);
   const [hienThi, setHienThi] = useState(daiTu);
   const [ketQua, setKetQua] = useState<KetQuaHienThi | null>(null);
+  const [tenNguoiChoi, setTenNguoiChoi] = useState("");
   const [anhQr, setAnhQr] = useState("");
 
   const token = useClientString(tokenPhien);
   const goc = useClientString(() => window.location.origin);
 
   const lechDongHoRef = useRef(0);
+  /**
+   * 🔴 R6 — ĐÃ ĐO XONG LỆCH ĐỒNG HỒ CHƯA.
+   *
+   * Không có cờ này thì `lech = 0` lúc chưa đo bị dùng y như một phép đo thật:
+   * tin mở lượt tới trước khi `/api/gio` trả lời là màn hình quy nhầm mốc máy
+   * chủ về đồng hồ của mình, và hai màn lệch pha suốt ván mà không ai biết vì
+   * sao. Vòng Quay đã có cờ này từ đầu; Chọn Số bị bỏ quên.
+   */
+  const daDoRef = useRef(false);
   const rafRef = useRef(0);
   const batDauLucRef = useRef(0);
   const luotIdRef = useRef<number | null>(null);
@@ -98,7 +108,9 @@ export function ManHinhChonSo({
     if (token === "") return;
     let huy = false;
     void doLechDongHo().then((kq) => {
-      if (!huy) lechDongHoRef.current = kq.lech;
+      if (huy) return;
+      lechDongHoRef.current = kq.lech;
+      daDoRef.current = true;
     });
     void xinCho(ma, "man_hinh", token);
     return () => {
@@ -125,6 +137,7 @@ export function ManHinhChonSo({
     cancelAnimationFrame(rafRef.current);
     luotIdRef.current = null;
     setKetQua(null);
+    setTenNguoiChoi("");
     setHienThi(daiTu);
     setMan("cho");
   }, [daiTu]);
@@ -141,7 +154,11 @@ export function ManHinhChonSo({
       function quay() {
         const n = nhipRef.current;
         const v = vongRef.current;
-        const troi = (Date.now() + lechDongHoRef.current - batDauLucRef.current) / 1000;
+        // Chưa đo xong thì coi như ván VỪA BẮT ĐẦU, đừng lấy 0 làm phép đo:
+        // hai đồng hồ lệch vài giây là dãy số nhảy tới một chỗ chưa từng đúng.
+        const troi = daDoRef.current
+          ? (Date.now() + lechDongHoRef.current - batDauLucRef.current) / 1000
+          : 0;
         if (troi >= n.roundLimitSeconds) {
           // Hết giờ — chính màn hình đứng ra chốt để ván không treo mãi. Luật
           // Chọn Số sẽ TỪ CHỐI cấp số, và người chơi được mời bấm lại.
@@ -167,9 +184,15 @@ export function ManHinhChonSo({
     (tin: TinTrongPhong) => {
       tinCuoiRef.current = Date.now();
       switch (tin.loai) {
-        case "nguoi-choi-vao":
+        case "vao-choi":
+          // 🔴 `setMan` ở đây là dòng THIẾU của bản trước: màn LCD Chọn Số NHẬN
+          // được tin mà không đổi màn, nên nó treo mã QR suốt trong lúc người ta
+          // đã đứng chơi. Kiểu `Man` cũng không có trạng thái trung gian nào để
+          // chuyển sang — nay có `da-vao`.
           setKetQua(null);
           setHienThi(daiTu);
+          setTenNguoiChoi(tin.tenRutGon);
+          setMan("da-vao");
           return;
         case "bat-dau-chon-so":
           luotIdRef.current = tin.luotId;
@@ -233,13 +256,16 @@ export function ManHinhChonSo({
     const kq = await moLuot(ma, null);
     if (kq.ok && kq.gioMayChu !== undefined) {
       lechDongHoRef.current = kq.gioMayChu - Date.now();
+      daDoRef.current = true;
     }
   }, [ma]);
 
   const dungTaiCho = useCallback(() => {
     const id = luotIdRef.current;
     if (id === null) return;
-    const troi = Date.now() + lechDongHoRef.current - batDauLucRef.current;
+    const troi = daDoRef.current
+      ? Date.now() + lechDongHoRef.current - batDauLucRef.current
+      : 0;
     if (troi / 1000 < nhipRef.current.lockSeconds) return;
     luotIdRef.current = null;
     void chotLuot(ma, id, troi, "man_hinh");
@@ -309,6 +335,11 @@ export function ManHinhChonSo({
 
         {man !== "cho" && (
           <>
+            {man === "da-vao" && (
+              <p className="text-center text-2xl font-black text-tim sm:text-4xl">
+                {tenNguoiChoi === "" ? T.lcdJoined : T.lcdDangChoi(tenNguoiChoi)}
+              </p>
+            )}
             <Led4Digits value={formatNumber(hienThi)} size="tv" />
             {man === "ket-qua" && ketQua && (
               <div className="text-center">

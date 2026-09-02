@@ -45,27 +45,23 @@ export const VONG_TOI_THIEU = 4;
  */
 export const MU_GIAM_TOC = 3;
 
-/**
- * Ô ĐÁY (loại không giới hạn) chiếm bao nhiêu phần vòng, tính theo tỉ lệ.
- *
- * 🔴 Đây là VAN NGÂN SÁCH thật sự, không phải chuyện thẩm mỹ. Các ô quà thật
- * chia nhau phần còn lại theo đúng số lượng đã khai, nên tỉ lệ này quyết định
- * kho quà cầm cự được bao nhiêu lượt: để 0,5 thì trung bình một nửa số lượt
- * nhận quà an ủi, kho quà thật sống gấp đôi số lượng của nó.
- */
-export const TI_LE_O_DAY_MAC_DINH = 0.5;
+// 🔴 BA HẰNG ĐÃ XOÁ ngày 02/09/2026 (ADR-012): `TI_LE_O_DAY_MAC_DINH` ·
+// `SAN_CUNG_O_DAY` · `TRAN_TI_LE_O_DAY`. Chúng mô tả "ô đáy chiếm bao nhiêu
+// phần vòng" — một câu hỏi không còn tồn tại từ khi mọi cung chia ĐỀU. Cột
+// `chuong_trinh.ti_le_o_day` vẫn nằm trong CSDL (xoá cột của một bảng đang chạy
+// không đáng giá) nhưng KHÔNG còn được đọc, ghi, hay hiện ra ở bất kỳ màn nào.
+//
+// Đừng khai lại chúng: muốn một ô trúng nhiều hơn thì sửa `o_qua.ti_le_trung`.
 
 /**
- * Sàn cứng cho cung của ô đáy.
+ * Sai số cho phép khi cộng tổng tỉ lệ trúng của các ô.
  *
- * Dưới 8% (28,8°) thì nhãn không còn chỗ để đọc, và ô đáy là ô người ta rơi vào
- * nhiều nhất nên nó phải là ô dễ đọc nhất. Cũng là lưới an toàn: khai tỉ lệ 0
- * thì kho quà thật cạn sau đúng một buổi.
+ * Tổng phải là 100 %, nhưng tỉ lệ là số thực: chia đều cho 3 ô rồi cộng lại có
+ * thể ra 99,99999999999999. So bằng `=== 1` ở đây là chặn oan một cấu hình
+ * hoàn toàn hợp lệ. 1e-6 rộng gấp nhiều lần sai số của phép chia đôi/chia ba,
+ * và vẫn hẹp hơn 0,01 % — nhỏ hơn mọi con số người vận hành gõ được.
  */
-export const SAN_CUNG_O_DAY = 0.08;
-
-/** Trần cho tỉ lệ ô đáy — 95% thì vòng quay chỉ còn là một cái nút bấm. */
-export const TRAN_TI_LE_O_DAY = 0.95;
+export const SAI_SO_TI_LE = 1e-6;
 
 // 🔴 `NGUONG_CANH_BAO_KHO` CỐ Ý KHÔNG khai ở đây — nó nằm ở `config/to-chuc.ts`
 // và dùng chung cho cả ba game. Ngưỡng "kho sắp hết" là một quyết định vận hành
@@ -84,6 +80,19 @@ export const TRAN_TI_LE_O_DAY = 0.95;
  * thống: một phụ huynh đưa con tới hai cơ sở thì họ có quyền chơi ở cả hai.
  */
 export const LUOT_MOI_NGUOI_MOI_NGAY = 1;
+
+/**
+ * Thẻ kết quả đứng trên màn LCD bao nhiêu giây rồi tự trả về màn chờ.
+ *
+ * 🔴 Không có con số này thì thẻ kết quả treo VÔ HẠN tới ván sau: người kế tiếp
+ * bước tới quầy và nhìn thấy phần quà của người trước, còn nhân viên phải tải
+ * lại trang bằng tay.
+ *
+ * 5 giây vì phần thưởng của Vòng Quay nằm ở CÚ QUAY, không ở việc soi thẻ: mã
+ * xác thực đã nằm sẵn trên điện thoại người chơi, họ không cần đọc nó trên màn
+ * lớn. Dài hơn thì hàng chờ ở quầy ùn lại.
+ */
+export const GIAY_XEM_KET_QUA = 5;
 
 /**
  * Đệm sau khi vòng dừng, trước khi coi một lượt là BỎ RƠI.

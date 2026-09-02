@@ -29,8 +29,8 @@ function chuongTrinhVongQuay(coCell = true) {
     troChoi: "vong_quay",
   });
   if (coCell) {
-    themO(ct.id, { ten: "Bút chì", thuTu: 1, soLuong: 10, mau: MAU_O_SAN[2] });
-    themO(ct.id, { ten: "Lời chúc", thuTu: 2, soLuong: null, mau: MAU_O_SAN[0] });
+    themO(ct.id, { ten: "Bút chì", thuTu: 1, soLuong: 10, tiLeTrung: 0.5, mau: MAU_O_SAN[2] });
+    themO(ct.id, { ten: "Lời chúc", thuTu: 2, soLuong: null, tiLeTrung: 0.5, mau: MAU_O_SAN[0] });
   }
   return ct;
 }
@@ -61,8 +61,8 @@ afterEach(() => {
 
 describe("🔴 KHÔNG có ca hết giờ — hàm chấm fail-closed", () => {
   const cung = chiaCung([
-    { id: 1, ten: "A", thuTu: 1, soLuong: 10, daTrao: 0, tranMoiNgay: 0, daTraoHomNay: 0, mau: "#000000" },
-    { id: 2, ten: "B", thuTu: 2, soLuong: null, daTrao: 0, tranMoiNgay: 0, daTraoHomNay: 0, mau: "#111111" },
+    { id: 1, ten: "A", thuTu: 1, soLuong: 10, daTrao: 0, tranMoiNgay: 0, daTraoHomNay: 0, tiLeTrung: 0.25, mau: "#000000" },
+    { id: 2, ten: "B", thuTu: 2, soLuong: null, daTrao: 0, tranMoiNgay: 0, daTraoHomNay: 0, tiLeTrung: 0.25, mau: "#111111" },
   ] as OQua[]);
 
   it("truyền hetGio = true thì NÉM lỗi, không chấm", () => {

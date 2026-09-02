@@ -6,7 +6,7 @@ import { T } from "@/config/locale";
 import { GIAY_QUAY } from "@/config/vong-quay";
 import { doLechDongHo } from "@/lib/dong-bo/dong-ho";
 import { taoMayAmThanh, type MayAmThanh } from "@/lib/vong-quay/am-thanh";
-import { ketThucLuot, quayMot, type KetQuaQuay } from "@/app/actions/vong-quay";
+import { ketThucLuot, quayMot, roiDiQuay, type KetQuaQuay } from "@/app/actions/vong-quay";
 /** Chỉ hai thứ màn này cần: id để gọi `quayMot`, tên để chào. KHÔNG nhận trọn
  * hồ sơ `NguoiChoi` — số điện thoại và cờ đồng ý tư vấn không có việc gì phải
  * đi xuống máy khách. */
@@ -78,6 +78,24 @@ export function ManDienThoaiVongQuay({
       mayRef.current = null;
     };
   }, []);
+
+  /**
+   * Rời trang thì trả màn LCD về mã QR, để người kế tiếp quét được ngay.
+   *
+   * 🔴 Màn LCD đã xử lý tin roi-di từ lâu mà KHÔNG nơi nào phát cho Vòng Quay —
+   * nhánh ấy chưa từng chạy lần nào. Đây là nối lại dây bị hụt.
+   *
+   * Bắt cả pagehide: trên iOS, đóng tab hay chuyển ứng dụng thì component không
+   * bao giờ được gỡ, nên chỉ dựa vào hàm dọn của effect là mất trắng ca đó.
+   */
+  useEffect(() => {
+    const roi = () => void roiDiQuay(ma);
+    window.addEventListener("pagehide", roi);
+    return () => {
+      window.removeEventListener("pagehide", roi);
+      roi();
+    };
+  }, [ma]);
 
   // 🔴 KHÔNG phát tin từ máy khách nữa. Sau khi gộp (ADR-011), MỌI tin đi ra
   // màn LCD đều do MÁY CHỦ phát trong chính hành động ghi dữ liệu — một đường

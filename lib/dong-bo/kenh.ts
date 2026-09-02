@@ -1,6 +1,7 @@
 "use client";
 
 import type { RoundSettings } from "@/config/game";
+import type { TroChoi } from "@/config/to-chuc";
 import type { Cung } from "@/lib/vong-quay/chia-o";
 
 /**
@@ -16,8 +17,19 @@ import type { Cung } from "@/lib/vong-quay/chia-o";
 
 export type TinTrongPhong =
   | { loai: "da-noi"; phong: string }
-  | { loai: "nguoi-choi-vao"; tenRutGon: string }
-  | { loai: "dem-nguoc"; con: number }
+  /**
+   * NHẬN DIỆN XONG — hai màn cùng rời màn chờ.
+   *
+   * 🔴 Phát ở `nhanDienNguoiChoi`, tức đúng lúc phụ huynh bấm TIẾP TỤC, chứ
+   * KHÔNG phải lúc mở trang. Bản trước phát `nguoi-choi-vao` ngay khi điện
+   * thoại xin chỗ (`choi.ts` giữ chỗ) với tên RỖNG: màn LCD bỏ mã QR đi trong
+   * khi người ta còn đang gõ số điện thoại, và ai đi ngang qua quầy lúc đó
+   * không quét được nữa.
+   *
+   * `troChoi` đi kèm để một màn LCD mở nhầm phòng của game khác thì bỏ qua
+   * tin thay vì đổi màn theo một ván không phải của nó.
+   */
+  | { loai: "vao-choi"; tenRutGon: string; troChoi: TroChoi }
   | { loai: "bat-dau"; luotId: number; batDauLuc: number; thamSo: RoundSettings }
   | {
       loai: "ket-qua";
@@ -103,6 +115,14 @@ export type TinTrongPhong =
       oMau: string;
       maXacThuc: string;
       tenRutGon: string;
+      /**
+       * Thẻ kết quả đứng bao nhiêu giây rồi LCD tự về màn chờ.
+       *
+       * 🔴 Số giây đi QUA MẠNG thay vì để màn LCD tự đọc hằng số: màn hình có
+       * thể đang chạy một bản dựng cũ hơn máy chủ, và khi đó hai bên đếm hai
+       * kiểu. Đây đúng khuôn mà Chọn Số đã dùng ở tin ket-qua-chon-so.
+       */
+      giayXemKetQua: number;
     }
   | { loai: "roi-di" }
   /**

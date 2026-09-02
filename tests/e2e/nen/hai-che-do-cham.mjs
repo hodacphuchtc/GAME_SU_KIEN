@@ -14,9 +14,18 @@ const CHAM = JSON.stringify({
   startSpeed: 2, maxSpeed: 2, rampSeconds: 0, lockSeconds: 0,
   roundLimitSeconds: 180, countdownSeconds: 0,
 });
+// 🔴 Bản mức "Dễ" SAU 02/09/2026: phẳng hẳn (`ramp = lock = 0`, `startSpeed =
+// maxSpeed`) và `roundLimitSeconds` rút đi đúng 6 giây để bù — xem hạng mục 2.1
+// của `PLAN_TONG_HOP_V2.md` và bài kiểm "phép bù" ở `tests/bo-dem.test.ts`.
+//
+// 🔴 Nền này BẮT BUỘC phải theo kịp: từ khi bỏ chữ "ĐANG TĂNG TỐC", nút trên
+// điện thoại luôn mang nhãn "DỪNG" — kể cả trong 6 giây còn khoá của bản cũ.
+// Kịch bản chờ nút "DỪNG" rồi bấm liền, và cú bấm ấy rơi vào một nút ĐANG BỊ VÔ
+// HIỆU: không có gì xảy ra, màn thua không bao giờ hiện, và bài kiểm đỏ vì một
+// lý do chẳng liên quan gì tới thương hiệu.
 const DE = JSON.stringify({
-  startSpeed: 150, maxSpeed: 400, rampSeconds: 6, lockSeconds: 6,
-  roundLimitSeconds: 60, countdownSeconds: 3,
+  startSpeed: 400, maxSpeed: 400, rampSeconds: 0, lockSeconds: 0,
+  roundLimitSeconds: 54, countdownSeconds: 3,
 });
 
 const themCt = db.prepare(

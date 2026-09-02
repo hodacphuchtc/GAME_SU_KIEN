@@ -1,6 +1,6 @@
 "use server";
 
-import { GIAY_DEM_LUOT, GIAY_QUAY } from "@/config/vong-quay";
+import { GIAY_DEM_LUOT, GIAY_QUAY, GIAY_XEM_KET_QUA } from "@/config/vong-quay";
 import { T } from "@/config/locale";
 import { csdl } from "@/lib/db/ket-noi";
 import { ngayVietNam } from "@/lib/db/thoi-gian";
@@ -100,10 +100,18 @@ export async function quayMot(
       return { loi: T.quayChuaCoO };
     }
 
-    const cung = chiaCung(dsO, ct.tiLeODay);
+    const cung = chiaCung(dsO);
     if (cung.length === 0) {
       db.exec("ROLLBACK");
       return { loi: T.quayHetQua };
+    }
+
+    // 🔴 Ca này phải nói thành lời. `chamKetQua` trả `null` cho cả hai chuyện
+    // "vòng rỗng" lẫn "không ô nào có tỉ lệ dương"; gộp chúng vào một câu "hết
+    // quà" là bắt người vận hành đi tìm trong kho một thứ không nằm ở kho.
+    if (!cung.some((c) => c.tiLeTrung > 0)) {
+      db.exec("ROLLBACK");
+      return { loi: T.quayChuaKhaiTiLe };
     }
 
     const hatGiong = hatGiongMoi();
@@ -218,7 +226,24 @@ export async function ketThucLuot(luotId: number): Promise<void> {
     oMau: d.o_mau ?? "",
     maXacThuc: d.ma_xac_thuc ?? "",
     tenRutGon: d.ho_ten ? tenRutGon(d.ho_ten) : "",
+    giayXemKetQua: GIAY_XEM_KET_QUA,
   });
+}
+
+/**
+ * Người chơi rời trang — trả màn LCD về mã QR ngay, đừng bắt người kế tiếp chờ.
+ *
+ * 🔴 Màn LCD ĐÃ xử lý tin roi-di từ lâu, nhưng KHÔNG một nơi nào phát nó cho
+ * Vòng Quay: nhánh xử lý đó chưa từng chạy lần nào. Đây là dây bị hụt, không
+ * phải tính năng mới.
+ *
+ * Cố ý KHÔNG đòi token: Vòng Quay không có cơ chế giữ chỗ như Trúng Số, và tin
+ * này chỉ làm đúng một việc — đưa màn hình về trạng thái mời quét mã.
+ */
+export async function roiDiQuay(ma: string): Promise<void> {
+  const ct = timTheoMaCongKhai(ma);
+  if (!ct || ct.troChoi !== "vong_quay") return;
+  phat(ma, { loai: "roi-di" });
 }
 
 export interface KetQuaVaoChoiQuay {
@@ -256,10 +281,13 @@ export async function vaoChoiVongQuay(
   // 🔴 Kiểm giới hạn SAU khi đã nhận diện, không phải trước: phải biết đây là AI
   // thì mới đếm được lượt của họ. Và hồ sơ vẫn được ghi kể cả khi hết lượt —
   // người đã tới quầy thì thông tin của họ vẫn có giá trị.
-  if (!conLuotHomNay(ct.id, kq.nguoiChoiId)) return { ok: false, loi: T.quayHetLuot };
-
-  // Màn LCD đổi từ "đang chờ" sang tên người đang đứng ở quầy.
-  phat(ma, { loai: "nguoi-choi-vao", tenRutGon: kq.tenRutGon ?? "" });
+  if (!conLuotHomNay(ct.id, kq.nguoiChoiId)) {
+    // 🔴 `nhanDienNguoiChoi` đã phát `vao-choi` trước khi tới đây, nên màn LCD
+    // đang hiện tên người này. Hết lượt mà không trả màn về mã QR là để nó treo
+    // tên một người sắp bỏ đi, và người kế tiếp không quét được.
+    phat(ma, { loai: "roi-di" });
+    return { ok: false, loi: T.quayHetLuot };
+  }
 
   return { ok: true, nguoiChoiId: kq.nguoiChoiId, hoTen };
 }

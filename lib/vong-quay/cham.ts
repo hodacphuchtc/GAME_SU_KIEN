@@ -1,8 +1,17 @@
 import { bocGoc } from "./goc";
-import { oTaiGoc, type Cung } from "./chia-o";
+import { type Cung } from "./chia-o";
 
 /**
- * CHẤM KẾT QUẢ một lượt quay: hạt giống → góc → ô.
+ * CHẤM KẾT QUẢ một lượt quay: hạt giống → QUÀ → góc trong cung của quà đó.
+ *
+ * 🔴 THỨ TỰ NÀY LÀ ĐẢO NGƯỢC của bản trước ADR-012, và đó là cả điểm mấu chốt:
+ *
+ *   Trước: rút góc đều → xem kim rơi cung nào ⇒ cung rộng bao nhiêu, cơ hội bấy nhiêu.
+ *   Nay:   rút quà theo TỈ LỆ KHAI → rút góc đều BÊN TRONG cung của quà đó.
+ *
+ * Nhờ đảo, kim **luôn dừng đúng trên ô được công bố** — không tồn tại phép ánh
+ * xạ nào giữa chỗ kim chỉ và tên quà trên thẻ kết quả. Đó là điều người vận
+ * hành dặn đích danh: *"tránh quay hiển thị một đường, kết quả một nẻo."*
  *
  * Hàm THUẦN, không đụng cơ sở dữ liệu — nhờ vậy bài kiểm công bằng chạy được
  * 100.000 lượt qua đúng con đường mà lượt thật đi qua.
@@ -52,9 +61,46 @@ export function chamKetQua({ hatGiong, cung, hetGio }: ThamSoCham): KetQuaCham |
   }
   if (cung.length === 0) return null;
 
-  const gocDung = bocGoc(hatGiong);
-  const o = oTaiGoc(cung, gocDung);
-  return o === null ? null : { gocDung, o };
+  // ① Bốc QUÀ theo tỉ lệ đã khai.
+  const o = bocO(hatGiong, cung);
+  if (o === null) return null;
+
+  // ② Rút góc NGẪU NHIÊN ĐỀU bên trong cung của quà vừa bốc.
+  //
+  // 🔴 Kẹp dưới mép `den`: `tu + 1 * doRong` bằng đúng `den`, và một góc rơi
+  // trúng mép là góc thuộc về cung SAU — tức thẻ kết quả ghi một ô mà kim chỉ
+  // sang ô bên cạnh. Sai số dấu phẩy động cũng đẩy tới đúng chỗ đó.
+  const trongCung = bocGoc(`${hatGiong}:goc`) / 360;
+  const gocDung = Math.min(o.tu + trongCung * o.doRong, o.den - 1e-9);
+  return { gocDung, o };
+}
+
+/**
+ * ① Bốc một ô theo TỈ LỆ TRÚNG đã khai (ADR-012).
+ *
+ * Ô khai 0 % và ô đã biến khỏi vòng đều không nằm trong danh sách bốc; phần còn
+ * lại được chuẩn hoá lại, nên khi một ô hết hàng thì tỉ lệ của nó chia đều theo
+ * TRỌNG SỐ cho các ô còn lại chứ không rơi vào hư vô.
+ *
+ * Trả `null` khi KHÔNG ô nào có tỉ lệ dương — nơi gọi phải nói rõ chuyện đó với
+ * người vận hành. Im lặng trả một ô bất kỳ ở đây là phát quà theo một luật
+ * không ai khai.
+ */
+function bocO(hatGiong: string, cung: readonly Cung[]): Cung | null {
+  const bocDuoc = cung.filter((c) => c.tiLeTrung > 0);
+  if (bocDuoc.length === 0) return null;
+
+  const tong = bocDuoc.reduce((s, c) => s + c.tiLeTrung, 0);
+  if (!(tong > 0)) return null;
+
+  const moc = (bocGoc(`${hatGiong}:o`) / 360) * tong;
+  let don = 0;
+  for (const c of bocDuoc) {
+    don += c.tiLeTrung;
+    if (moc < don) return c;
+  }
+  // Chỉ tới đây khi `moc` chạm đúng `tong` do sai số dấu phẩy động.
+  return bocDuoc[bocDuoc.length - 1];
 }
 
 /**

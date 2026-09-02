@@ -22,7 +22,7 @@ export default async function TrangManHinh({
   if (!ct) notFound();
 
   if (ct.troChoi === "vong_quay") {
-    const cungBanDau = chiaCung(danhSachO(ct.id), ct.tiLeODay);
+    const cungBanDau = chiaCung(danhSachO(ct.id));
     if (cungBanDau.length === 0) {
       return (
         <main className="flex min-h-dvh items-center justify-center bg-suong p-10">

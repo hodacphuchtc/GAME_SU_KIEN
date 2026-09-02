@@ -12,6 +12,7 @@ import { formatNumber } from "@/lib/bo-dem";
 import { Led4Digits } from "@/components/led-4-so";
 import { BangTiLe } from "@/components/bang-ti-le";
 import { GoiY } from "@/components/goi-y";
+import { TheCheDo } from "@/components/the-che-do";
 
 /**
  * Màn thiết lập ván chơi.
@@ -73,35 +74,7 @@ export function FormTao({ coSo }: { coSo: CoSo[] }) {
           )}
         </label>
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-sm font-semibold text-muc">
-            {T.createMode}
-            <GoiY chu={T.gyCheDo} />
-          </legend>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {(
-              [
-                ["tai_quay", T.createModeCounter, T.createModeCounterNote],
-                ["online", T.createModeOnline, T.createModeOnlineNote],
-              ] as const
-            ).map(([id, nhan, ghiChu]) => (
-              <label key={id} className="cursor-pointer">
-                <input
-                  type="radio"
-                  name="cheDo"
-                  value={id}
-                  checked={cheDo === id}
-                  onChange={() => setCheDo(id)}
-                  className="peer sr-only"
-                />
-                <span className="block h-full rounded-xl border border-ke px-3 py-3 text-sm text-muc transition peer-checked:border-tim peer-checked:bg-tim-nhat">
-                  <span className="block font-bold">{nhan}</span>
-                  <span className="mt-0.5 block text-xs leading-relaxed text-chi">{ghiChu}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <TheCheDo giaTri={cheDo} doi={setCheDo} />
 
         {!khongGanCoSo && (
           <label className="flex flex-col gap-1.5 text-sm">

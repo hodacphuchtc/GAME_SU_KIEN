@@ -115,11 +115,23 @@ describe("chốt kết quả", () => {
     expect(miss.distance).toBe(4);
   });
 
-  it("nút DỪNG khoá đúng bằng thời gian tăng tốc", () => {
-    expect(canStop(VUA, 0)).toBe(false);
-    expect(canStop(VUA, VUA.lockSeconds - 0.01)).toBe(false);
-    expect(canStop(VUA, VUA.lockSeconds)).toBe(true);
-    expect(VUA.lockSeconds).toBe(VUA.rampSeconds);
+  /**
+   * 🔴 LUẬT CŨ (tới 02/09/2026): *"nút DỪNG khoá đúng bằng thời gian tăng tốc"* —
+   * `lockSeconds === rampSeconds === 6`, bấm trước mốc đó thì `canStop` trả false.
+   *
+   * ĐẢO ở hạng mục 2.1 của `PLAN_TONG_HOP_V2.md`: người chơi phải chờ 6 giây mới
+   * bấm được, và 6 giây đứng nhìn ở quầy là 6 giây họ tưởng máy hỏng. Nay cả ba
+   * mức đều `rampSeconds = lockSeconds = 0`, kèm rút `roundLimitSeconds` đi đúng
+   * 6 giây để tỉ lệ trúng KHÔNG đổi (xem hai bài "ước tính tỉ lệ trúng" bên dưới,
+   * chúng là bằng chứng của phép bù).
+   */
+  it("nút DỪNG bấm được NGAY từ giây 0, cả ba mức thi đấu", () => {
+    for (const m of [DIFFICULTIES.de, DIFFICULTIES.vua, DIFFICULTIES.kho]) {
+      expect(m.settings.rampSeconds, m.label).toBe(0);
+      expect(m.settings.lockSeconds, m.label).toBe(0);
+      expect(m.settings.startSpeed, m.label).toBe(m.settings.maxSpeed);
+      expect(canStop(m.settings, 0), m.label).toBe(true);
+    }
   });
 
   it("in số luôn đủ 4 chữ số", () => {
@@ -163,6 +175,52 @@ describe("ước tính tỉ lệ trúng", () => {
     const { perRound } = estimateWinChance(VUA, 211);
     expect(perRound).toBeGreaterThan(1 / 80);
     expect(perRound).toBeLessThan(1 / 20);
+  });
+
+  /**
+   * 🔴 BẰNG CHỨNG CỦA PHÉP BÙ (rủi ro R2, hạng mục 2.1 sổ v2).
+   *
+   * Bỏ `lockSeconds` 6 giây mà giữ nguyên `roundLimitSeconds` là giãn cửa sổ
+   * chơi thêm 6 giây — tỉ lệ trúng tăng ÂM THẦM, kho quà cạn nhanh hơn mà không
+   * ai chủ ý quyết. Phép bù là rút `roundLimitSeconds` đi đúng 6 giây.
+   *
+   * Đo trên TRUNG BÌNH của mọi số cài chứ không một số duy nhất: với một số cụ
+   * thể, việc bỏ đoạn tăng tốc làm lệch PHA của dãy đếm, nên số lần con số đó
+   * lướt qua có thể nhích một đơn vị theo cả hai chiều. Đó là hạt của phép đếm
+   * nguyên, không phải thiên lệch — và nó biến mất khi lấy trung bình.
+   *
+   * Con số đo được ngày 02/09/2026: lệch 0,00 % ở cả ba mức; còn nếu QUÊN bù thì
+   * Dễ +10,6 %, Vừa +24,5 %, Khó +42,4 %.
+   */
+  it("🔴 bỏ khoá 6 giây mà tỉ lệ trúng KHÔNG đổi — phép bù đã đúng", () => {
+    const THAM_SO_CU: Record<string, RoundSettings> = {
+      de: { startSpeed: 150, maxSpeed: 400, rampSeconds: 6, lockSeconds: 6, roundLimitSeconds: 60, countdownSeconds: 3 },
+      vua: { startSpeed: 250, maxSpeed: 800, rampSeconds: 6, lockSeconds: 6, roundLimitSeconds: 30, countdownSeconds: 3 },
+      kho: { startSpeed: 400, maxSpeed: 1500, rampSeconds: 6, lockSeconds: 6, roundLimitSeconds: 20, countdownSeconds: 3 },
+    };
+    // Lấy mẫu thưa (bước 7) cho nhanh mà vẫn phủ đều vòng 10.000 số.
+    const trungBinh = (s: RoundSettings) => {
+      let tong = 0;
+      let n = 0;
+      for (let so = 0; so < WHEEL_SIZE; so += 7) {
+        tong += estimateWinChance(s, so).perRound;
+        n += 1;
+      }
+      return tong / n;
+    };
+
+    for (const muc of ["de", "vua", "kho"] as const) {
+      const cu = trungBinh(THAM_SO_CU[muc]);
+      const moi = trungBinh(DIFFICULTIES[muc].settings);
+      expect(Math.abs(moi - cu) / cu, `mức ${muc} lệch tỉ lệ trúng`).toBeLessThan(0.01);
+
+      // Và bài kiểm phải CÓ RĂNG: quên bù thì nó ĐỎ.
+      const quenBu = trungBinh({
+        ...DIFFICULTIES[muc].settings,
+        roundLimitSeconds: THAM_SO_CU[muc].roundLimitSeconds,
+      });
+      expect(quenBu / cu, `mức ${muc}: quên bù mà không thấy tỉ lệ tăng`).toBeGreaterThan(1.05);
+    }
   });
 
   it("Khó thì khó hơn Vừa, Vừa thì khó hơn Dễ", () => {

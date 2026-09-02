@@ -278,9 +278,11 @@ describe("lớp DỮ LIỆU — chỉ chạy MỘT LẦN", () => {
   // 2 → 3 ngày 02/09/2026: thêm backfill v3 (quy chuẩn đầu số 11 số + gộp hồ sơ
   // trùng). Số viết THẲNG, cố ý không import `PHIEN_BAN_DU_LIEU` — import vào thì
   // bài kiểm tự khớp với chính nó và không canh được gì.
-  it("user_version được nâng lên 3", () => {
+  // 3 → 4 ngày 02/09/2026: thêm backfill v4 (chia đều tỉ lệ trúng cho ô quà
+  // Vòng Quay, ADR-012).
+  it("user_version được nâng lên 4", () => {
     chayNangCap();
-    expect((db.prepare("pragma user_version").get() as { user_version: number }).user_version).toBe(3);
+    expect((db.prepare("pragma user_version").get() as { user_version: number }).user_version).toBe(4);
   });
 
   it("CSDL TRẮNG chạy trót lọt, 0 cơ sở, không ném", () => {
@@ -479,5 +481,114 @@ describe("🔴 v3 — quy chuẩn đầu số 11 số và GỘP hồ sơ trùng"
       .get() as { doi_tuong: string; so_dong: number };
     expect(nk.so_dong).toBe(1);
     expect(nk.doi_tuong).not.toMatch(/\d{9,}/);
+  });
+});
+
+describe("🔴 v4 — chia đều tỉ lệ trúng cho ô quà Vòng Quay (ADR-012)", () => {
+  /**
+   * Dựng đúng thứ CSDL quầy đang có SAU ADR-011 và TRƯỚC ADR-012: bảng `o_qua`
+   * đã tồn tại, chương trình Vòng Quay đã chạy, chưa ô nào có tỉ lệ.
+   *
+   * Cách dựng: nâng cấp một lần cho đủ bảng → hạ `user_version` về 3 → chèn dữ
+   * liệu → nâng cấp lần nữa. Đó đúng là con đường máy quầy sẽ đi khi bật bản mới.
+   */
+  function dungCsdlV3(soO: number, ma = "QDX7"): number {
+    chayNangCap();
+    db.exec("pragma user_version = 3");
+    const ctId = themChuongTrinh(ma, "Trung tâm A");
+    db.prepare("update chuong_trinh set tro_choi = 'vong_quay' where id = ?").run(ctId);
+    const themO = db.prepare(
+      `insert into o_qua (chuong_trinh_id, ten, thu_tu, so_luong, tao_luc, sua_luc)
+       values (?, ?, ?, ?, ?, ?)`,
+    );
+    // Ô cuối để trống số lượng = ô an ủi, đúng hình dạng một chương trình hợp lệ.
+    for (let i = 0; i < soO; i++) {
+      themO.run(ctId, `Quà ${i + 1}`, i, i === soO - 1 ? null : 10, 1000, 1000);
+    }
+    return ctId;
+  }
+
+  const tiLe = (ctId: number): number[] =>
+    (
+      db
+        .prepare("select ti_le_trung as t from o_qua where chuong_trinh_id = ? order by thu_tu")
+        .all(ctId) as { t: number }[]
+    ).map((r) => r.t);
+
+  it("bốn ô nhận đúng 25 % mỗi ô", () => {
+    const ct = dungCsdlV3(4);
+    nangCap(db);
+    expect(tiLe(ct)).toEqual([0.25, 0.25, 0.25, 0.25]);
+  });
+
+  it("ba ô: tổng đúng 1,0 (đây là chỗ số thực dễ trượt nhất)", () => {
+    const ct = dungCsdlV3(3);
+    nangCap(db);
+    const t = tiLe(ct);
+    expect(t).toHaveLength(3);
+    expect(t.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 10);
+  });
+
+  it("🔴 chạy HAI LẦN không đổi gì, user_version đứng yên", () => {
+    const ct = dungCsdlV3(4);
+    nangCap(db);
+    const truoc = tiLe(ct);
+    nangCap(db);
+    nangCap(db);
+    expect(tiLe(ct)).toEqual(truoc);
+    expect(
+      (db.prepare("pragma user_version").get() as { user_version: number }).user_version,
+    ).toBe(4);
+    // Nhật ký chỉ được ghi ĐÚNG MỘT dòng — chạy lại mà đẻ thêm dòng nghĩa là van
+    // `user_version` đã thủng.
+    expect(dem("select count(*) as n from nhat_ky_truy_cap where hanh_dong = 'chia_ti_le'")).toBe(1);
+  });
+
+  it("🔴 dữ liệu Vòng Quay cũ không mất dòng nào", () => {
+    const ct = dungCsdlV3(4);
+    const oId = Number(
+      (db.prepare("select id from o_qua where chuong_trinh_id = ? order by thu_tu").get(ct) as {
+        id: number;
+      }).id,
+    );
+    db.prepare(
+      `insert into luot_quay
+         (chuong_trinh_id, nguoi_choi_id, o_qua_id, ngay, hat_giong, goc_dung,
+          phien_ban_o, o_ten, bat_dau_luc)
+       values (?, null, ?, '2026-09-01', 'abc123', 12.5, 1, 'Quà 1', 1000)`,
+    ).run(ct, oId);
+
+    nangCap(db);
+
+    expect(dem("select count(*) as n from luot_quay")).toBe(1);
+    const lq = db.prepare("select o_qua_id, o_ten, goc_dung from luot_quay").get() as {
+      o_qua_id: number;
+      o_ten: string;
+      goc_dung: number;
+    };
+    expect(lq).toEqual({ o_qua_id: oId, o_ten: "Quà 1", goc_dung: 12.5 });
+    expect(db.prepare("pragma foreign_key_check").all()).toEqual([]);
+  });
+
+  it("🔴 chỉ đụng chương trình Vòng Quay — game khác giữ nguyên 0", () => {
+    const ctQuay = dungCsdlV3(2);
+    // Một chương trình game khác mà lỡ có dòng `o_qua`: bộ lọc `tro_choi` phải
+    // giữ nó lại. Không có bộ lọc đó thì backfill thò tay sang game khác.
+    const ctSo = themChuongTrinh("BBBB", "Trung tâm B");
+    db.prepare(
+      `insert into o_qua (chuong_trinh_id, ten, thu_tu, so_luong, tao_luc, sua_luc)
+       values (?, 'Không thuộc vòng quay', 0, null, 1000, 1000)`,
+    ).run(ctSo);
+
+    nangCap(db);
+
+    expect(tiLe(ctQuay)).toEqual([0.5, 0.5]);
+    expect(tiLe(ctSo)).toEqual([0]);
+  });
+
+  it("CSDL không có chương trình Vòng Quay nào: không ghi nhật ký, không ném", () => {
+    themChuongTrinh("CCCC", "Trung tâm C");
+    expect(() => chayNangCap()).not.toThrow();
+    expect(dem("select count(*) as n from nhat_ky_truy_cap where hanh_dong = 'chia_ti_le'")).toBe(0);
   });
 });

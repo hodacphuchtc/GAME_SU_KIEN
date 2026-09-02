@@ -9,15 +9,16 @@
  * 1. **Ô hết hàng KHÔNG có mặt trên vòng.** Không thay thầm bằng quà khác — kim
  *    chỉ vào Balo mà đưa cây bút là thứ phụ huynh nhớ rất lâu. Vòng lúc 8h khác
  *    lúc 20h là TRUNG THỰC, không phải lỗi.
- * 2. **Cung tỉ lệ đúng với số lượng đã khai**, nên "cung rộng = dễ trúng" là
- *    điều mắt nhìn thấy được, không phải điều phải tin.
+ * 2. **Mọi ô còn phát được nhận cung BẰNG NHAU** (ADR-012, 02/09/2026). Mặt
+ *    vòng chỉ nói "hôm nay có bấy nhiêu loại quà"; còn "trúng dễ đến đâu" là
+ *    `o_qua.ti_le_trung`, người vận hành khai ở màn thiết lập.
+ *
+ * 🔴 Luật 2 ĐÃ TỪNG NGƯỢC LẠI: cung chia theo TỒN KHO, và "cung rộng = dễ trúng"
+ * là điều mắt nhìn thấy được. Đảo vì nó đánh đồng "tôi có bao nhiêu cái" với
+ * "khách trúng dễ đến đâu" — khai 10 và 30 với nghĩa tồn kho thì bị đọc thành
+ * "quà sau dễ trúng gấp ba". Cái mất khi đảo được ghi thẳng trong ADR-012.
  */
 
-import {
-  SAN_CUNG_O_DAY,
-  TI_LE_O_DAY_MAC_DINH,
-  TRAN_TI_LE_O_DAY,
-} from "@/config/vong-quay";
 import { chuanHoaGoc } from "@/lib/vong-quay/goc";
 
 export interface OQua {
@@ -32,6 +33,15 @@ export interface OQua {
   tranMoiNgay: number;
   /** Đã trao bao nhiêu cái riêng HÔM NAY. */
   daTraoHomNay: number;
+  /**
+   * TỈ LỆ TRÚNG — phân số [0,1] (ADR-012). KHÔNG phải độ rộng cung: mọi cung
+   * bằng nhau. Đây là con số người vận hành khai, và là thứ duy nhất quyết định
+   * khách trúng ô nào.
+   *
+   * 0 nghĩa là ô VẪN HIỆN trên vòng nhưng không bao giờ được bốc — yêu cầu đích
+   * danh của người vận hành, để trưng món quà lớn mà chưa muốn phát.
+   */
+  tiLeTrung: number;
   mau: string;
 }
 
@@ -44,6 +54,17 @@ export interface Cung {
   /** Mép cuối, độ. Cung cuối cùng có `den = 360`. */
   den: number;
   doRong: number;
+  /**
+   * ẢNH CHỤP tỉ lệ trúng của ô tại đúng lúc chia (ADR-012).
+   *
+   * 🔴 Vì sao phải nằm trong `Cung` chứ không tra lại từ `o_qua`: cả mảng này
+   * được ghi thẳng vào `luot_quay.cung_json`. Thiếu nó thì nút "Dựng lại ván"
+   * phải đọc tỉ lệ HIỆN TẠI, và một lần người vận hành sửa tỉ lệ là mọi ván cũ
+   * dựng lại ra một xác suất chưa từng được dùng — đúng thứ ảnh chụp sinh ra để
+   * bác bỏ. Ván quay TRƯỚC ADR-012 không có trường này (đọc lên là `undefined`);
+   * chúng chỉ được VẼ LẠI chứ không bao giờ chấm lại, nên vô hại.
+   */
+  tiLeTrung: number;
 }
 
 /**
@@ -66,57 +87,42 @@ export function conLai(o: OQua): number | null {
 }
 
 /**
- * Chia mặt vòng.
+ * Chia mặt vòng — MỌI ô còn phát được nhận cung BẰNG NHAU (ADR-012).
  *
- * `tiLeDay` là VAN NGÂN SÁCH: phần vòng dành cho ô đáy. Các ô quà thật chia
- * nhau phần còn lại theo đúng số lượng CÒN LẠI của từng loại.
+ * 🔴 Không còn tham số `tiLeDay`, và đó là chủ ý: mặt vòng nay chỉ phụ thuộc
+ * DANH SÁCH ô còn phát được. Ô hết hàng biến khỏi vòng như cũ, và các ô còn lại
+ * tự chia đều lại — nên vòng lúc 8h khác lúc 20h vẫn là sự thật, không phải lỗi.
+ *
+ * 🔴 Ô khai tỉ lệ 0 % VẪN nằm trên vòng (yêu cầu đích danh của người vận hành),
+ * nó chỉ không bao giờ được bốc. Việc bốc nằm ở `cham.ts`, không ở đây.
  *
  * 🔴 Sắp theo `thuTu` rồi mới tới `id` — hai ô cùng thứ tự mà xếp lung tung thì
  * cùng một cấu hình cho ra hai mặt vòng khác nhau giữa hai lần chạy, và không
  * ai dựng lại được ván đã quay khi có tranh chấp.
  */
-export function chiaCung(
-  dsO: readonly OQua[],
-  tiLeDay: number = TI_LE_O_DAY_MAC_DINH,
-): Cung[] {
+export function chiaCung(dsO: readonly OQua[]): Cung[] {
   const conHang = [...dsO]
     .filter(conPhatDuoc)
     .sort((a, b) => a.thuTu - b.thuTu || a.id - b.id);
   if (conHang.length === 0) return [];
 
-  const day = conHang.filter((o) => o.soLuong === null);
-  const that = conHang.filter((o) => o.soLuong !== null);
-  const tonThat = that.reduce((s, o) => s + (conLai(o) ?? 0), 0);
-
-  // Kẹp hai đầu: khai 0 thì kho quà thật cạn sau một buổi; khai 1 thì vòng quay
-  // chỉ còn là một cái nút bấm.
-  const tiLe = Math.min(TRAN_TI_LE_O_DAY, Math.max(SAN_CUNG_O_DAY, tiLeDay));
-
-  /** Mỗi ô nhận bao nhiêu PHẦN của vòng (tổng = 1). */
-  const phan = new Map<number, number>();
-
-  if (day.length === 0) {
-    // Không có ô đáy — lẽ ra bị chặn ngay ở form tạo. Vẫn phải chia được, chứ
-    // không ném lỗi giữa lúc có phụ huynh đứng trước màn hình.
-    for (const o of that) phan.set(o.id, (conLai(o) ?? 0) / (tonThat || that.length));
-  } else if (that.length === 0 || tonThat === 0) {
-    // Hết sạch quà thật ⇒ ô đáy chiếm trọn vòng. Người chơi vẫn nhận được thứ
-    // gì đó, và nhìn vào vòng là biết ngay hôm nay chỉ còn quà an ủi.
-    for (const o of day) phan.set(o.id, 1 / day.length);
-  } else {
-    for (const o of day) phan.set(o.id, tiLe / day.length);
-    for (const o of that) phan.set(o.id, (1 - tiLe) * ((conLai(o) ?? 0) / tonThat));
-  }
-
   // Cộng dồn theo độ, và ép cung cuối chạm đúng 360: cộng dồn số thực rồi làm
   // tròn có thể để lại một khe hở vài phần nghìn độ, và một góc rơi đúng vào
   // khe đó thì không tra ra ô nào cả.
+  const doRongDeu = 360 / conHang.length;
   const cung: Cung[] = [];
   let moc = 0;
   conHang.forEach((o, i) => {
-    const doRong = (phan.get(o.id) ?? 0) * 360;
-    const den = i === conHang.length - 1 ? 360 : moc + doRong;
-    cung.push({ oId: o.id, ten: o.ten, mau: o.mau, tu: moc, den, doRong: den - moc });
+    const den = i === conHang.length - 1 ? 360 : moc + doRongDeu;
+    cung.push({
+      oId: o.id,
+      ten: o.ten,
+      mau: o.mau,
+      tu: moc,
+      den,
+      doRong: den - moc,
+      tiLeTrung: o.tiLeTrung,
+    });
     moc = den;
   });
   return cung;

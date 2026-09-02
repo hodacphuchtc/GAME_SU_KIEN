@@ -50,6 +50,19 @@ export interface Difficulty {
  * TỐC ĐỘ quyết định CẢM GIÁC (hai chữ số đầu còn đọc được hay không),
  * còn TỈ LỆ TRÚNG lại do (roundLimitSeconds − lockSeconds) quyết định.
  * Vì vậy các mức dưới đây khác nhau ở CẢ tốc độ lẫn thời gian một lượt.
+ *
+ * 🔴 02/09/2026 — BỎ TĂNG TỐC (`rampSeconds`) VÀ KHOÁ NÚT DỪNG (`lockSeconds`).
+ * Người chơi bấm BẮT ĐẦU là số chạy hết tốc ngay, nút DỪNG bấm được luôn.
+ *
+ * 🔴 VÀ `roundLimitSeconds` BỊ RÚT ĐI ĐÚNG 6 GIÂY ở cả ba mức. Đây KHÔNG phải
+ * chuyện thẩm mỹ mà là phép BÙ bắt buộc: tỉ lệ trúng chỉ phụ thuộc
+ * `roundLimitSeconds − lockSeconds`. Bỏ khoá 6 giây mà giữ nguyên giới hạn là
+ * giãn cửa sổ chơi của mức Vừa từ 24 s lên 30 s — tỉ lệ trúng đi từ ~1/32 lên
+ * ~1/21, tức phát nhiều quà hơn ~25 % cho cùng số khách, mà không một ai chủ ý
+ * quyết điều đó. Bảng dự báo ở màn tạo chương trình phải hiện ĐÚNG con số như
+ * trước khi sửa; đó là bằng chứng phép bù đã đúng.
+ *
+ * ⚠️ Ván ĐÃ CHƠI không bị chấm lại: `van_choi` lưu `tham_so` của lúc đó.
  */
 export const DIFFICULTIES: Record<DifficultyId, Difficulty> = {
   thu: {
@@ -66,13 +79,13 @@ export const DIFFICULTIES: Record<DifficultyId, Difficulty> = {
   },
   de: {
     label: "Dễ",
-    note: "Hàng trăm đổi 4 lần/giây — nhìn rõ, canh được. Lượt chơi dài nên nhiều cơ hội.",
+    note: "Hàng trăm đổi 4 lần/giây — nhìn rõ, canh được. Lượt chơi dài nên nhiều cơ hội. Bấm là chạy ngay, dừng được ngay.",
     settings: {
-      startSpeed: 150,
+      startSpeed: 400,
       maxSpeed: 400,
-      rampSeconds: 6,
-      lockSeconds: 6,
-      roundLimitSeconds: 60,
+      rampSeconds: 0,
+      lockSeconds: 0,
+      roundLimitSeconds: 54,
       countdownSeconds: 3,
     },
   },
@@ -80,11 +93,11 @@ export const DIFFICULTIES: Record<DifficultyId, Difficulty> = {
     label: "Trung bình",
     note: "Mức khuyên dùng. Hàng nghìn + hàng trăm còn đọc được để canh, hàng chục + đơn vị nhoè — người chơi tin là kỹ năng.",
     settings: {
-      startSpeed: 250,
+      startSpeed: 800,
       maxSpeed: 800,
-      rampSeconds: 6,
-      lockSeconds: 6,
-      roundLimitSeconds: 30,
+      rampSeconds: 0,
+      lockSeconds: 0,
+      roundLimitSeconds: 24,
       countdownSeconds: 3,
     },
   },
@@ -92,11 +105,11 @@ export const DIFFICULTIES: Record<DifficultyId, Difficulty> = {
     label: "Khó",
     note: "Hàng trăm bắt đầu nhoè, lượt chơi ngắn. Dùng khi giải thưởng lớn.",
     settings: {
-      startSpeed: 400,
+      startSpeed: 1500,
       maxSpeed: 1500,
-      rampSeconds: 6,
-      lockSeconds: 6,
-      roundLimitSeconds: 20,
+      rampSeconds: 0,
+      lockSeconds: 0,
+      roundLimitSeconds: 14,
       countdownSeconds: 3,
     },
   },

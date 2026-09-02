@@ -115,6 +115,14 @@ describe("chế độ chơi và số lần bấm", () => {
     expect((await gui(form({ coSoId: String(cs.id), cheDo: "qua_buu_dien" }))).loi).toBeTruthy();
   });
 
+  // GĐ 4.1 sổ v2 — chế độ THỨ BA: vẫn tại quầy, nhưng điện thoại vẽ luôn dãy số
+  // song song với màn LCD. Cột che_do là text tự do nên không cần migration.
+  it("🔴 nhận chế độ thứ ba tai_quay_hai_man", async () => {
+    const cs = taoCoSo({ ten: "Cơ sở A" });
+    expect(await gui(form({ coSoId: String(cs.id), cheDo: "tai_quay_hai_man" }))).toEqual({});
+    expect(danhSachChuongTrinh(TOAN_BO)[0].cheDo).toBe("tai_quay_hai_man");
+  });
+
   // 🔄 GĐ 25 ĐẢO ca này. Luật cũ: "tại quầy thì luôn ép về gán sẵn, vì phụ
   // huynh đứng ngay trước mặt, không có màn nào để chọn". Luật đó sai với một
   // quầy dùng CHUNG một mã QR cho nhiều cơ sở — và màn chọn thì vẫn có, nó

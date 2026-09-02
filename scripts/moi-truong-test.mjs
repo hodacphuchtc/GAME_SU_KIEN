@@ -128,15 +128,20 @@ q(`insert into qua_tang (chuong_trinh_id, ten, thu_tu, so_luong, tran_moi_ngay, 
    values (?,'Sticker',1,null,0,?,?)`, idTS, luc, luc);
 
 // Ô quà cho Vòng Quay — ô CUỐI để trống số lượng: đó là ô an ủi bắt buộc.
+//
+// 🔴 Cột thứ tư là TỈ LỆ TRÚNG (ADR-012), tổng phải đúng 1. Nó KHÔNG liên quan
+// tới số lượng: Balo chỉ có 3 cái mà vẫn để 10 % để còn thấy nó ra; ô an ủi ăn
+// phần lớn nhất. Bỏ trống cột này là mọi ô 0 %, và nút QUAY chỉ trả về một dòng
+// "chưa ô nào được khai tỉ lệ trúng".
 const O = [
-  ["Balo STEM", 3, "#6B21A8"],
-  ["Bút chì", 10, "#F97316"],
-  ["Voucher 50k", 5, "#5EEAD4"],
-  ["Lời chúc may mắn", null, "#FACC15"],
+  ["Balo STEM", 3, 0.1, "#6B21A8"],
+  ["Bút chì", 10, 0.3, "#F97316"],
+  ["Voucher 50k", 5, 0.15, "#5EEAD4"],
+  ["Lời chúc may mắn", null, 0.45, "#FACC15"],
 ];
-O.forEach(([ten, sl, mau], i) => {
-  q(`insert into o_qua (chuong_trinh_id, ten, thu_tu, so_luong, tran_moi_ngay, mau, phien_ban, tao_luc, sua_luc)
-     values (?,?,?,?,0,?,1,?,?)`, idVQ, ten, i, sl, mau, luc, luc);
+O.forEach(([ten, sl, tiLe, mau], i) => {
+  q(`insert into o_qua (chuong_trinh_id, ten, thu_tu, so_luong, tran_moi_ngay, ti_le_trung, mau, phien_ban, tao_luc, sua_luc)
+     values (?,?,?,?,0,?,?,1,?,?)`, idVQ, ten, i, sl, tiLe, mau, luc, luc);
 });
 
 db.close();

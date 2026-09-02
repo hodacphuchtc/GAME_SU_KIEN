@@ -110,9 +110,10 @@ describe("🔴 R2 — ba game KHÔNG nhìn thấy chương trình của nhau", (
     expect(vq.ma).toHaveLength(4);
   });
 
-  it("chương trình mới nhận ti_le_o_day = 0,5 và phien_ban_o = 1", () => {
+  // `ti_le_o_day` đã rời khỏi kiểu miền ngày 02/09/2026 (ADR-012) — cột còn nằm
+  // trong CSDL nhưng không nơi nào đọc. Chỉ còn `phien_ban_o` đáng canh.
+  it("chương trình mới nhận phien_ban_o = 1", () => {
     const { vq } = taoBaGame(coSoThu());
-    expect(vq.tiLeODay).toBe(0.5);
     expect(vq.phienBanO).toBe(1);
   });
 });
@@ -132,8 +133,8 @@ describe("kho ô quà", () => {
 
   it("thêm ô rồi đọc lại đúng thứ tự, ô đáy nhận soLuong = null", () => {
     const ct = chuongTrinhVongQuay();
-    themO(ct.id, { ten: "Balo", thuTu: 1, soLuong: 5, mau: MAU_O_SAN[0] });
-    themO(ct.id, { ten: "Sticker", thuTu: 0, soLuong: null, mau: MAU_O_SAN[1] });
+    themO(ct.id, { ten: "Balo", thuTu: 1, soLuong: 5, tiLeTrung: 0.5, mau: MAU_O_SAN[0] });
+    themO(ct.id, { ten: "Sticker", thuTu: 0, soLuong: null, tiLeTrung: 0.5, mau: MAU_O_SAN[1] });
     const ds = danhSachO(ct.id);
     expect(ds.map((o) => o.ten)).toEqual(["Sticker", "Balo"]);
     expect(ds[0].soLuong).toBeNull();
@@ -143,10 +144,10 @@ describe("kho ô quà", () => {
   it("🔴 MỌI thay đổi danh sách ô đều tăng phiên bản — không tăng thì dựng lại ván ra vòng chưa từng tồn tại", () => {
     const ct = chuongTrinhVongQuay();
     expect(phienBanO(ct.id)).toBe(1);
-    const oId = themO(ct.id, { ten: "Balo", thuTu: 0, soLuong: 5, mau: MAU_O_SAN[0] });
+    const oId = themO(ct.id, { ten: "Balo", thuTu: 0, soLuong: 5, tiLeTrung: 0.5, mau: MAU_O_SAN[0] });
     const sauThem = phienBanO(ct.id);
     expect(sauThem).toBeGreaterThan(1);
-    suaO(ct.id, oId, { ten: "Balo mini", thuTu: 0, soLuong: 5, mau: MAU_O_SAN[0] });
+    suaO(ct.id, oId, { ten: "Balo mini", thuTu: 0, soLuong: 5, tiLeTrung: 0.5, mau: MAU_O_SAN[0] });
     const sauSua = phienBanO(ct.id);
     expect(sauSua).toBeGreaterThan(sauThem);
     xoaO(ct.id, oId);
@@ -155,7 +156,7 @@ describe("kho ô quà", () => {
 
   it("🔴 KHÔNG xoá được ô đã trao — đó là chứng cứ đối soát khi phụ huynh khiếu nại", () => {
     const ct = chuongTrinhVongQuay();
-    const oId = themO(ct.id, { ten: "Balo", thuTu: 0, soLuong: 5, mau: MAU_O_SAN[0] });
+    const oId = themO(ct.id, { ten: "Balo", thuTu: 0, soLuong: 5, tiLeTrung: 0.5, mau: MAU_O_SAN[0] });
     chay(
       `insert into luot_quay (chuong_trinh_id, o_qua_id, ngay, hat_giong, goc_dung,
                               phien_ban_o, bat_dau_luc)
@@ -171,7 +172,7 @@ describe("kho ô quà", () => {
   it("ô của chương trình khác không lẫn sang", () => {
     const a = chuongTrinhVongQuay();
     const b = chuongTrinhVongQuay();
-    themO(a.id, { ten: "Của A", thuTu: 0, soLuong: 1, mau: MAU_O_SAN[0] });
+    themO(a.id, { ten: "Của A", thuTu: 0, soLuong: 1, tiLeTrung: 0.5, mau: MAU_O_SAN[0] });
     expect(danhSachO(b.id)).toEqual([]);
   });
 
@@ -191,7 +192,7 @@ describe("🔴 R6 — sổ lịch sử đọc ẢNH CHỤP tên ô, không join 
       coSoId: coSoThu(),
       troChoi: "vong_quay",
     });
-    const oId = themO(ct.id, { ten: "Balo", thuTu: 0, soLuong: 5, mau: MAU_O_SAN[0] });
+    const oId = themO(ct.id, { ten: "Balo", thuTu: 0, soLuong: 5, tiLeTrung: 0.5, mau: MAU_O_SAN[0] });
 
     // Lượt được ghi KÈM ảnh chụp tên ô tại thời điểm đó.
     chay(
@@ -204,7 +205,7 @@ describe("🔴 R6 — sổ lịch sử đọc ẢNH CHỤP tên ô, không join 
       Date.now(),
     );
 
-    suaO(ct.id, oId, { ten: "Balo mini", thuTu: 0, soLuong: 5, mau: MAU_O_SAN[0] });
+    suaO(ct.id, oId, { ten: "Balo mini", thuTu: 0, soLuong: 5, tiLeTrung: 0.5, mau: MAU_O_SAN[0] });
 
     // Danh mục đã đổi…
     expect(danhSachO(ct.id)[0].ten).toBe("Balo mini");
@@ -222,7 +223,7 @@ describe("🔴 R6 — sổ lịch sử đọc ẢNH CHỤP tên ô, không join 
       coSoId: coSoThu(),
       troChoi: "vong_quay",
     });
-    const oId = themO(ct.id, { ten: "Balo", thuTu: 0, soLuong: 5, mau: MAU_O_SAN[0] });
+    const oId = themO(ct.id, { ten: "Balo", thuTu: 0, soLuong: 5, tiLeTrung: 0.5, mau: MAU_O_SAN[0] });
     chay(
       `insert into luot_quay (chuong_trinh_id, o_qua_id, ngay, hat_giong, goc_dung,
                               phien_ban_o, bat_dau_luc)
@@ -247,7 +248,7 @@ describe("🔴 R6 — bản xuất Excel cũng phải đọc ẢNH CHỤP", () =
       coSoId: coSoThu(),
       troChoi: "vong_quay",
     });
-    const oId = themO(ct.id, { ten: "Balo", thuTu: 0, soLuong: 5, mau: MAU_O_SAN[0] });
+    const oId = themO(ct.id, { ten: "Balo", thuTu: 0, soLuong: 5, tiLeTrung: 0.5, mau: MAU_O_SAN[0] });
     chay(
       `insert into luot_quay (chuong_trinh_id, o_qua_id, ngay, hat_giong, goc_dung,
                               phien_ban_o, o_ten, o_mau, bat_dau_luc)
@@ -258,7 +259,7 @@ describe("🔴 R6 — bản xuất Excel cũng phải đọc ẢNH CHỤP", () =
       Date.now(),
     );
 
-    suaO(ct.id, oId, { ten: "Balo mini", thuTu: 0, soLuong: 5, mau: MAU_O_SAN[0] });
+    suaO(ct.id, oId, { ten: "Balo mini", thuTu: 0, soLuong: 5, tiLeTrung: 0.5, mau: MAU_O_SAN[0] });
 
     // Đây chính là file đội sale mang đi đối soát với phụ huynh — nó phải nói
     // đúng thứ đã trao hôm đó, không phải tên trong danh mục hôm nay.

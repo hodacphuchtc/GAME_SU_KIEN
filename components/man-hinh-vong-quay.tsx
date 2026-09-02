@@ -43,7 +43,12 @@ export function ManHinhVongQuay({
   const [gocDich, setGocDich] = useState<number | null>(null);
   const [batDauCucBo, setBatDauCucBo] = useState<number | null>(null);
   const [nguoiQuay, setNguoiQuay] = useState<string | null>(null);
-  const [ketQua, setKetQua] = useState<{ oTen: string; ma: string; ten: string } | null>(null);
+  const [ketQua, setKetQua] = useState<{
+    oTen: string;
+    ma: string;
+    ten: string;
+    giayXem: number;
+  } | null>(null);
 
   /**
    * Độ lệch đồng hồ với máy chủ. Giữ trong ref: đọc trong hàm xử lý tin, đổi nó
@@ -69,7 +74,6 @@ export function ManHinhVongQuay({
    */
   const mayRef = useRef<MayAmThanh | null>(null);
   const [coTieng, setCoTieng] = useState(false);
-  const [daChieu, setDaChieu] = useState(false);
   /** Đã có ít nhất một lượt chạy qua trong lúc máy phát chưa sẵn sàng. */
   const [imLang, setImLang] = useState(false);
 
@@ -87,14 +91,19 @@ export function ManHinhVongQuay({
    * không ai nhìn thấy nó. Lớp phủ toàn màn hình thì KHÔNG THỂ bỏ qua — và cú
    * chạm bắt buộc ấy chính là thứ trình duyệt đòi để mở khoá `AudioContext`.
    */
-  const batDauChieu = useCallback(() => {
+  /**
+   * Mở khoá âm thanh + toàn màn hình + giữ màn sáng, tại CÚ CHẠM ĐẦU TIÊN.
+   *
+   * 🔴 Chuỗi lệnh phải chạy NGAY TRONG sự kiện chạm. Hoãn sang tick sau (await,
+   * setTimeout) là trình duyệt từ chối mở khoá `AudioContext` — nó chỉ tin một
+   * cử chỉ người dùng đang trong ngăn xếp lời gọi.
+   */
+  const moKhoaTaiChamDau = useCallback(() => {
     if (!mayRef.current) mayRef.current = taoMayAmThanh();
     const may = mayRef.current;
-    // Mở khoá NGAY TRONG sự kiện chạm — hoãn sang tick sau là trình duyệt từ chối.
     may.moKhoa();
     may.datTatTieng(false);
     setCoTieng(true);
-    setDaChieu(true);
     // Toàn màn hình + giữ màn không tắt. Cả hai đều có thể bị từ chối (trình
     // duyệt cũ, thiết bị không hỗ trợ) và cả hai đều KHÔNG chặn buổi chiếu.
     void document.documentElement.requestFullscreen?.().catch(() => {});
@@ -104,6 +113,32 @@ export function ManHinhVongQuay({
       ?.request("screen")
       .catch(() => {});
   }, []);
+
+  /**
+   * 🔴 LỚP PHỦ "BẮT ĐẦU CHIẾU" ĐÃ BỎ (GĐ 3.3 sổ v2). Nó chắn nguyên màn hình cho
+   * tới khi có người bấm, nên nhân viên mở LCD rồi đi làm việc khác là cả buổi
+   * màn hình treo một cái nút thay vì chiếu vòng quay.
+   *
+   * 🔴 Cái KHÔNG mất khi bỏ nó: luật autoplay của trình duyệt vẫn nguyên vẹn —
+   * không có cử chỉ người dùng thì không có tiếng, và điều đó KHÔNG lách được.
+   * Nay cú chạm ấy chỉ cần là một cú chạm bất kỳ vào trang, và nó vô hình.
+   *
+   * 🔴 Cái phải giữ: dải "Chưa có tiếng" (`imLang`). Không ai chạm suốt buổi thì
+   * vòng quay chạy CÂM, và người vận hành phải NHÌN THẤY được sự im lặng đó chứ
+   * không đứng đoán vì sao máy không kêu.
+   *
+   * `capture: true` để bắt được cú chạm kể cả khi nó rơi vào một nút con;
+   * `once: true` để tự gỡ sau lần đầu.
+   */
+  useEffect(() => {
+    const tuyChon = { once: true, capture: true } as const;
+    document.addEventListener("pointerdown", moKhoaTaiChamDau, tuyChon);
+    document.addEventListener("keydown", moKhoaTaiChamDau, tuyChon);
+    return () => {
+      document.removeEventListener("pointerdown", moKhoaTaiChamDau, true);
+      document.removeEventListener("keydown", moKhoaTaiChamDau, true);
+    };
+  }, [moKhoaTaiChamDau]);
 
   const duongDanChoi = useClientString(() =>
     typeof window === "undefined" ? "" : `${window.location.origin}/choi/${ma}`,
@@ -183,9 +218,14 @@ export function ManHinhVongQuay({
         break;
       }
       case "ket-qua-quay":
-        setKetQua({ oTen: tin.oTen, ma: tin.maXacThuc, ten: tin.tenRutGon });
+        setKetQua({
+          oTen: tin.oTen,
+          ma: tin.maXacThuc,
+          ten: tin.tenRutGon,
+          giayXem: tin.giayXemKetQua,
+        });
         break;
-      case "nguoi-choi-vao":
+      case "vao-choi":
         setNguoiQuay(tin.tenRutGon);
         break;
       case "roi-di":
@@ -202,19 +242,29 @@ export function ManHinhVongQuay({
 
   useEffect(() => moKenh(ma, nhanTin, setDaNoi), [ma, nhanTin]);
 
+  /**
+   * Thẻ kết quả đứng vài giây rồi màn hình tự về màn chờ.
+   *
+   * 🔴 Bản trước KHÔNG có gì ở đây: thẻ treo tới tận ván sau, nên người kế tiếp
+   * bước tới quầy là nhìn thấy phần quà của người trước. Hai game kia đã có
+   * khuôn này từ lâu; đây là chỗ Vòng Quay bị bỏ quên.
+   *
+   * Số giây lấy từ TIN chứ không từ hằng số của chính trang này — màn hình có
+   * thể đang chạy một bản dựng cũ hơn máy chủ.
+   */
+  useEffect(() => {
+    if (!ketQua) return;
+    const hen = window.setTimeout(() => {
+      setKetQua(null);
+      setNguoiQuay(null);
+      setGocDich(null);
+      setBatDauCucBo(null);
+    }, ketQua.giayXem * 1000);
+    return () => window.clearTimeout(hen);
+  }, [ketQua]);
+
   return (
     <main className="relative flex min-h-dvh flex-col items-center justify-center gap-6 bg-suong px-6 py-8">
-      {!daChieu && (
-        <button
-          type="button"
-          onClick={batDauChieu}
-          className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-white/95 px-8 text-center"
-        >
-          <span className="text-4xl font-black text-tim md:text-6xl">{T.lcdBatDauChieu}</span>
-          <span className="max-w-xl text-base text-chi md:text-lg">{T.lcdBatDauChieuVi}</span>
-        </button>
-      )}
-
       <header className="flex flex-col items-center text-center">
         {/* 🔴 Logo đặt trên nền TRẮNG/sương, không có hiệu ứng nào chạy xuyên
             qua. Khoảng thở do chính component nhận diện lo. */}

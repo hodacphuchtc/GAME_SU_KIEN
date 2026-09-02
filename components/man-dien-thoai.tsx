@@ -151,7 +151,15 @@ export function ManDienThoai({
     tiengRef.current ??= createSoundEngine();
     tiengRef.current.setMuted(tatTieng);
   }, [tatTieng]);
-  const dayDuRef = useRef(cheDo === "online");
+  /**
+   * Máy này có TỰ VẼ dãy số không.
+   *
+   * 🔴 So khác "tai_quay" chứ không so bằng "online": chế độ thứ ba
+   * (tai_quay_hai_man) cũng vẽ, nhưng nó KHÔNG được thừa hưởng những nhánh khác
+   * của online. Ba chỗ trong app/actions/choi.ts vẫn so === "online" một cách cố
+   * ý — nhờ vậy chế độ mới giữ nguyên luật giữ chỗ "một ghế một người" của quầy.
+   */
+  const dayDuRef = useRef(cheDo !== "tai_quay");
 
   // --- Canh đồng hồ + xin chỗ chơi ---
   useEffect(() => {
@@ -412,7 +420,12 @@ export function ManDienThoai({
   }, []);
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-white">
+    /* 🔴 h-dvh chứ KHÔNG min-h-dvh: min- cho phép trang cao hơn màn hình, và
+       phụ huynh phải vuốt tìm nút DỪNG giữa lúc dãy số đang chạy. h- kẹp đúng
+       một khung hình; phần nào không vừa thì tự co (xem min-h-0 + shrink bên
+       dưới), và vùng nội dung có overflow-y-auto làm lưới an toàn cuối cùng để
+       không bao giờ có thứ gì nằm ngoài tầm với. */
+    <main className="mx-auto flex h-dvh w-full max-w-md flex-col overflow-hidden bg-white">
       <header className="px-5 pt-5">
         {/* Logo + câu định vị ở MỌI bước: phụ huynh mở link từ quảng cáo thì đây là
             thứ duy nhất nói cho họ biết mình đang ở trang của ai. */}
@@ -442,7 +455,7 @@ export function ManDienThoai({
         </p>
       </header>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 px-5 py-6 text-center">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 overflow-y-auto px-5 py-6 text-center">
         {buoc === "dang-noi" && <p className="text-chi">{T.phoneConnecting}</p>}
 
         {buoc === "ban" && (
@@ -485,7 +498,7 @@ export function ManDienThoai({
                 Tuyệt đối KHÔNG ở bước `dang-chay`: ảnh mount lúc đó có nguy cơ
                 decode gây hụt khung ngay trên đường đo `pointerdown`. */}
             <div className="flex justify-center">
-              <LinhVatSata canh={150} sizes="160px" className="w-32" />
+              <LinhVatSata canh={150} sizes="160px" className="w-32 min-h-0 shrink" />
             </div>
             <p className="text-center text-xl font-black text-muc">{T.formTitle}</p>
             <label className="mt-4 flex flex-col gap-1.5 text-sm">
@@ -570,10 +583,17 @@ export function ManDienThoai({
 
         {(buoc === "san-sang" || buoc === "cho-chay" || buoc === "dang-chay") && (
           <>
-            {/* 🔴 Chế độ ONLINE: dãy số sống NGAY TRÊN MÁY NÀY. Chế độ tại quầy
-                thì tuyệt đối không vẽ — có hai bảng số trong một phòng là có hai
-                thứ để lệch nhau, và cả sảnh sẽ tin cái nào? */}
-            {cheDo === "online" ? (
+            {/* 🔴 Dãy số sống NGAY TRÊN MÁY NÀY ở hai chế độ: ONLINE (không có
+                màn LCD nào) và TẠI QUẦY HAI MÀN (người chơi đứng chếch, không
+                nhìn rõ màn lớn).
+
+                Chế độ tai_quay THUẦN thì tuyệt đối không vẽ — có hai bảng số
+                trong một phòng mà chúng lệch nhau thì cả sảnh sẽ tin cái nào?
+                Ở chế độ hai màn, chúng KHÔNG lệch được: cả hai máy dựng dãy số
+                bằng cùng một hàm thuần của thời gian, chỉ MỐC BẮT ĐẦU đi qua
+                mạng, và điện thoại quy mốc ấy về đồng hồ của mình bằng độ lệch
+                nó tự đo. */}
+            {cheDo !== "tai_quay" ? (
               <>
                 <div className="w-full rounded-2xl bg-[var(--color-led-nen)] p-4">
                   <Led4Digits value={formatNumber(buoc === "dang-chay" ? soHienThi : 0)} />
@@ -641,7 +661,7 @@ export function ManDienThoai({
                 {/* 🔴 Linh vật CHỈ ở màn THẮNG. Tư thế đang có là "ăn mừng" — robot
                     giơ cúp vàng. Đặt nó cạnh dòng "KHÔNG TRÚNG THƯỞNG" là trêu người
                     vừa hụt, nên màn thua bên dưới KHÔNG có nó (xem `config/tai-san.ts`). */}
-                <LinhVatSata canh={150} sizes="160px" className="w-32" />
+                <LinhVatSata canh={150} sizes="160px" className="w-32 min-h-0 shrink" />
                 <p className="text-4xl font-black text-cam">{T.congrats}</p>
                 <p className="text-chi">{T.wonExact}</p>
                 <p className="font-mono text-5xl font-black text-muc">
@@ -771,13 +791,7 @@ export function ManDienThoai({
                   : "bg-suong text-chi",
             ].join(" ")}
           >
-            {buoc === "san-sang"
-              ? T.start
-              : buoc === "dang-chay"
-                ? coTheDung
-                  ? T.stop
-                  : T.speedingUp
-                : T.phoneWait}
+            {buoc === "san-sang" ? T.start : buoc === "dang-chay" ? T.stop : T.phoneWait}
           </button>
         )}
       </div>

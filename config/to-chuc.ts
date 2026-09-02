@@ -48,8 +48,20 @@ export type TrangThaiLead = (typeof TRANG_THAI_LEAD)[number];
 export const TRANG_THAI_LEAD_DONG: readonly TrangThaiLead[] = ["chot", "bo"];
 export const TRANG_THAI_LEAD_MAC_DINH: TrangThaiLead = "moi";
 
-/** Hai chế độ chơi. `tai_quay` cần màn hình LCD; `online` thì điện thoại tự hiện số. */
-export const CHE_DO_CHOI = ["tai_quay", "online"] as const;
+/**
+ * BA chế độ chơi.
+ *
+ * - `tai_quay` — điện thoại chỉ là NÚT BẤM, dãy số chỉ hiện trên màn LCD. Một
+ *   màn hình thì không có hai màn hình để mà lệch nhau, và cả sảnh nhìn một chỗ.
+ * - `tai_quay_hai_man` — vẫn tại quầy, vẫn giữ chỗ "một ghế một người", nhưng
+ *   điện thoại VẼ LUÔN dãy số song song với LCD. Dành cho quầy mà người chơi
+ *   đứng chếch không nhìn rõ màn lớn.
+ * - `online` — không có màn LCD nào; điện thoại tự hiện số.
+ *
+ * 🔴 Thứ tự trong mảng này là thứ tự THẺ trên form tạo. Thêm giá trị thì nối vào
+ * cuối hoặc sửa cả locale — đừng đổi chuỗi của giá trị đã lưu trong CSDL.
+ */
+export const CHE_DO_CHOI = ["tai_quay", "tai_quay_hai_man", "online"] as const;
 export type CheDoChoi = (typeof CHE_DO_CHOI)[number];
 
 /** Cơ sở của chương trình: gán sẵn, hay để phụ huynh tự chọn lúc chơi. */

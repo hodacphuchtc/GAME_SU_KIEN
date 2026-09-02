@@ -23,7 +23,7 @@ import { CauDinhVi, LinhVatSata, LogoSata } from "@/components/nhan-dien-sata";
  * để mà lệch nhau, và cả sảnh cùng nhìn về một chỗ — đúng thứ tạo ra kịch tính.
  */
 
-type Man = "cho" | "dem-nguoc" | "chay" | "ket-qua";
+type Man = "cho" | "da-vao" | "chay" | "ket-qua";
 
 /**
  * KÊNH 2 của cảnh báo kho (Đ14): một CHẤM TRÒN nhỏ cạnh mã phòng.
@@ -102,10 +102,9 @@ export function ManHinh({ ma, soTrung, tenTrungTam, tenGiaiThuong, thamSo, mucKh
   const [man, setMan] = useState<Man>("cho");
   const [daNoi, setDaNoi] = useState(false);
   const [hienThi, setHienThi] = useState(0);
-  const [demNguoc, setDemNguoc] = useState(0);
+  const [tenNguoiChoi, setTenNguoiChoi] = useState("");
   const [ketQua, setKetQua] = useState<KetQuaHienThi | null>(null);
   const [anhQr, setAnhQr] = useState("");
-  const [coTheDung, setCoTheDung] = useState(false);
 
   const token = useClientString(tokenPhien);
   const goc = useClientString(() => window.location.origin);
@@ -152,7 +151,6 @@ export function ManHinh({ ma, soTrung, tenTrungTam, tenGiaiThuong, thamSo, mucKh
     luotIdRef.current = null;
     setKetQua(null);
     setHienThi(0);
-    setCoTheDung(false);
     setMan("cho");
   }, []);
 
@@ -175,11 +173,6 @@ export function ManHinh({ ma, soTrung, tenTrungTam, tenGiaiThuong, thamSo, mucKh
         return;
       }
       setHienThi(valueAt(s, troi));
-      const moKhoa = canStop(s, troi);
-      setCoTheDung((truoc) => {
-        if (moKhoa && !truoc) tiengRef.current?.unlocked();
-        return moKhoa;
-      });
       // Tick cao dần theo tốc độ ĐANG chạy — chính lib đã tự chặn tần suất.
       tiengRef.current?.tick(
         (speedAt(s, troi) - s.startSpeed) / Math.max(1, s.maxSpeed - s.startSpeed),
@@ -193,16 +186,11 @@ export function ManHinh({ ma, soTrung, tenTrungTam, tenGiaiThuong, thamSo, mucKh
     (tin: TinTrongPhong) => {
       tinCuoiRef.current = Date.now();
       switch (tin.loai) {
-        case "nguoi-choi-vao":
+        case "vao-choi":
           setKetQua(null);
           setHienThi(0);
-          setMan("dem-nguoc");
-          setDemNguoc(0);
-          return;
-        case "dem-nguoc":
-          setDemNguoc(tin.con);
-          setMan("dem-nguoc");
-          tiengRef.current?.countdown(tin.con <= 1);
+          setTenNguoiChoi(tin.tenRutGon);
+          setMan("da-vao");
           return;
         case "bat-dau":
           luotIdRef.current = tin.luotId;
@@ -371,7 +359,7 @@ export function ManHinh({ ma, soTrung, tenTrungTam, tenGiaiThuong, thamSo, mucKh
             <p className="text-sm text-chi lg:text-lg">{T.lcdWaiting}</p>
 
             {/* 🔴 Linh vật CHỈ ở màn chờ, đáy cột trái, hướng về phía mã QR bên phải.
-                Trạng thái `dem-nguoc` và `chay` KHÔNG có nó — cả sảnh đang nhìn 4 chữ
+                Trạng thái `da-vao` và `chay` KHÔNG có nó — cả sảnh đang nhìn 4 chữ
                 số, và bất cứ hình nào trong khung nhìn cũng là đối thủ của con số.
                 Đặt trên nền TRẮNG vì ảnh master không có kênh alpha. */}
             <LinhVatSata
@@ -418,9 +406,9 @@ export function ManHinh({ ma, soTrung, tenTrungTam, tenGiaiThuong, thamSo, mucKh
         </div>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
-          {man === "dem-nguoc" && (
+          {man === "da-vao" && (
             <p className="text-3xl font-black text-tim lg:text-5xl">
-              {demNguoc > 0 ? demNguoc : T.lcdJoined}
+              {tenNguoiChoi === "" ? T.lcdJoined : T.lcdDangChoi(tenNguoiChoi)}
             </p>
           )}
 
@@ -430,7 +418,7 @@ export function ManHinh({ ma, soTrung, tenTrungTam, tenGiaiThuong, thamSo, mucKh
 
           {man === "chay" && (
             <p className="text-2xl font-black tracking-[0.3em] text-cam lg:text-4xl">
-              {coTheDung ? T.lcdPlaying : T.speedingUp}
+              {T.lcdPlaying}
             </p>
           )}
 

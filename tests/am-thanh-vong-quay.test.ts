@@ -29,13 +29,40 @@ function o(id: number, thuTu: number, soLuong: number | null): OQua {
     daTrao: 0,
     tranMoiNgay: 0,
     daTraoHomNay: 0,
+    tiLeTrung: 0.2,
     mau: "#123456",
   };
 }
 
-/** Mặt vòng THẬT: một ô đáy chiếm nửa vòng, bốn ô quà chia phần còn lại. */
+/**
+ * Mặt vòng THẬT hôm nay: năm ô, năm cung bằng nhau (ADR-012).
+ *
+ * Trước 02/09/2026 hàm này cho ra cung lệch (ô đáy nửa vòng, bốn ô quà chia
+ * phần còn lại theo tồn kho) — xem `cungLech()` ngay dưới.
+ */
 function cungThat(): CungTick[] {
   return chiaCung([o(1, 0, null), o(2, 1, 10), o(3, 2, 40), o(4, 3, 25), o(5, 4, 5)]);
+}
+
+/**
+ * 🔴 Mặt vòng LỆCH — dựng bằng tay, KHÔNG qua `chiaCung`.
+ *
+ * Từ ADR-012, `chiaCung` không bao giờ đẻ ra cung lệch nữa. Nhưng ca này vẫn
+ * phải sống: `luot_quay.cung_json` của mọi ván quay TRƯỚC ADR-012 lưu đúng một
+ * mặt vòng lệch như thế này, và nút "Dựng lại ván" phát lại chính nó. Bỏ ca này
+ * là bỏ luôn bảo đảm rằng tiếng tách của ván cũ dựng lại đúng nhịp của nó.
+ *
+ * Con số lấy từ chính cấu hình cũ: ô đáy 180°, bốn ô quà 10 : 40 : 25 : 5.
+ */
+function cungLech(): CungTick[] {
+  const rong = [180, 22.5, 90, 56.25, 11.25];
+  const cung: CungTick[] = [];
+  let moc = 0;
+  for (const r of rong) {
+    cung.push({ tu: moc, doRong: r });
+    moc += r;
+  }
+  return cung;
 }
 
 function khoang(moc: readonly MocTick[]): number[] {
@@ -137,12 +164,12 @@ describe("mocTick() — nhịp CHẬM DẦN khớp vòng quay", () => {
     expect(k[k.length - 1] / k[0]).toBeGreaterThan(5);
   });
 
-  it("vòng KHÔNG đều: nhịp trên mỗi ĐỘ tăng đơn điệu", () => {
-    // 🔴 Mặt vòng thật có cung rộng cung hẹp, nên nhịp THÔ nhấp nhô theo bề
+  it("vòng KHÔNG đều (ván cũ dựng lại): nhịp trên mỗi ĐỘ tăng đơn điệu", () => {
+    // 🔴 Mặt vòng lệch có cung rộng cung hẹp, nên nhịp THÔ nhấp nhô theo bề
     // rộng cung — đó là sự thật vật lý của một vòng quay có ô to ô nhỏ, không
     // phải lỗi. Phép đo đúng cho ca này là nhịp chia cho bề rộng cung vừa đi
     // qua, tức nghịch đảo vận tốc; đại lượng đó phải tăng đơn điệu.
-    const moc = mocTick(GOC_DICH, GIAY_QUAY, cungThat());
+    const moc = mocTick(GOC_DICH, GIAY_QUAY, cungLech());
     const k = khoang(moc);
     let truoc = 0;
     for (let i = 0; i < k.length; i++) {

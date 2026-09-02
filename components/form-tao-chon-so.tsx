@@ -4,8 +4,10 @@ import { useActionState, useState } from "react";
 
 import { DAI_MAC_DINH } from "@/config/chon-so";
 import { T } from "@/config/locale";
+import type { CheDoChoi } from "@/config/to-chuc";
 import { taoChonSoForm, type KetQuaChonSoForm } from "@/app/actions/chon-so";
 import { Led4Digits } from "@/components/led-4-so";
+import { TheCheDo } from "@/components/the-che-do";
 import { GoiY } from "@/components/goi-y";
 import { coDai, nhipCua } from "@/lib/chon-so/vong-so";
 import { formatNumber } from "@/lib/bo-dem";
@@ -25,6 +27,7 @@ export function FormTaoChonSo({ coSo }: { coSo: CoSo[] }) {
   const [tu, setTu] = useState(String(DAI_MAC_DINH.tu));
   const [den, setDen] = useState(String(DAI_MAC_DINH.den));
   const [loaiTru, setLoaiTru] = useState(true);
+  const [cheDo, setCheDo] = useState<CheDoChoi>("tai_quay");
   const [tenDot, setTenDot] = useState("");
   const [coSoId, setCoSoId] = useState<string>(String(coSo[0]?.id ?? ""));
   const [trangThai, guiForm, dangGui] = useActionState<KetQuaChonSoForm, FormData>(
@@ -135,6 +138,11 @@ export function FormTaoChonSo({ coSo }: { coSo: CoSo[] }) {
             </span>
           </span>
         </label>
+
+        {/* 🔴 Chọn Số trước nay KHÔNG có ô chế độ nào: máy chủ hardcode "tai_quay",
+            nên chương trình nào cũng chỉ hiện số trên màn LCD. Nay dùng CHUNG bộ
+            thẻ với Trúng Số — hai game hành xử khác nhau là thứ nhân viên phải nhớ. */}
+        <TheCheDo giaTri={cheDo} doi={setCheDo} />
       </div>
 
       {trangThai.loi && (
